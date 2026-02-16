@@ -55,7 +55,7 @@ export default function MapView() {
         >
           <View style={[styles.pinPrice, selectedIdx === pin.roomIdx && styles.pinPriceActive]}>
             <Text style={[styles.pinPriceText, selectedIdx === pin.roomIdx && styles.pinPriceTextActive]}>
-              ${rooms[pin.roomIdx]?.price ?? 0}
+              €{rooms[pin.roomIdx]?.price ?? 0}
             </Text>
           </View>
           <View style={[styles.pinDot, selectedIdx === pin.roomIdx && styles.pinDotActive]} />
@@ -90,7 +90,7 @@ export default function MapView() {
               <Ionicons name="star" size={14} color={theme.colors.gold} />
               <Text style={styles.cardRatingText}>{selectedRoom.rating}</Text>
             </View>
-            <Text style={styles.cardPrice}>{selectedRoom.pricePerGroup?.length ? `From $${Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price))}` : `$${selectedRoom.price}/person`}</Text>
+            <Text style={styles.cardPrice}>{selectedRoom.pricePerGroup?.length ? `From €${Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price))}` : `€${selectedRoom.price}/person`}</Text>
           </View>
           <TouchableOpacity
             style={styles.bookBtn}

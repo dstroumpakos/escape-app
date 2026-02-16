@@ -55,7 +55,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [story, setStory] = useState('');
-  const [paymentTerms, setPaymentTerms] = useState<'full' | 'deposit_20'>('full');
+  const [paymentTerms, setPaymentTerms] = useState<Array<'full' | 'deposit_20' | 'pay_on_arrival'>>(['full']);
   const [termsOfUse, setTermsOfUse] = useState('');
   const [isSubOnly, setIsSubOnly] = useState(false);
   const [bookingMode, setBookingMode] = useState<'unlocked_primary' | 'external_primary'>('unlocked_primary');
@@ -76,6 +76,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [overflowEnabled, setOverflowEnabled] = useState(false);
   const [overflowTime, setOverflowTime] = useState('10:00 PM');
   const [overflowPrice, setOverflowPrice] = useState('45');
+  const [overflowPricePerGroup, setOverflowPricePerGroup] = useState<Record<number, string>>({});
   const [overflowDays, setOverflowDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Mon-Sat default
   const [loading, setLoading] = useState(false);
   const mapRef = useRef<MapView>(null);
@@ -136,7 +137,10 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       setSelectedTags(existingRoom.tags);
       setDescription(existingRoom.description);
       setStory(existingRoom.story);
-      setPaymentTerms(existingRoom.paymentTerms || 'full');
+      const existing = existingRoom.paymentTerms;
+      setPaymentTerms(
+        Array.isArray(existing) ? existing : existing ? [existing] : ['full']
+      );
       setTermsOfUse(existingRoom.termsOfUse || '');
       setIsSubOnly(existingRoom.isSubscriptionOnly || false);
       setBookingMode((existingRoom as any).bookingMode || 'unlocked_primary');
@@ -157,6 +161,13 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         setOverflowEnabled(true);
         setOverflowTime((existingRoom as any).overflowSlot.time);
         setOverflowPrice(String((existingRoom as any).overflowSlot.price));
+        if ((existingRoom as any).overflowSlot.pricePerGroup) {
+          const map: Record<number, string> = {};
+          (existingRoom as any).overflowSlot.pricePerGroup.forEach((entry: { players: number; price: number }) => {
+            map[entry.players] = String(entry.price);
+          });
+          setOverflowPricePerGroup(map);
+        }
         if ((existingRoom as any).overflowSlot.days) setOverflowDays((existingRoom as any).overflowSlot.days);
       }
     }
@@ -173,6 +184,10 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       Alert.alert('Error', 'Title, location and price are required.');
       return;
     }
+    if (paymentTerms.length === 0) {
+      Alert.alert('Error', 'Please select at least one payment term.');
+      return;
+    }
     setLoading(true);
     try {
       const pMin = parseInt(playersMin) || 2;
@@ -184,10 +199,15 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       const timeSlotData = defaultTimeSlots
         .filter((s) => s.time.trim() !== '')
         .map((s) => ({ time: s.time.trim(), price: parseFloat(s.price) || 0 }));
+      const overflowGroupPricing = Object.entries(overflowPricePerGroup)
+        .filter(([_, v]) => v && v.trim() !== '')
+        .map(([k, v]) => ({ players: parseInt(k), price: parseFloat(v) || 0 }))
+        .sort((a, b) => a.players - b.players);
       const overflowData = overflowEnabled
         ? { overflowSlot: {
             time: overflowTime.trim(),
             price: parseFloat(overflowPrice) || 0,
+            ...(overflowGroupPricing.length > 0 ? { pricePerGroup: overflowGroupPricing } : {}),
             days: overflowDays,
           } }
         : {};
@@ -391,7 +411,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Base Price ($) *</Text>
+              <Text style={styles.label}>Base Price (€) *</Text>
               <TextInput
                 style={styles.input}
                 value={price}
@@ -461,7 +481,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                           placeholder={price || '0'}
                           placeholderTextColor={theme.colors.textMuted}
                         />
-                        <Text style={styles.pricingCurrency}>$</Text>
+                        <Text style={styles.pricingCurrency}>€</Text>
                       </View>
                     ))}
                   </View>
@@ -548,7 +568,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 <Text style={styles.slotTime}>{slot.time}</Text>
               </View>
               <View style={styles.slotPriceWrap}>
-                <Text style={styles.slotCurrency}>$</Text>
+                <Text style={styles.slotCurrency}>€</Text>
                 <TextInput
                   style={styles.slotPriceInput}
                   value={slot.price}
@@ -658,9 +678,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 />
               </View>
               <View style={styles.overflowFieldRow}>
-                <Text style={styles.overflowFieldLabel}>Price</Text>
+                <Text style={styles.overflowFieldLabel}>Base Price</Text>
                 <View style={styles.slotPriceWrap}>
-                  <Text style={styles.slotCurrency}>$</Text>
+                  <Text style={styles.slotCurrency}>€</Text>
                   <TextInput
                     style={styles.slotPriceInput}
                     value={overflowPrice}
@@ -670,44 +690,92 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                   />
                 </View>
               </View>
+
+              {/* Per-Player Overflow Pricing */}
+              {(() => {
+                const pMin = parseInt(playersMin) || 2;
+                const pMax = parseInt(playersMax) || 6;
+                if (pMax >= pMin && pMax - pMin < 20) {
+                  const counts = [];
+                  for (let p = pMin; p <= pMax; p++) counts.push(p);
+                  return (
+                    <>
+                      <Text style={[styles.overflowFieldLabel, { marginTop: 12 }]}>Price per Group Size</Text>
+                      <View style={styles.pricingGrid}>
+                        {counts.map((p) => (
+                          <View key={p} style={styles.pricingRow}>
+                            <View style={styles.pricingLabel}>
+                              <Ionicons name="people" size={14} color={theme.colors.textMuted} />
+                              <Text style={styles.pricingPlayers}>{p}</Text>
+                            </View>
+                            <TextInput
+                              style={styles.pricingInput}
+                              value={overflowPricePerGroup[p] || ''}
+                              onChangeText={(val) => setOverflowPricePerGroup((prev) => ({ ...prev, [p]: val }))}
+                              keyboardType="decimal-pad"
+                              placeholder={overflowPrice || '0'}
+                              placeholderTextColor={theme.colors.textMuted}
+                            />
+                            <Text style={styles.pricingCurrency}>€</Text>
+                          </View>
+                        ))}
+                      </View>
+                      <Text style={styles.pricingHint}>Leave empty to use base overflow price.</Text>
+                    </>
+                  );
+                }
+                return null;
+              })()}
             </View>
           )}
         </View>
 
         {/* Payment Terms */}
-        <Text style={styles.sectionTitle}>Payment Terms</Text>
+        <Text style={styles.sectionTitle}>Payment Terms (select up to 2)</Text>
         <View style={styles.card}>
-          <TouchableOpacity
-            style={[styles.payOption, paymentTerms === 'full' && styles.payOptionActive]}
-            onPress={() => setPaymentTerms('full')}
-          >
-            <View style={styles.payLeft}>
-              <Ionicons name="cash-outline" size={20} color="#fff" />
-              <View>
-                <Text style={styles.payTitle}>Full Payment</Text>
-                <Text style={styles.payDesc}>Players pay 100% when booking</Text>
-              </View>
-            </View>
-            <View style={[styles.radio, paymentTerms === 'full' && styles.radioActive]}>
-              {paymentTerms === 'full' && <View style={styles.radioDot} />}
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.payOption, paymentTerms === 'deposit_20' && styles.payOptionActive]}
-            onPress={() => setPaymentTerms('deposit_20')}
-          >
-            <View style={styles.payLeft}>
-              <Ionicons name="card-outline" size={20} color="#fff" />
-              <View>
-                <Text style={styles.payTitle}>20% Deposit</Text>
-                <Text style={styles.payDesc}>Players pay 20% now, rest on arrival</Text>
-              </View>
-            </View>
-            <View style={[styles.radio, paymentTerms === 'deposit_20' && styles.radioActive]}>
-              {paymentTerms === 'deposit_20' && <View style={styles.radioDot} />}
-            </View>
-          </TouchableOpacity>
+          {([
+            { key: 'full' as const, icon: 'cash-outline' as const, title: 'Full Payment', desc: 'Players pay 100% when booking' },
+            { key: 'deposit_20' as const, icon: 'card-outline' as const, title: '20% Deposit', desc: 'Players pay 20% now, rest on arrival' },
+            { key: 'pay_on_arrival' as const, icon: 'location-outline' as const, title: 'Pay on Arrival', desc: 'No online payment — players pay at the venue' },
+          ]).map((opt) => {
+            const selected = paymentTerms.includes(opt.key);
+            // Incompatible pairs: deposit_20 <-> pay_on_arrival
+            const incompatible: Record<string, string[]> = {
+              full: [],
+              deposit_20: ['pay_on_arrival'],
+              pay_on_arrival: ['deposit_20'],
+            };
+            const blocked = !selected && paymentTerms.some((t) => incompatible[opt.key]?.includes(t));
+            return (
+              <TouchableOpacity
+                key={opt.key}
+                style={[styles.payOption, selected && styles.payOptionActive, blocked && { opacity: 0.35 }]}
+                disabled={blocked}
+                onPress={() => {
+                  setPaymentTerms((prev) => {
+                    if (selected) {
+                      return prev.filter((t) => t !== opt.key);
+                    }
+                    if (prev.length >= 2) {
+                      return [...prev.slice(1), opt.key];
+                    }
+                    return [...prev, opt.key];
+                  });
+                }}
+              >
+                <View style={styles.payLeft}>
+                  <Ionicons name={opt.icon} size={20} color="#fff" />
+                  <View>
+                    <Text style={styles.payTitle}>{opt.title}</Text>
+                    <Text style={styles.payDesc}>{opt.desc}</Text>
+                  </View>
+                </View>
+                <View style={[styles.radio, selected && styles.radioActive]}>
+                  {selected && <View style={styles.radioDot} />}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Terms of Use */}

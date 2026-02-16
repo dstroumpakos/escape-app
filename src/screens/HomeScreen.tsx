@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -6,9 +6,21 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
+import * as Location from 'expo-location';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
+
+/** Haversine distance in km */
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -28,17 +40,52 @@ export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const tabNavigation = useNavigation<TabNav>();
 
-  const convexRooms = useQuery(api.rooms.list);
-  const allRooms = (convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms
-  );
+  // Server queries
+  const featuredRooms = useQuery(api.rooms.featured);
+  const allRooms = useQuery(api.rooms.list);
 
-  const featured = allRooms.filter((r: any) => r.isFeatured);
-  const nearYou = allRooms.slice(0, 4);
-  const trending = allRooms.filter((r: any) => r.isTrending);
+  // Device location state
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  if (convexRooms === undefined) {
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setUserLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    })();
+  }, []);
+
+  const featured = (featuredRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
+
+  // Trending Now: top-rated rooms sorted by star rating (then review count)
+  const trending = React.useMemo(() => {
+    if (!allRooms) return [];
+    return [...allRooms]
+      .map((r: any) => ({ ...r, id: r._id }))
+      .sort((a, b) => b.rating - a.rating || b.reviews - a.reviews)
+      .slice(0, 5);
+  }, [allRooms]);
+
+  // Near You: rooms that have coordinates, sorted by distance from user
+  const nearYou = React.useMemo(() => {
+    if (!allRooms) return [];
+    const withCoords = allRooms
+      .filter((r: any) => r.latitude != null && r.longitude != null)
+      .map((r: any) => ({ ...r, id: r._id }));
+
+    if (!userLocation) return withCoords.slice(0, 4);
+
+    return [...withCoords]
+      .map((r) => ({
+        ...r,
+        _dist: getDistanceKm(userLocation.latitude, userLocation.longitude, r.latitude, r.longitude),
+      }))
+      .sort((a, b) => a._dist - b._dist)
+      .slice(0, 4);
+  }, [allRooms, userLocation]);
+
+  if (featuredRooms === undefined || allRooms === undefined) {
     return (
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.redPrimary} />
@@ -139,7 +186,9 @@ export default function HomeScreen() {
                 </View>
               </View>
               <Text style={styles.nearTitle} numberOfLines={1}>{room.title}</Text>
-              <Text style={styles.nearLoc} numberOfLines={1}>{room.location}</Text>
+              <Text style={styles.nearLoc} numberOfLines={1}>
+                {room._dist != null ? `${room._dist.toFixed(1)} km · ` : ''}{room.location}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>

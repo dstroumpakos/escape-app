@@ -26,6 +26,14 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<'apple' | 'credit'>('apple');
   const [promoCode, setPromoCode] = useState('');
 
+  // Resolve available payment terms (array or legacy single value)
+  const rawTerms = room.paymentTerms;
+  const availableTerms: string[] = Array.isArray(rawTerms)
+    ? rawTerms
+    : rawTerms ? [rawTerms] : ['full'];
+  const [selectedTerm, setSelectedTerm] = useState<string>(availableTerms[0]);
+  const isPayOnArrival = selectedTerm === 'pay_on_arrival';
+
   const serviceFee = 3.99;
   const finalTotal = total + serviceFee;
 
@@ -63,15 +71,15 @@ export default function Checkout() {
           <Text style={styles.cardTitle}>Price Breakdown</Text>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>{players}x Tickets</Text>
-            <Text style={styles.priceVal}>${total.toFixed(2)}</Text>
+            <Text style={styles.priceVal}>€{total.toFixed(2)}</Text>
           </View>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Service Fee</Text>
-            <Text style={styles.priceVal}>${serviceFee.toFixed(2)}</Text>
+            <Text style={styles.priceVal}>€{serviceFee.toFixed(2)}</Text>
           </View>
           <View style={[styles.priceRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalVal}>${finalTotal.toFixed(2)}</Text>
+            <Text style={styles.totalVal}>€{finalTotal.toFixed(2)}</Text>
           </View>
         </View>
 
@@ -99,34 +107,81 @@ export default function Checkout() {
           </View>
         </View>
 
+        {/* Payment Term Selection */}
+        {availableTerms.length > 1 && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Payment Option</Text>
+            {availableTerms.map((term) => {
+              const label = term === 'deposit_20' ? '20% Deposit' : term === 'pay_on_arrival' ? 'Pay on Arrival' : 'Full Payment';
+              const desc = term === 'deposit_20' ? 'Pay 20% now, rest on arrival' : term === 'pay_on_arrival' ? 'No payment now — pay at the venue' : 'Pay 100% when booking';
+              const icon = term === 'deposit_20' ? 'card-outline' : term === 'pay_on_arrival' ? 'location-outline' : 'cash-outline';
+              return (
+                <TouchableOpacity
+                  key={term}
+                  style={[styles.payOption, selectedTerm === term && styles.payOptionActive]}
+                  onPress={() => setSelectedTerm(term)}
+                >
+                  <View style={styles.payRow}>
+                    <Ionicons name={icon as any} size={22} color="#fff" />
+                    <View>
+                      <Text style={styles.payText}>{label}</Text>
+                      <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>{desc}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.radio, selectedTerm === term && styles.radioActive]}>
+                    {selectedTerm === term && <View style={styles.radioDot} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
         {/* Payment Method */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Payment Method</Text>
-          <TouchableOpacity
-            style={[styles.payOption, paymentMethod === 'apple' && styles.payOptionActive]}
-            onPress={() => setPaymentMethod('apple')}
-          >
-            <View style={styles.payRow}>
-              <Ionicons name="logo-apple" size={22} color="#fff" />
-              <Text style={styles.payText}>Apple Pay</Text>
+        {isPayOnArrival ? (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Payment</Text>
+            <View style={[styles.payOption, styles.payOptionActive]}>
+              <View style={styles.payRow}>
+                <Ionicons name="location-outline" size={22} color={theme.colors.redPrimary} />
+                <View>
+                  <Text style={styles.payText}>Pay on Arrival</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
+                    No payment required now — pay at the venue
+                  </Text>
+                </View>
+              </View>
             </View>
-            <View style={[styles.radio, paymentMethod === 'apple' && styles.radioActive]}>
-              {paymentMethod === 'apple' && <View style={styles.radioDot} />}
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.payOption, paymentMethod === 'credit' && styles.payOptionActive]}
-            onPress={() => setPaymentMethod('credit')}
-          >
-            <View style={styles.payRow}>
-              <Ionicons name="card-outline" size={22} color="#fff" />
-              <Text style={styles.payText}>Credit Card</Text>
-            </View>
-            <View style={[styles.radio, paymentMethod === 'credit' && styles.radioActive]}>
-              {paymentMethod === 'credit' && <View style={styles.radioDot} />}
-            </View>
-          </TouchableOpacity>
-        </View>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Payment Method</Text>
+            <TouchableOpacity
+              style={[styles.payOption, paymentMethod === 'apple' && styles.payOptionActive]}
+              onPress={() => setPaymentMethod('apple')}
+            >
+              <View style={styles.payRow}>
+                <Ionicons name="logo-apple" size={22} color="#fff" />
+                <Text style={styles.payText}>Apple Pay</Text>
+              </View>
+              <View style={[styles.radio, paymentMethod === 'apple' && styles.radioActive]}>
+                {paymentMethod === 'apple' && <View style={styles.radioDot} />}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.payOption, paymentMethod === 'credit' && styles.payOptionActive]}
+              onPress={() => setPaymentMethod('credit')}
+            >
+              <View style={styles.payRow}>
+                <Ionicons name="card-outline" size={22} color="#fff" />
+                <Text style={styles.payText}>Credit Card</Text>
+              </View>
+              <View style={[styles.radio, paymentMethod === 'credit' && styles.radioActive]}>
+                {paymentMethod === 'credit' && <View style={styles.radioDot} />}
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       {/* Bottom CTA */}
@@ -138,8 +193,8 @@ export default function Checkout() {
             id: room.id, date, time, players, total: finalTotal,
           })}
         >
-          <Ionicons name="lock-closed" size={18} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.confirmText}>Confirm & Pay ${finalTotal.toFixed(2)}</Text>
+          <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Text style={styles.confirmText}>{isPayOnArrival ? 'Confirm Reservation' : `Confirm & Pay €${finalTotal.toFixed(2)}`}</Text>
         </TouchableOpacity>
       </View>
     </View>

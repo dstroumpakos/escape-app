@@ -223,9 +223,9 @@ export default function DateTimeSelect() {
                 <Text style={[styles.timeVal, !slot.available && styles.timeValDisabled]}>{slot.time}</Text>
                 <View style={styles.slotPriceRow}>
                   {discount > 0 && (
-                    <Text style={styles.slotOrigPrice}>${standardPrice}</Text>
+                    <Text style={styles.slotOrigPrice}>€{standardPrice}</Text>
                   )}
-                  <Text style={[styles.timePrice, discount > 0 && styles.timePriceDiscount]}>${slotTotal}</Text>
+                  <Text style={[styles.timePrice, discount > 0 && styles.timePriceDiscount]}>€{slotTotal}</Text>
                 </View>
               </TouchableOpacity>
             );
@@ -258,8 +258,8 @@ export default function DateTimeSelect() {
                 const ovDiscount = getSlotDiscount({ price: overflowSlot.price });
                 return (
                   <View style={styles.slotPriceRow}>
-                    {ovDiscount > 0 && <Text style={styles.slotOrigPrice}>${standardPrice}</Text>}
-                    <Text style={[styles.timePrice, ovDiscount > 0 && styles.timePriceDiscount]}>${ovPrice}</Text>
+                    {ovDiscount > 0 && <Text style={styles.slotOrigPrice}>€{standardPrice}</Text>}
+                    <Text style={[styles.timePrice, ovDiscount > 0 && styles.timePriceDiscount]}>€{ovPrice}</Text>
                   </View>
                 );
               })()}

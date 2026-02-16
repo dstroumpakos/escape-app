@@ -212,7 +212,7 @@ export default function CompanyBookings({ companyId }: Props) {
                             <Text style={styles.slotMeta}>
                               {booking.players} players
                               {booking.source !== 'external' && booking.total > 0
-                                ? ` · $${booking.total}`
+                                ? ` · €${booking.total}`
                                 : ''}
                             </Text>
                           </View>

@@ -240,7 +240,7 @@ export default function DiscoverScreen() {
                 <View style={styles.markerWrap}>
                   <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive]}>
                     <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
-                      ${room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
+                      €{room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
                     </Text>
                   </View>
                   <View style={[styles.markerArrow, isSelected && styles.markerArrowActive]} />
@@ -343,7 +343,7 @@ export default function DiscoverScreen() {
                   <View style={styles.peekMeta}>
                     <Ionicons name="star" size={11} color={theme.colors.gold} />
                     <Text style={styles.peekRating}>{room.rating}</Text>
-                    <Text style={styles.peekPrice}>{room.pricePerGroup?.length ? `From $${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}`}</Text>
+                    <Text style={styles.peekPrice}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -399,7 +399,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
 
           <View style={styles.cardBottom}>
             <Text style={styles.cardPrice}>
-              {room.pricePerGroup?.length ? `From $${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}`}
+              {room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}
               {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>/person</Text>}
             </Text>
             <TouchableOpacity

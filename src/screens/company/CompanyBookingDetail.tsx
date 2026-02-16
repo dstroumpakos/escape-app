@@ -202,7 +202,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Payment</Text>
             <View style={styles.payRow}>
-              <Text style={styles.payTotal}>${booking.total.toFixed(2)}</Text>
+              <Text style={styles.payTotal}>€{booking.total.toFixed(2)}</Text>
               <View style={[styles.payBadge, {
                 backgroundColor: booking.paymentStatus === 'paid'
                   ? 'rgba(76,175,80,0.15)' : 'rgba(255,167,38,0.15)'
@@ -214,8 +214,11 @@ export default function CompanyBookingDetail({ companyId }: Props) {
                 </Text>
               </View>
             </View>
-            {booking.paymentTerms === 'deposit_20' && (
+            {(booking.paymentTerms === 'deposit_20' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('deposit_20'))) && (
               <Text style={styles.payNote}>20% deposit terms</Text>
+            )}
+            {(booking.paymentTerms === 'pay_on_arrival' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('pay_on_arrival'))) && (
+              <Text style={styles.payNote}>Pay on arrival</Text>
             )}
           </View>
         )}

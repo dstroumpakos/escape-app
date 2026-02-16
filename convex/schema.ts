@@ -48,8 +48,16 @@ export default defineSchema({
     // Company fields
     companyId: v.optional(v.id("companies")),
     paymentTerms: v.optional(v.union(
+      v.array(
+        v.union(
+          v.literal("full"),
+          v.literal("deposit_20"),
+          v.literal("pay_on_arrival")
+        )
+      ),
       v.literal("full"),
-      v.literal("deposit_20")
+      v.literal("deposit_20"),
+      v.literal("pay_on_arrival")
     )),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
@@ -69,6 +77,7 @@ export default defineSchema({
     overflowSlot: v.optional(v.object({
       time: v.string(),
       price: v.number(),
+      pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))),
       days: v.array(v.number()), // 0=Sun,1=Mon,...6=Sat — which days overflow is active
     })),
   })
@@ -132,7 +141,8 @@ export default defineSchema({
     depositPaid: v.optional(v.number()),
     paymentTerms: v.optional(v.union(
       v.literal("full"),
-      v.literal("deposit_20")
+      v.literal("deposit_20"),
+      v.literal("pay_on_arrival")
     )),
     // ─── Booking source & company tracking ───
     companyId: v.optional(v.id("companies")),

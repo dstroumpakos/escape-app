@@ -87,9 +87,9 @@ export default function CompanyRoomsList({ companyId }: Props) {
                   <View style={styles.roomMeta}>
                     <Text style={styles.roomMetaText}>{room.theme}</Text>
                     <Text style={styles.roomMetaText}>{room.duration}min</Text>
-                    <Text style={styles.roomMetaText}>{room.pricePerGroup?.length ? `$${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-$${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}/person`}</Text>
+                    <Text style={styles.roomMetaText}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}/person`}</Text>
                     <Text style={styles.roomMetaText}>
-                      {room.paymentTerms === 'deposit_20' ? '20% deposit' : 'Full payment'}
+                      {(Array.isArray(room.paymentTerms) ? room.paymentTerms : [room.paymentTerms || 'full']).map((t: string) => t === 'deposit_20' ? '20% deposit' : t === 'pay_on_arrival' ? 'Pay on arrival' : 'Full payment').join(' / ')}
                     </Text>
                     {room.operatingDays && (
                       <Text style={styles.roomMetaText}>

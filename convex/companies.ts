@@ -138,7 +138,7 @@ export const createRoom = mutation({
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),
-    paymentTerms: v.union(v.literal("full"), v.literal("deposit_20")),
+    paymentTerms: v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival"))),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
@@ -146,7 +146,7 @@ export const createRoom = mutation({
     longitude: v.optional(v.number()),
     operatingDays: v.optional(v.array(v.number())),
     defaultTimeSlots: v.optional(v.array(v.object({ time: v.string(), price: v.number() }))),
-    overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), days: v.array(v.number()) })),
+    overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("rooms", {
@@ -180,7 +180,7 @@ export const updateRoom = mutation({
     tags: v.optional(v.array(v.string())),
     description: v.optional(v.string()),
     story: v.optional(v.string()),
-    paymentTerms: v.optional(v.union(v.literal("full"), v.literal("deposit_20"))),
+    paymentTerms: v.optional(v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival")))),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
@@ -188,7 +188,7 @@ export const updateRoom = mutation({
     longitude: v.optional(v.number()),
     operatingDays: v.optional(v.array(v.number())),
     defaultTimeSlots: v.optional(v.array(v.object({ time: v.string(), price: v.number() }))),
-    overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), days: v.array(v.number()) })),
+    overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

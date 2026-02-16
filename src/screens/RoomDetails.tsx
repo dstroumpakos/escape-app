@@ -150,7 +150,7 @@ export default function RoomDetails() {
       {/* Sticky CTA */}
       <View style={styles.ctaBar}>
         <View>
-          <Text style={styles.ctaPriceVal}>{room.pricePerGroup?.length ? `From $${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}`}</Text>
+          <Text style={styles.ctaPriceVal}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
           {!room.pricePerGroup?.length && <Text style={styles.ctaPriceLabel}>/person</Text>}
         </View>
         <TouchableOpacity

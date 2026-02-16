@@ -210,7 +210,7 @@ export default function CompanyAddBooking() {
               <Text style={[styles.roomCardTitle, selectedRoom === room._id && styles.roomCardTitleActive]} numberOfLines={1}>
                 {room.title}
               </Text>
-              <Text style={styles.roomCardMeta}>{room.pricePerGroup?.length ? `$${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-$${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}/person`}</Text>
+              <Text style={styles.roomCardMeta}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}/person`}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

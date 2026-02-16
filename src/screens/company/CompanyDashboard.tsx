@@ -96,7 +96,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statVal, { color: theme.colors.success }]}>
-              ${stats?.revenue ?? 0}
+              €{stats?.revenue ?? 0}
             </Text>
             <Text style={styles.statLabel}>Revenue</Text>
           </View>
@@ -160,7 +160,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
                     {booking.source !== 'external' && booking.total > 0 && (
                       <>
                         <Ionicons name="cash-outline" size={12} color={theme.colors.textMuted} />
-                        <Text style={styles.bookingMetaText}>${booking.total}</Text>
+                        <Text style={styles.bookingMetaText}>€{booking.total}</Text>
                       </>
                     )}
                   </View>

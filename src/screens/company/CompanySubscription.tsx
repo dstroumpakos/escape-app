@@ -81,7 +81,7 @@ export default function CompanySubscription({ companyId }: Props) {
           </View>
           <View style={styles.statCard}>
             <Ionicons name="cash" size={22} color={theme.colors.success} />
-            <Text style={styles.statVal}>${totalRevenue}/mo</Text>
+            <Text style={styles.statVal}>€{totalRevenue}/mo</Text>
             <Text style={styles.statLabel}>Monthly Rev</Text>
           </View>
         </View>
@@ -108,7 +108,7 @@ export default function CompanySubscription({ companyId }: Props) {
             <View style={styles.card}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Monthly Price ($)</Text>
+                  <Text style={styles.label}>Monthly Price (€)</Text>
                   <TextInput
                     style={styles.input}
                     value={monthly}
@@ -119,7 +119,7 @@ export default function CompanySubscription({ companyId }: Props) {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Yearly Price ($)</Text>
+                  <Text style={styles.label}>Yearly Price (€)</Text>
                   <TextInput
                     style={styles.input}
                     value={yearly}
@@ -132,7 +132,7 @@ export default function CompanySubscription({ companyId }: Props) {
               </View>
               {monthly && yearly && (
                 <Text style={styles.savings}>
-                  Yearly saves players ${(parseFloat(monthly) * 12 - parseFloat(yearly)).toFixed(2)}/year
+                  Yearly saves players €{(parseFloat(monthly) * 12 - parseFloat(yearly)).toFixed(2)}/year
                 </Text>
               )}
             </View>
@@ -198,7 +198,7 @@ export default function CompanySubscription({ companyId }: Props) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subName}>{sub.userName}</Text>
                       <Text style={styles.subPlan}>
-                        {sub.plan === 'monthly' ? 'Monthly' : 'Yearly'} — ${sub.price}/
+                        {sub.plan === 'monthly' ? 'Monthly' : 'Yearly'} — €{sub.price}/
                         {sub.plan === 'monthly' ? 'mo' : 'yr'}
                       </Text>
                     </View>

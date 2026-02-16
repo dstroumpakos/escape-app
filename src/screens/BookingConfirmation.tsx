@@ -79,7 +79,7 @@ export default function BookingConfirmation() {
               <View style={styles.infoItem}>
                 <Ionicons name="pricetag-outline" size={16} color={theme.colors.textMuted} />
                 <Text style={styles.infoLabel}>Total</Text>
-                <Text style={styles.infoVal}>${total.toFixed(2)}</Text>
+                <Text style={styles.infoVal}>€{total.toFixed(2)}</Text>
               </View>
             </View>
 
@@ -105,7 +105,7 @@ export default function BookingConfirmation() {
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={async () => {
               try {
                 await Share.share({
-                  message: `Booking Confirmation\n\nRoom: ${room.title}\nDate: ${date}\nTime: ${time}\nPlayers: ${players}\nTotal: $${total.toFixed(2)}\nBooking ID: ${bookingId}\n\nSee you at ${room.location}!`,
+                  message: `Booking Confirmation\n\nRoom: ${room.title}\nDate: ${date}\nTime: ${time}\nPlayers: ${players}\nTotal: €${total.toFixed(2)}\nBooking ID: ${bookingId}\n\nSee you at ${room.location}!`,
                   title: 'Booking Receipt',
                 });
               } catch {

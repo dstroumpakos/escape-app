@@ -155,7 +155,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
                 <View style={styles.wishRow}>
                   <Ionicons name="star" size={12} color="#FFD700" />
                   <Text style={styles.wishRating}>{room.rating}</Text>
-                  <Text style={styles.wishPrice}>{room.pricePerGroup?.length ? `From $${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `$${room.price}`}</Text>
+                  <Text style={styles.wishPrice}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={() => Alert.alert('Wishlist', `${room.title} removed from wishlist.`)}>

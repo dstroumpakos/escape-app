@@ -279,7 +279,7 @@ export default function CompanyAvailability() {
           <View style={styles.overflowBanner}>
             <Ionicons name="flash" size={16} color="#FFD700" />
             <Text style={styles.overflowBannerText}>
-              All slots booked — overflow slot ({room.overflowSlot.time} · ${room.overflowSlot.price}) is now visible to players
+              All slots booked — overflow slot ({room.overflowSlot.time} · €{room.overflowSlot.price}) is now visible to players
             </Text>
           </View>
         )}
@@ -304,7 +304,7 @@ export default function CompanyAvailability() {
                 </TouchableOpacity>
                 <Text style={[styles.slotTime, !slot.available && styles.slotTimeOff]}>{slot.time}</Text>
                 <View style={styles.slotPriceWrap}>
-                  <Text style={styles.slotDollar}>$</Text>
+                  <Text style={styles.slotDollar}>€</Text>
                   <TextInput
                     style={styles.slotPriceInput}
                     value={slot.price}

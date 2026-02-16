@@ -11,6 +11,7 @@ import { RootStackParamList, MainTabParamList, CompanyTabParamList } from './src
 import { theme } from './src/theme';
 import { convex } from './src/convex';
 import { UserProvider } from './src/UserContext';
+import { LanguageProvider } from './src/i18n';
 
 // Player Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -158,6 +159,7 @@ export default function App() {
 
   if (appState === 'splash') {
     return (
+      <LanguageProvider>
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
@@ -176,33 +178,39 @@ export default function App() {
           />
         </View>
       </ConvexProvider>
+      </LanguageProvider>
     );
   }
 
   if (appState === 'login') {
     return (
+      <LanguageProvider>
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
           <LoginScreen onLogin={handleLogin} />
         </View>
       </ConvexProvider>
+      </LanguageProvider>
     );
   }
 
   if (appState === 'onboarding') {
     return (
+      <LanguageProvider>
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
           <Onboarding onComplete={() => setAppState('main')} userId={userId} />
         </View>
       </ConvexProvider>
+      </LanguageProvider>
     );
   }
 
   if (appState === 'companyAuth') {
     return (
+      <LanguageProvider>
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
