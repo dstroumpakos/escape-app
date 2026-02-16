@@ -130,6 +130,7 @@ export default defineSchema({
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     city: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()),
   }).index("by_email", ["email"])
     .index("by_apple_id", ["appleId"]),
 

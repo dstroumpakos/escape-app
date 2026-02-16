@@ -607,18 +607,19 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 ```
 
 ### Admin Access
-In the mobile app, admin access is granted to a **hardcoded Apple private relay email**: `apple_001386.f@private.relay`. For the web portal, use a different approach:
+In the mobile app, admin access is controlled by the `isAdmin` boolean field on the `users` table in Convex. To grant admin access, set `isAdmin: true` on the user document via the Convex dashboard or the `users.setAdmin` mutation — **no app rebuild required**.
+
+Current admin emails:
+- `apple_001386.f@private.relay` (development)
+- `apple_001386.8@private.relay` (production)
+
+For the web portal, use the same `isAdmin` field or a similar approach:
 
 ```typescript
-// lib/auth.ts
-const ADMIN_EMAILS = ['your-admin-email@example.com']; // Set your actual admin email
-
-export function isAdmin(companyEmail: string): boolean {
-  return ADMIN_EMAILS.includes(companyEmail.toLowerCase());
-}
+// lib/auth.ts — check isAdmin from user record rather than hardcoding emails
 ```
 
-The admin panel (`/admin`) should only be visible in the sidebar and accessible if the logged-in company email matches an admin email. The Convex functions `getAllCompanies`, `approveCompany`, and `declineCompany` have **no server-side admin check** — they rely on the client hiding the UI. You may want to add server-side checks later.
+The admin panel (`/admin`) should only be visible in the sidebar and accessible if the logged-in user has `isAdmin: true`. The Convex functions `getAllCompanies`, `approveCompany`, and `declineCompany` have **no server-side admin check** — they rely on the client hiding the UI. You may want to add server-side checks later.
 
 ---
 

@@ -253,6 +253,19 @@ export const updateStats = mutation({
   },
 });
 
+export const setAdmin = mutation({
+  args: {
+    userId: v.id("users"),
+    isAdmin: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(args.userId, { isAdmin: args.isAdmin });
+    return args.userId;
+  },
+});
+
 export const updateLocation = mutation({
   args: {
     userId: v.id("users"),

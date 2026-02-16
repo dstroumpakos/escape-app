@@ -164,7 +164,8 @@ export default function App() {
     await AsyncStorage.setItem('userId', id);
     setUserId(id);
     setCrashUser(id);
-    setAppState('onboarding');
+    const hasOnboarded = await AsyncStorage.getItem('hasOnboarded');
+    setAppState(hasOnboarded ? 'main' : 'onboarding');
   };
 
   const handleLogout = async () => {
@@ -233,7 +234,10 @@ export default function App() {
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
-          <Onboarding onComplete={() => setAppState('main')} userId={userId} />
+          <Onboarding onComplete={async () => {
+            await AsyncStorage.setItem('hasOnboarded', 'true');
+            setAppState('main');
+          }} userId={userId} />
         </View>
       </ConvexProvider>
       </LanguageProvider>

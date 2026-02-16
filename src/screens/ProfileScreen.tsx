@@ -196,8 +196,8 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
           <Text style={styles.switchBusinessText}>{t('profile.switchBusiness')}</Text>
         </TouchableOpacity>
 
-        {/* Admin Review */}
-        {onAdminReview && user.email === 'apple_001386.f@private.relay' && (
+        {/* Admin Review — isAdmin from Convex OR known admin relay emails */}
+        {onAdminReview && (user.isAdmin || user.email === 'apple_001386.f@private.relay' || user.email === 'apple_001386.8@private.relay') && (
           <TouchableOpacity
             style={[styles.switchBusinessBtn, { marginTop: 10, borderColor: '#FFA726' }]}
             onPress={onAdminReview}
