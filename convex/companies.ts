@@ -22,6 +22,7 @@ export const register = mutation({
     phone: v.string(),
     address: v.string(),
     city: v.string(),
+    vatNumber: v.optional(v.string()),
     description: v.string(),
     password: v.string(),
   },
@@ -38,6 +39,7 @@ export const register = mutation({
       verified: false,
       createdAt: Date.now(),
       subscriptionEnabled: false,
+      onboardingStatus: "pending_terms",
     });
     return { id };
   },
@@ -47,7 +49,9 @@ export const register = mutation({
 export const getById = query({
   args: { id: v.id("companies") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const company = await ctx.db.get(args.id);
+    if (!company) return null;
+    return { ...company, onboardingStatus: company.onboardingStatus || "approved" };
   },
 });
 
@@ -58,6 +62,7 @@ export const updateProfile = mutation({
     phone: v.string(),
     address: v.string(),
     city: v.string(),
+    vatNumber: v.optional(v.string()),
     description: v.string(),
     logo: v.optional(v.string()),
   },
@@ -336,7 +341,94 @@ export const loginCompany = mutation({
       .first();
     if (!company) throw new Error("No business account found with this email");
     if (company.password !== args.password) throw new Error("Incorrect password");
-    return { _id: company._id, name: company.name };
+    // Auto-patch old companies that existed before onboarding flow
+    if (!company.onboardingStatus) {
+      await ctx.db.patch(company._id, { onboardingStatus: "approved" });
+    }
+    return {
+      _id: company._id,
+      name: company.name,
+      onboardingStatus: company.onboardingStatus || "approved",
+    };
+  },
+});
+
+// ─── Company Onboarding ───
+export const acceptTerms = mutation({
+  args: { companyId: v.id("companies") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      termsAcceptedAt: Date.now(),
+      onboardingStatus: "pending_plan",
+    });
+  },
+});
+
+export const selectPlan = mutation({
+  args: {
+    companyId: v.id("companies"),
+    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      platformPlan: args.plan,
+      platformSubscribedAt: Date.now(),
+      onboardingStatus: "pending_review",
+    });
+  },
+});
+
+// Admin: list all pending review companies
+export const getPendingReview = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("companies").collect();
+    return all.filter((c) => c.onboardingStatus === "pending_review");
+  },
+});
+
+// Admin: list all companies for management
+export const getAllCompanies = query({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("companies").collect();
+    return all.map((c) => ({ ...c, onboardingStatus: c.onboardingStatus || "approved" }));
+  },
+});
+
+// Admin: approve company
+export const approveCompany = mutation({
+  args: { companyId: v.id("companies") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      onboardingStatus: "approved",
+      verified: true,
+      reviewedAt: Date.now(),
+      adminNotes: undefined,
+    });
+  },
+});
+
+// Admin: decline company with notes
+export const declineCompany = mutation({
+  args: { companyId: v.id("companies"), notes: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      onboardingStatus: "declined",
+      reviewedAt: Date.now(),
+      adminNotes: args.notes,
+    });
+  },
+});
+
+// Company: resubmit after decline
+export const resubmitForReview = mutation({
+  args: { companyId: v.id("companies") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      onboardingStatus: "pending_review",
+      adminNotes: undefined,
+    });
   },
 });
 

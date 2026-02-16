@@ -13,14 +13,27 @@
       "backgroundColor": "#1A0D0D"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1A0D0D"
-      }
+      },
+      "useNextNotificationsApi": true
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#DC2626"
+        }
+      ]
+    ],
     "platforms": ["ios", "android"]
   }
 }

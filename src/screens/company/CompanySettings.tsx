@@ -25,6 +25,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [vatNumber, setVatNumber] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -34,6 +35,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
       setPhone(company.phone);
       setAddress(company.address);
       setCity(company.city);
+      setVatNumber(company.vatNumber ?? '');
       setDescription(company.description);
     }
   }, [company]);
@@ -47,6 +49,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
         phone: phone.trim(),
         address: address.trim(),
         city: city.trim(),
+        vatNumber: vatNumber.trim() || undefined,
         description: description.trim(),
       });
       Alert.alert(t('availability.saved'), t('settings.profileUpdated'));
@@ -73,12 +76,26 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
           <Text style={styles.companyEmail}>{company?.email ?? ''}</Text>
           <View style={styles.verifiedBadge}>
             <Ionicons
-              name={company?.verified ? 'shield-checkmark' : 'shield-outline'}
+              name={
+                company?.onboardingStatus === 'approved' ? 'shield-checkmark' :
+                company?.onboardingStatus === 'declined' ? 'close-circle' : 'hourglass-outline'
+              }
               size={14}
-              color={company?.verified ? theme.colors.success : theme.colors.textMuted}
+              color={
+                company?.onboardingStatus === 'approved' ? theme.colors.success :
+                company?.onboardingStatus === 'declined' ? '#F44336' : '#FFA726'
+              }
             />
-            <Text style={[styles.verifiedText, company?.verified && { color: theme.colors.success }]}>
-              {company?.verified ? t('settings.verified') : t('settings.pending')}
+            <Text style={[styles.verifiedText, {
+              color: company?.onboardingStatus === 'approved' ? theme.colors.success :
+                     company?.onboardingStatus === 'declined' ? '#F44336' : '#FFA726'
+            }]}>
+              {company?.onboardingStatus === 'approved' ? t('settings.verified') :
+               company?.onboardingStatus === 'declined' ? t('settings.declined') :
+               company?.onboardingStatus === 'pending_review' ? t('settings.pendingReview') :
+               company?.onboardingStatus === 'pending_plan' ? t('settings.pendingPlan') :
+               company?.onboardingStatus === 'pending_terms' ? t('settings.pendingTerms') :
+               t('settings.pending')}
             </Text>
           </View>
         </View>
@@ -116,6 +133,15 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             style={styles.input}
             value={address}
             onChangeText={setAddress}
+            placeholderTextColor={theme.colors.textMuted}
+          />
+
+          <Text style={styles.label}>{t('settings.vatNumber')}</Text>
+          <TextInput
+            style={styles.input}
+            value={vatNumber}
+            onChangeText={setVatNumber}
+            keyboardType="numeric"
             placeholderTextColor={theme.colors.textMuted}
           />
 

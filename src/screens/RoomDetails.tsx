@@ -5,7 +5,6 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
@@ -21,9 +20,7 @@ export default function RoomDetails() {
   const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
-  const allRooms = convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms;
+  const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === roomId) || allRooms[0];
 
   const [liked, setLiked] = useState(false);

@@ -37,6 +37,9 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
     companyId: companyId as Id<"companies">,
     date: dateStr,
   });
+  const overallStats = useQuery(api.companies.getDashboardStats, {
+    companyId: companyId as Id<"companies">,
+  });
   const bookings = useQuery(api.companies.getBookingsByDate, {
     companyId: companyId as Id<"companies">,
     date: dateStr,
@@ -69,6 +72,12 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             </TouchableOpacity>
           )}
           <TouchableOpacity
+            style={[styles.addBtn, { backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder }]}
+            onPress={() => navigation.navigate('CompanyQRScanner', { companyId })}
+          >
+            <Ionicons name="qr-code-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
             style={styles.addBtn}
             onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
           >
@@ -86,7 +95,27 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
           </Text>
         </View>
 
-        {/* Quick Stats */}
+        {/* Overall Stats */}
+        <Text style={styles.sectionTitle}>{t('dashboard.overview')}</Text>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statVal}>{overallStats?.totalBookings ?? 0}</Text>
+            <Text style={styles.statLabel}>{t('dashboard.totalBookings')}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statVal}>{overallStats?.upcomingBookings ?? 0}</Text>
+            <Text style={styles.statLabel}>{t('dashboard.upcoming')}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={[styles.statVal, { color: theme.colors.success }]}>
+              €{overallStats?.totalRevenue ?? 0}
+            </Text>
+            <Text style={styles.statLabel}>{t('dashboard.totalRevenue')}</Text>
+          </View>
+        </View>
+
+        {/* Today Stats */}
+        <Text style={styles.sectionTitle}>{t('dashboard.todayStats')}</Text>
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statVal}>{stats?.totalBookings ?? 0}</Text>
@@ -164,6 +193,19 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
                         <Ionicons name="cash-outline" size={12} color={theme.colors.textMuted} />
                         <Text style={styles.bookingMetaText}>€{booking.total}</Text>
                       </>
+                    )}
+                    {booking.paymentStatus && (
+                      <View style={{
+                        backgroundColor: booking.paymentStatus === 'paid' ? 'rgba(76,175,80,0.15)' : booking.paymentStatus === 'deposit' ? 'rgba(255,167,38,0.15)' : 'rgba(66,165,245,0.15)',
+                        paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, marginLeft: 2,
+                      }}>
+                        <Text style={{
+                          fontSize: 9, fontWeight: '700',
+                          color: booking.paymentStatus === 'paid' ? '#4CAF50' : booking.paymentStatus === 'deposit' ? '#FFA726' : '#42A5F5',
+                        }}>
+                          {booking.paymentStatus === 'paid' ? t('dashboard.paid') : booking.paymentStatus === 'deposit' ? t('dashboard.deposit') : t('dashboard.unpaid')}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 </View>

@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -23,11 +23,10 @@ export default function DateTimeSelect() {
   const roomId = route.params.id;
 
   const { t } = useTranslation();
+  const { userId } = useUser();
 
   const convexRooms = useQuery(api.rooms.list);
-  const allRooms = convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms;
+  const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === roomId) || allRooms[0];
 
   const today = new Date();
@@ -48,36 +47,49 @@ export default function DateTimeSelect() {
     room._id ? { roomId: room._id as Id<"rooms">, date: dateStr } : "skip"
   );
 
+  // Fetch already-booked times for this room+date
+  const bookedTimes = useQuery(
+    api.bookings.getBookedTimes,
+    room._id ? { roomId: room._id as Id<"rooms">, date: dateStr } : "skip"
+  );
+  const bookedSet = useMemo(() => new Set(bookedTimes || []), [bookedTimes]);
+
   // Build display slots: use per-date Convex slots, fallback to room defaults, then static
   const displaySlots = useMemo(() => {
+    let slots;
     if (convexSlots && convexSlots.length > 0) {
-      return convexSlots.map((s: any) => ({
+      slots = convexSlots.map((s: any) => ({
         id: s._id || s.time,
         time: s.time,
         price: s.price,
         available: s.available,
       }));
-    }
-    if (room.defaultTimeSlots && room.defaultTimeSlots.length > 0) {
-      return room.defaultTimeSlots.map((s: any, i: number) => ({
+    } else if (room.defaultTimeSlots && room.defaultTimeSlots.length > 0) {
+      slots = room.defaultTimeSlots.map((s: any, i: number) => ({
         id: `default-${i}`,
         time: s.time,
         price: s.price,
         available: true,
       }));
+    } else {
+      // Fallback static slots
+      slots = [
+        { id: '1', time: '10:00 AM', available: true, price: room.price || 35 },
+        { id: '2', time: '11:30 AM', available: true, price: room.price || 35 },
+        { id: '3', time: '1:00 PM', available: true, price: room.price || 35 },
+        { id: '4', time: '2:30 PM', available: true, price: room.price || 35 },
+        { id: '5', time: '4:00 PM', available: true, price: room.price || 38 },
+        { id: '6', time: '5:30 PM', available: true, price: room.price || 38 },
+        { id: '7', time: '7:00 PM', available: true, price: room.price || 42 },
+        { id: '8', time: '8:30 PM', available: true, price: room.price || 42 },
+      ];
     }
-    // Fallback static slots
-    return [
-      { id: '1', time: '10:00 AM', available: true, price: room.price || 35 },
-      { id: '2', time: '11:30 AM', available: true, price: room.price || 35 },
-      { id: '3', time: '1:00 PM', available: true, price: room.price || 35 },
-      { id: '4', time: '2:30 PM', available: true, price: room.price || 35 },
-      { id: '5', time: '4:00 PM', available: true, price: room.price || 38 },
-      { id: '6', time: '5:30 PM', available: true, price: room.price || 38 },
-      { id: '7', time: '7:00 PM', available: true, price: room.price || 42 },
-      { id: '8', time: '8:30 PM', available: true, price: room.price || 42 },
-    ];
-  }, [convexSlots, room]);
+    // Mark slots as unavailable if already booked
+    return slots.map((s: any) => ({
+      ...s,
+      available: s.available && !bookedSet.has(s.time),
+    }));
+  }, [convexSlots, room, bookedSet]);
 
   // Check if all regular slots are unavailable → unlock overflow
   const allRegularBooked = displaySlots.length > 0 && displaySlots.every((s: any) => !s.available);
@@ -87,6 +99,39 @@ export default function DateTimeSelect() {
     ? overflowSlot.days.includes(selectedDayOfWeek)
     : true;
   const showOverflow = allRegularBooked && !!overflowSlot && overflowActiveToday;
+
+  // ── Slot alerts: let users subscribe to unavailable slots ──
+  const slotAlerts = useQuery(
+    api.slotAlerts.getByUserRoomDate,
+    userId && room._id
+      ? { userId: userId as Id<"users">, roomId: room._id as Id<"rooms">, date: dateStr }
+      : 'skip',
+  );
+  const toggleAlert = useMutation(api.slotAlerts.toggle);
+
+  const alertedTimes = useMemo(() => {
+    if (!slotAlerts) return new Set<string>();
+    return new Set(slotAlerts.map((a: any) => a.time));
+  }, [slotAlerts]);
+
+  const handleToggleAlert = async (slotTime: string) => {
+    if (!userId) {
+      Alert.alert(t('error'), t('dateTime.loginForAlert'));
+      return;
+    }
+    if (!room._id) return;
+    const result = await toggleAlert({
+      userId: userId as Id<"users">,
+      roomId: room._id as Id<"rooms">,
+      date: dateStr,
+      time: slotTime,
+    });
+    if (result.subscribed) {
+      Alert.alert(t('dateTime.alertOnTitle'), t('dateTime.alertOnMsg'));
+    } else {
+      Alert.alert(t('dateTime.alertOffTitle'), t('dateTime.alertOffMsg'));
+    }
+  };
 
   const calendarDays = useMemo(() => {
     const days: (number | null)[] = [];
@@ -206,6 +251,7 @@ export default function DateTimeSelect() {
           {displaySlots.map((slot: any) => {
             const slotTotal = getSlotPrice(slot);
             const discount = getSlotDiscount(slot);
+            const isAlerted = alertedTimes.has(slot.time);
             return (
               <TouchableOpacity
                 key={slot.id}
@@ -223,13 +269,31 @@ export default function DateTimeSelect() {
                     <Text style={styles.discountText}>{t('dateTime.off', { n: discount })}</Text>
                   </View>
                 )}
+                {/* Bell icon for unavailable slots — toggle alert */}
+                {!slot.available && (
+                  <TouchableOpacity
+                    style={styles.alertBellBtn}
+                    onPress={() => handleToggleAlert(slot.time)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={isAlerted ? 'notifications' : 'notifications-outline'}
+                      size={16}
+                      color={isAlerted ? '#FFD700' : theme.colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                )}
                 <Text style={[styles.timeVal, !slot.available && styles.timeValDisabled]}>{slot.time}</Text>
+                {!slot.available ? (
+                  <Text style={styles.slotBooked}>{t('dateTime.booked')}</Text>
+                ) : (
                 <View style={styles.slotPriceRow}>
                   {discount > 0 && (
                     <Text style={styles.slotOrigPrice}>€{standardPrice}</Text>
                   )}
                   <Text style={[styles.timePrice, discount > 0 && styles.timePriceDiscount]}>€{slotTotal}</Text>
                 </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -283,7 +347,7 @@ export default function DateTimeSelect() {
           activeOpacity={0.8}
           onPress={() => navigation.navigate('Checkout', {
             id: room.id,
-            date: `${monthNames[currentMonth]} ${selectedDate}, ${currentYear}`,
+            date: dateStr,
             time: selectedSlot?.time || '',
             players,
             total,
@@ -375,12 +439,20 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   timeCardSelected: { backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary },
-  timeCardUnavailable: { opacity: 0.3 },
+  timeCardUnavailable: { opacity: 0.45 },
   timeVal: { fontSize: 15, fontWeight: '600', color: '#fff' },
   timeValDisabled: { color: theme.colors.textMuted },
   timePrice: { fontSize: 12, color: theme.colors.textSecondary },
   timePriceDiscount: { color: '#4CAF50', fontWeight: '700' },
   slotPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  slotBooked: { fontSize: 11, color: theme.colors.textMuted, fontWeight: '600', marginTop: 2 },
+  alertBellBtn: {
+    position: 'absolute', top: 6, right: 6,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+    zIndex: 10,
+  },
   slotOrigPrice: {
     fontSize: 11, color: theme.colors.textMuted,
     textDecorationLine: 'line-through',

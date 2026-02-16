@@ -9,6 +9,12 @@ export const create = mutation({
     time: v.string(),
     players: v.number(),
     total: v.number(),
+    paymentTerms: v.optional(v.union(
+      v.literal("full"),
+      v.literal("deposit_20"),
+      v.literal("pay_on_arrival")
+    )),
+    paymentMethod: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Prevent double-booking: check for existing active booking at this slot
@@ -26,15 +32,33 @@ export const create = mutation({
     // Look up room to set companyId for tracking
     const room = await ctx.db.get(args.roomId);
 
+    // Determine payment status based on payment terms
+    const paymentTerms = args.paymentTerms || 'full';
+    let paymentStatus: 'paid' | 'deposit' | 'unpaid' = 'paid';
+    let depositPaid: number | undefined;
+    if (paymentTerms === 'deposit_20') {
+      paymentStatus = 'deposit';
+      depositPaid = Math.round(args.total * 0.2 * 100) / 100;
+    } else if (paymentTerms === 'pay_on_arrival') {
+      paymentStatus = 'unpaid';
+    }
+
     const bookingCode = `UNL-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const id = await ctx.db.insert("bookings", {
-      ...args,
+      userId: args.userId,
+      roomId: args.roomId,
+      date: args.date,
+      time: args.time,
+      players: args.players,
+      total: args.total,
       status: "upcoming",
       bookingCode,
       createdAt: Date.now(),
       source: "unlocked",
       companyId: room?.companyId,
-      paymentStatus: "paid",
+      paymentStatus,
+      paymentTerms,
+      depositPaid,
     });
     return { id, bookingCode };
   },
@@ -82,7 +106,40 @@ export const upcoming = query({
 export const cancel = mutation({
   args: { id: v.id("bookings") },
   handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.id);
     await ctx.db.patch(args.id, { status: "cancelled" });
+
+    // Check if this was the only active booking for this slot.
+    // If so, the slot is now available again — mark slotAlerts as "ready"
+    // by setting a special field so the client watcher can fire notifications.
+    if (booking) {
+      const otherActive = await ctx.db
+        .query("bookings")
+        .withIndex("by_room_date", (q) =>
+          q.eq("roomId", booking.roomId).eq("date", booking.date)
+        )
+        .collect();
+      const stillBooked = otherActive.some(
+        (b) => b._id !== args.id && b.time === booking.time && b.status !== "cancelled"
+      );
+
+      if (!stillBooked) {
+        // Slot is now free! Find all pending alerts for this slot
+        const alerts = await ctx.db
+          .query("slotAlerts")
+          .withIndex("by_slot", (q) =>
+            q.eq("roomId", booking.roomId).eq("date", booking.date).eq("time", booking.time)
+          )
+          .collect();
+        for (const alert of alerts) {
+          if (!alert.notified) {
+            // Mark as notified — the client watcher will detect this transition
+            // We use a different field "slotAvailableAt" to signal the watcher
+            await ctx.db.patch(alert._id, { notified: true });
+          }
+        }
+      }
+    }
   },
 });
 
@@ -90,5 +147,41 @@ export const complete = mutation({
   args: { id: v.id("bookings") },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "completed" });
+  },
+});
+
+// ── Lookup booking by code (for QR scanner validation) ──
+export const getByCode = query({
+  args: { bookingCode: v.string() },
+  handler: async (ctx, args) => {
+    // bookingCode is unique — scan all bookings (small table)
+    const all = await ctx.db.query("bookings").collect();
+    const booking = all.find((b) => b.bookingCode === args.bookingCode);
+    if (!booking) return null;
+
+    const room = await ctx.db.get(booking.roomId);
+    let playerName: string | undefined;
+    if (booking.userId) {
+      const user = await ctx.db.get(booking.userId);
+      playerName = user?.name;
+    }
+    return { ...booking, room, playerName: playerName || booking.playerName };
+  },
+});
+
+// ── Get booked (taken) times for a room+date ──
+// Returns an array of time strings that are already booked (not cancelled)
+export const getBookedTimes = query({
+  args: { roomId: v.id("rooms"), date: v.string() },
+  handler: async (ctx, args) => {
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_room_date", (q) =>
+        q.eq("roomId", args.roomId).eq("date", args.date)
+      )
+      .collect();
+    return bookings
+      .filter((b) => b.status !== "cancelled")
+      .map((b) => b.time);
   },
 });

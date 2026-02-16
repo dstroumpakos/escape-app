@@ -1,44 +1,71 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Linking, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useQuery } from 'convex/react';
+import QRCode from 'react-native-qrcode-svg';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
+import type { Id } from '../../convex/_generated/dataModel';
 
-interface BookingItem {
-  id: string;
-  roomId: string;
-  date: string;
-  time: string;
-  players: number;
-  status: 'upcoming' | 'completed' | 'cancelled';
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function formatDisplayDate(iso: string): string {
+  if (!iso || !iso.includes('-')) return iso; // already human-readable
+  const [y, m, d] = iso.split('-');
+  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
 }
-
-const mockBookings: BookingItem[] = [
-  { id: 'b1', roomId: '1', date: 'Feb 14, 2026', time: '7:00 PM', players: 4, status: 'upcoming' },
-  { id: 'b2', roomId: '3', date: 'Mar 1, 2026', time: '8:30 PM', players: 3, status: 'upcoming' },
-  { id: 'b3', roomId: '2', date: 'Jan 10, 2026', time: '6:00 PM', players: 2, status: 'completed' },
-  { id: 'b4', roomId: '5', date: 'Dec 22, 2025', time: '7:30 PM', players: 5, status: 'completed' },
-  { id: 'b5', roomId: '4', date: 'Nov 5, 2025', time: '5:00 PM', players: 2, status: 'cancelled' },
-];
 
 export default function TicketsScreen() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
   const { t } = useTranslation();
+  const { userId } = useUser();
 
-  const convexRooms = useQuery(api.rooms.list);
-  const rooms = (convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms
+  const bookings = useQuery(
+    api.bookings.getByUser,
+    userId ? { userId: userId as Id<"users"> } : 'skip',
   );
+  const cancelBooking = useMutation(api.bookings.cancel);
 
-  const upcomingBookings = mockBookings.filter(b => b.status === 'upcoming');
-  const pastBookings = mockBookings.filter(b => b.status !== 'upcoming');
+  const upcomingBookings = (bookings || []).filter((b: any) => b.status === 'upcoming');
+  const pastBookings = (bookings || []).filter((b: any) => b.status !== 'upcoming');
 
   const currentBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
+  const isLoading = userId && bookings === undefined;
+
+  // QR modal state
+  const [qrBooking, setQrBooking] = useState<any>(null);
+
+  const handleCancel = (booking: any) => {
+    const roomTitle = booking.room?.title || t('tickets.escapeRoom');
+    Alert.alert(
+      t('tickets.cancelTitle'),
+      t('tickets.cancelMessage', { title: roomTitle, date: formatDisplayDate(booking.date), time: booking.time }),
+      [
+        { text: t('tickets.keepBooking'), style: 'cancel' },
+        {
+          text: t('tickets.confirmCancel'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cancelBooking({ id: booking._id });
+              Alert.alert(t('tickets.cancelled'), t('tickets.cancelledMsg'));
+            } catch {
+              Alert.alert(t('error'), t('tickets.cancelFailed'));
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const getPaymentBadge = (status?: string) => {
+    if (status === 'paid') return { label: t('tickets.paid'), color: '#4CAF50', bg: 'rgba(76,175,80,0.15)' };
+    if (status === 'deposit') return { label: t('tickets.deposit'), color: '#FFA726', bg: 'rgba(255,167,38,0.15)' };
+    if (status === 'unpaid') return { label: t('tickets.payOnArrival'), color: '#42A5F5', bg: 'rgba(66,165,245,0.15)' };
+    return null;
+  };
 
   return (
     <View style={styles.container}>
@@ -78,17 +105,31 @@ export default function TicketsScreen() {
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {currentBookings.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="large" color={theme.colors.redPrimary} />
+          </View>
+        ) : !userId ? (
+          <View style={styles.empty}>
+            <Ionicons name="log-in-outline" size={48} color={theme.colors.textMuted} />
+            <Text style={styles.emptyText}>{t('tickets.loginRequired')}</Text>
+          </View>
+        ) : currentBookings.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="ticket-outline" size={48} color={theme.colors.textMuted} />
             <Text style={styles.emptyText}>{t('tickets.noBookings', { tab: activeTab === 'upcoming' ? t('tickets.upcoming').toLowerCase() : t('tickets.past').toLowerCase() })}</Text>
           </View>
         ) : (
-          currentBookings.map(booking => {
-            const room = rooms.find(r => r.id === booking.roomId) || rooms[0];
+          currentBookings.map((booking: any) => {
+            const room = booking.room;
+            const payment = getPaymentBadge(booking.paymentStatus);
             return (
-              <View key={booking.id} style={styles.ticketCard}>
-                <Image source={{ uri: room.image }} style={styles.ticketImage} />
+              <View key={booking._id} style={styles.ticketCard}>
+                {room?.image ? (
+                  <Image source={{ uri: room.image }} style={styles.ticketImage} />
+                ) : (
+                  <View style={[styles.ticketImage, { backgroundColor: theme.colors.bgCardSolid }]} />
+                )}
                 <LinearGradient
                   colors={['transparent', 'rgba(0,0,0,0.8)']}
                   style={styles.ticketGradient}
@@ -102,18 +143,28 @@ export default function TicketsScreen() {
                   booking.status === 'cancelled' && styles.statusCancelled,
                 ]}>
                   <Text style={styles.statusText}>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                    {booking.status === 'upcoming' ? t('tickets.statusUpcoming')
+                      : booking.status === 'completed' ? t('tickets.statusCompleted')
+                      : t('tickets.statusCancelled')}
                   </Text>
                 </View>
 
                 <View style={styles.ticketContent}>
-                  <Text style={styles.ticketName}>{room.title}</Text>
-                  <Text style={styles.ticketLoc}>{room.location}</Text>
+                  <Text style={styles.ticketName}>{room?.title || t('tickets.escapeRoom')}</Text>
+                  <Text style={styles.ticketLoc}>{room?.location || ''}</Text>
+
+                  {/* Booking Code */}
+                  {booking.bookingCode && (
+                    <View style={styles.bookingCodeRow}>
+                      <Ionicons name="key-outline" size={13} color={theme.colors.redPrimary} />
+                      <Text style={styles.bookingCodeText}>{booking.bookingCode}</Text>
+                    </View>
+                  )}
 
                   <View style={styles.ticketDetails}>
                     <View style={styles.ticketInfo}>
                       <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
-                      <Text style={styles.ticketInfoText}>{booking.date}</Text>
+                      <Text style={styles.ticketInfoText}>{formatDisplayDate(booking.date)}</Text>
                     </View>
                     <View style={styles.ticketInfo}>
                       <Ionicons name="time-outline" size={14} color={theme.colors.textSecondary} />
@@ -123,24 +174,40 @@ export default function TicketsScreen() {
                       <Ionicons name="people-outline" size={14} color={theme.colors.textSecondary} />
                       <Text style={styles.ticketInfoText}>{booking.players} {t('players')}</Text>
                     </View>
+                    {booking.total > 0 && (
+                      <View style={styles.ticketInfo}>
+                        <Ionicons name="pricetag-outline" size={14} color={theme.colors.textSecondary} />
+                        <Text style={styles.ticketInfoText}>€{booking.total.toFixed(2)}</Text>
+                      </View>
+                    )}
                   </View>
+
+                  {/* Payment Badge */}
+                  {payment && (
+                    <View style={[styles.paymentBadge, { backgroundColor: payment.bg }]}>
+                      <Ionicons name="card-outline" size={12} color={payment.color} />
+                      <Text style={[styles.paymentBadgeText, { color: payment.color }]}>{payment.label}</Text>
+                    </View>
+                  )}
 
                   {booking.status === 'upcoming' && (
                     <View style={styles.ticketActions}>
-                      <TouchableOpacity style={styles.ticketBtn} onPress={() => {
-                        Alert.alert(t('tickets.qrTitle'), t('tickets.qrMessage', { id: booking.id.toUpperCase(), title: room.title, date: booking.date, time: booking.time }));
-                      }}>
+                      <TouchableOpacity style={styles.ticketBtn} onPress={() => setQrBooking(booking)}>
                         <Ionicons name="qr-code-outline" size={16} color={theme.colors.redPrimary} />
                         <Text style={styles.ticketBtnText}>{t('tickets.showQR')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.ticketBtn} onPress={() => {
-                        const query = encodeURIComponent(room.location);
+                        const query = encodeURIComponent(room?.location || '');
                         Linking.openURL(`https://maps.apple.com/?q=${query}`).catch(() => {
-                          Alert.alert(t('tickets.directionsTitle'), t('tickets.directionsMessage', { location: room.location }));
+                          Alert.alert(t('tickets.directionsTitle'), t('tickets.directionsMessage', { location: room?.location || '' }));
                         });
                       }}>
                         <Ionicons name="navigate-outline" size={16} color={theme.colors.redPrimary} />
                         <Text style={styles.ticketBtnText}>{t('tickets.directions')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(booking)}>
+                        <Ionicons name="close-circle-outline" size={16} color="#F44336" />
+                        <Text style={styles.cancelBtnText}>{t('tickets.cancel')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -150,6 +217,60 @@ export default function TicketsScreen() {
           })
         )}
       </ScrollView>
+
+      {/* QR Code Modal */}
+      <Modal
+        visible={!!qrBooking}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQrBooking(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* Close button */}
+            <TouchableOpacity style={styles.modalClose} onPress={() => setQrBooking(null)}>
+              <Ionicons name="close" size={22} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>{t('tickets.qrTitle')}</Text>
+            <Text style={styles.modalSubtitle}>{t('tickets.qrScanHint')}</Text>
+
+            {/* QR Code */}
+            <View style={styles.qrWrapper}>
+              <QRCode
+                value={JSON.stringify({
+                  code: qrBooking?.bookingCode || qrBooking?._id,
+                  room: qrBooking?.room?.title,
+                  date: qrBooking?.date,
+                  time: qrBooking?.time,
+                  players: qrBooking?.players,
+                })}
+                size={200}
+                backgroundColor="#fff"
+                color="#1a0d0d"
+              />
+            </View>
+
+            {/* Booking Info */}
+            <Text style={styles.qrCode}>{qrBooking?.bookingCode || ''}</Text>
+            <Text style={styles.qrRoom}>{qrBooking?.room?.title || ''}</Text>
+            <View style={styles.qrDetails}>
+              <View style={styles.qrDetail}>
+                <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
+                <Text style={styles.qrDetailText}>{formatDisplayDate(qrBooking?.date || '')}</Text>
+              </View>
+              <View style={styles.qrDetail}>
+                <Ionicons name="time-outline" size={14} color={theme.colors.textMuted} />
+                <Text style={styles.qrDetailText}>{qrBooking?.time}</Text>
+              </View>
+              <View style={styles.qrDetail}>
+                <Ionicons name="people-outline" size={14} color={theme.colors.textMuted} />
+                <Text style={styles.qrDetailText}>{qrBooking?.players} {t('players')}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -211,10 +332,26 @@ const styles = StyleSheet.create({
 
   ticketContent: { padding: 16 },
   ticketName: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 3 },
-  ticketLoc: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 14 },
+  ticketLoc: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 6 },
+  bookingCodeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginBottom: 10, paddingVertical: 5, paddingHorizontal: 10,
+    alignSelf: 'flex-start',
+    borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(220,38,38,0.1)',
+    borderWidth: 1, borderColor: 'rgba(220,38,38,0.2)',
+  },
+  bookingCodeText: { fontSize: 13, fontWeight: '800', color: theme.colors.redPrimary, letterSpacing: 1 },
   ticketDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   ticketInfo: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   ticketInfoText: { fontSize: 12, color: theme.colors.textSecondary },
+  paymentBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    alignSelf: 'flex-start',
+    paddingVertical: 4, paddingHorizontal: 10,
+    borderRadius: 12, marginTop: 10,
+  },
+  paymentBadgeText: { fontSize: 11, fontWeight: '700' },
 
   // Actions
   ticketActions: {
@@ -228,4 +365,46 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   ticketBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.redPrimary },
+  cancelBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 10, borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(244,67,54,0.1)',
+    borderWidth: 1, borderColor: 'rgba(244,67,54,0.25)',
+  },
+  cancelBtnText: { fontSize: 12, fontWeight: '600', color: '#F44336' },
+
+  // QR Modal
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center', alignItems: 'center',
+    padding: 30,
+  },
+  modalCard: {
+    width: '100%', maxWidth: 340,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderRadius: theme.radius.xl,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+    padding: 28, alignItems: 'center',
+  },
+  modalClose: {
+    position: 'absolute', top: 14, right: 14,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: theme.colors.glass,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  modalSubtitle: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 20, textAlign: 'center' },
+  qrWrapper: {
+    padding: 16, borderRadius: theme.radius.lg,
+    backgroundColor: '#fff',
+    marginBottom: 20,
+  },
+  qrCode: {
+    fontSize: 18, fontWeight: '800', color: theme.colors.redPrimary,
+    letterSpacing: 2, marginBottom: 6,
+  },
+  qrRoom: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 14, textAlign: 'center' },
+  qrDetails: { flexDirection: 'row', gap: 16 },
+  qrDetail: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  qrDetailText: { fontSize: 12, color: theme.colors.textSecondary },
 });

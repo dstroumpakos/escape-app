@@ -10,6 +10,8 @@ import * as Location from 'expo-location';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
+import type { Id } from '../../convex/_generated/dataModel';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -41,6 +43,11 @@ export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const tabNavigation = useNavigation<TabNav>();
   const { t } = useTranslation();
+  const { userId } = useUser();
+  const unreadCount = useQuery(
+    api.notifications.unreadCount,
+    userId ? { userId: userId as Id<"users"> } : 'skip',
+  ) ?? 0;
 
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
@@ -99,13 +106,11 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert(t('home.menuTitle'), t('home.menuMessage'))}>
-          <Ionicons name="menu" size={22} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
         <Text style={styles.topTitle}>{t('home.title')}</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert(t('home.notifTitle'), t('home.notifMessage'))}>
-          <Ionicons name="notifications-outline" size={22} color="#fff" />
-          <View style={styles.notifDot} />
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
+          <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={22} color="#fff" />
+          {unreadCount > 0 && <View style={styles.notifDot} />}
         </TouchableOpacity>
       </View>
 

@@ -18,7 +18,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
@@ -28,19 +27,9 @@ import { useTranslation } from '../i18n';
 const { width, height } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-// Assign coordinates to rooms around San Francisco Bay Area
-const roomCoordinates: Record<string, { latitude: number; longitude: number }> = {
-  '1': { latitude: 37.7849, longitude: -122.4094 },
-  '2': { latitude: 37.7749, longitude: -122.4194 },
-  '3': { latitude: 37.8044, longitude: -122.2712 },
-  '4': { latitude: 37.8716, longitude: -122.2727 },
-  '5': { latitude: 37.3382, longitude: -121.8863 },
-  '6': { latitude: 37.4419, longitude: -122.1430 },
-};
-
 const DEFAULT_REGION: Region = {
-  latitude: 37.7549,
-  longitude: -122.3494,
+  latitude: 37.9838,
+  longitude: 23.7275,
   latitudeDelta: 0.45,
   longitudeDelta: 0.45,
 };
@@ -88,10 +77,7 @@ export default function DiscoverScreen() {
   );
 
   const convexRooms = useQuery(api.rooms.list);
-  const rooms = (convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms
-  );
+  const rooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
 
   const mapRef = useRef<MapView>(null);
   const cardAnim = useRef(new Animated.Value(0)).current;
@@ -188,7 +174,9 @@ export default function DiscoverScreen() {
 
   const handleMarkerPress = (room: (typeof rooms)[0]) => {
     setSelectedRoom(room);
-    const coords = roomCoordinates[room.id];
+    const coords = room.latitude && room.longitude
+      ? { latitude: room.latitude, longitude: room.longitude }
+      : null;
     if (coords && mapRef.current) {
       mapRef.current.animateToRegion(
         { ...coords, latitudeDelta: 0.05, longitudeDelta: 0.05 },
@@ -237,7 +225,7 @@ export default function DiscoverScreen() {
           filtered.map((room: any) => {
             const coords = room.latitude && room.longitude
               ? { latitude: room.latitude, longitude: room.longitude }
-              : roomCoordinates[room.id];
+              : null;
             if (!coords) return null;
             const isSelected = selectedRoom?.id === room.id;
             return (

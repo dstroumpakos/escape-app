@@ -5,10 +5,15 @@ import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-naviga
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function formatDisplayDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'BookingConfirmation'>;
@@ -16,13 +21,11 @@ type RouteType = RouteProp<RootStackParamList, 'BookingConfirmation'>;
 export default function BookingConfirmation() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteType>();
-  const { id, date, time, players, total } = route.params;
+  const { id, date, time, players, total, bookingCode, paymentStatus } = route.params;
   const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
-  const allRooms = convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms;
+  const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === id) || allRooms[0];
 
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -35,7 +38,16 @@ export default function BookingConfirmation() {
     ]).start();
   }, []);
 
-  const bookingId = `UNL-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+  const paymentLabel = paymentStatus === 'paid'
+    ? t('confirmation.paid')
+    : paymentStatus === 'deposit'
+    ? t('confirmation.depositPaid')
+    : t('confirmation.payOnArrival');
+  const paymentColor = paymentStatus === 'paid'
+    ? '#4CAF50'
+    : paymentStatus === 'deposit'
+    ? '#FFA726'
+    : '#42A5F5';
 
   return (
     <View style={styles.container}>
@@ -63,7 +75,7 @@ export default function BookingConfirmation() {
               <View style={styles.infoItem}>
                 <Ionicons name="calendar-outline" size={16} color={theme.colors.textMuted} />
                 <Text style={styles.infoLabel}>{t('confirmation.date')}</Text>
-                <Text style={styles.infoVal}>{date}</Text>
+                <Text style={styles.infoVal}>{formatDisplayDate(date)}</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color={theme.colors.textMuted} />
@@ -87,19 +99,27 @@ export default function BookingConfirmation() {
 
             <View style={styles.divider} />
 
+            {/* Payment Status */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 13, color: theme.colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8 }}>{t('confirmation.paymentStatus')}</Text>
+              <View style={{ backgroundColor: paymentColor + '20', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: paymentColor }}>{paymentLabel}</Text>
+              </View>
+            </View>
+
             {/* QR Placeholder */}
             <View style={styles.qrWrap}>
               <View style={styles.qrBox}>
                 <Ionicons name="qr-code-outline" size={80} color={theme.colors.textMuted} />
               </View>
-              <Text style={styles.bookingId}>{t('confirmation.bookingId', { id: bookingId })}</Text>
+              <Text style={styles.bookingId}>{t('confirmation.bookingId', { id: bookingCode })}</Text>
             </View>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={() => {
-              Alert.alert(t('confirmation.calendarTitle'), t('confirmation.calendarMessage', { title: room.title, date, time }));
+              Alert.alert(t('confirmation.calendarTitle'), t('confirmation.calendarMessage', { title: room.title, date: formatDisplayDate(date), time }));
             }}>
               <Ionicons name="calendar" size={20} color={theme.colors.redPrimary} />
               <Text style={styles.actionText}>{t('confirmation.addCalendar')}</Text>
@@ -107,7 +127,7 @@ export default function BookingConfirmation() {
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={async () => {
               try {
                 await Share.share({
-                  message: `${t('confirmation.receiptTitle')}\n\n${t('confirmation.date')}: ${room.title}\n${t('confirmation.date')}: ${date}\n${t('confirmation.time')}: ${time}\n${t('confirmation.players')}: ${players}\n${t('confirmation.total')}: €${total.toFixed(2)}\n${t('confirmation.bookingId', { id: bookingId })}\n\n${room.location}`,
+                  message: `${t('confirmation.receiptTitle')}\n\n${t('confirmation.date')}: ${room.title}\n${t('confirmation.date')}: ${date}\n${t('confirmation.time')}: ${time}\n${t('confirmation.players')}: ${players}\n${t('confirmation.total')}: €${total.toFixed(2)}\n${t('confirmation.bookingId', { id: bookingCode })}\n\n${room.location}`,
                   title: t('confirmation.receiptTitle'),
                 });
               } catch {

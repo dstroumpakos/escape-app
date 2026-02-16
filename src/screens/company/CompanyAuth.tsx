@@ -10,7 +10,7 @@ import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 
 interface Props {
-  onLogin: (companyId: string) => void;
+  onLogin: (companyId: string, onboardingStatus?: string) => void;
   onBack: () => void;
 }
 
@@ -26,6 +26,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [vatNumber, setVatNumber] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -44,7 +45,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
         password: password.trim(),
       });
       if (result?._id) {
-        onLogin(result._id);
+        onLogin(result._id, result.onboardingStatus);
       }
     } catch (error: any) {
       Alert.alert(t('error'), error.message || t('companyAuth.loginFailed'));
@@ -65,6 +66,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
         phone: phone.trim(),
         address: address.trim(),
         city: city.trim(),
+        vatNumber: vatNumber.trim() || undefined,
         description: description.trim(),
         password: password.trim(),
       });
@@ -72,7 +74,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
         Alert.alert('Error', result.error);
       } else if (result && 'id' in result) {
         Alert.alert(t('success'), t('companyAuth.accountCreated'), [
-          { text: t('ok'), onPress: () => onLogin(result.id) },
+          { text: t('ok'), onPress: () => onLogin(result.id, 'pending_terms') },
         ]);
       }
     } catch {
@@ -159,6 +161,16 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
               onChangeText={setAddress}
               placeholder={t('companyAuth.addressPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
+            />
+
+            <Text style={styles.label}>{t('companyAuth.vatNumber')}</Text>
+            <TextInput
+              style={styles.input}
+              value={vatNumber}
+              onChangeText={setVatNumber}
+              placeholder={t('companyAuth.vatPlaceholder')}
+              placeholderTextColor={theme.colors.textMuted}
+              keyboardType="numeric"
             />
 
             <Text style={styles.label}>{t('companyAuth.about')}</Text>

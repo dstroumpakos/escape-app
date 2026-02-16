@@ -12,6 +12,8 @@ import { theme } from './src/theme';
 import { convex } from './src/convex';
 import { UserProvider } from './src/UserContext';
 import { LanguageProvider } from './src/i18n';
+import { registerForPushNotificationsAsync, addNotificationResponseListener } from './src/notifications';
+import { useNotificationWatcher } from './src/useNotificationWatcher';
 
 // Player Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -28,6 +30,7 @@ import BookingConfirmation from './src/screens/BookingConfirmation';
 import MapViewScreen from './src/screens/MapView';
 import ScanScreen from './src/screens/ScanScreen';
 import SocialScreen from './src/screens/SocialScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
 // Company Screens
 import CompanyAuth from './src/screens/company/CompanyAuth';
@@ -39,6 +42,9 @@ import CompanyBookings from './src/screens/company/CompanyBookings';
 import CompanySettings from './src/screens/company/CompanySettings';
 import CompanyBookingDetail from './src/screens/company/CompanyBookingDetail';
 import CompanyAddBooking from './src/screens/company/CompanyAddBooking';
+import CompanyQRScanner from './src/screens/company/CompanyQRScanner';
+import CompanyOnboarding from './src/screens/company/CompanyOnboarding';
+import AdminReview from './src/screens/AdminReview';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -58,7 +64,7 @@ const DarkNavTheme = {
   },
 };
 
-function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {
+function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () => void; onAdminReview: () => void }) {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -110,14 +116,14 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       >
-        {() => <ProfileScreen onSwitchToCompany={onSwitchToCompany} />}
+        {() => <ProfileScreen onSwitchToCompany={onSwitchToCompany} onAdminReview={onAdminReview} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
 export default function App() {
-  const [appState, setAppState] = useState<'splash' | 'login' | 'onboarding' | 'main' | 'company' | 'companyAuth'>('splash');
+  const [appState, setAppState] = useState<'splash' | 'login' | 'onboarding' | 'main' | 'company' | 'companyAuth' | 'companyOnboarding' | 'adminReview'>('splash');
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -128,6 +134,23 @@ export default function App() {
         setUserId(storedUserId);
       }
     });
+  }, []);
+
+  // Register for push notifications on mount
+  useEffect(() => {
+    registerForPushNotificationsAsync();
+  }, []);
+
+  // Handle notification taps (navigate to Notifications screen)
+  const navigationRef = React.useRef<any>(null);
+  useEffect(() => {
+    const sub = addNotificationResponseListener((response) => {
+      // Navigate to notifications screen when user taps a notification
+      if (navigationRef.current) {
+        navigationRef.current.navigate('Notifications');
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const handleLogin = async (id: string) => {
@@ -215,10 +238,14 @@ export default function App() {
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
           <CompanyAuth
-            onLogin={async (id) => {
+            onLogin={async (id, onboardingStatus) => {
               await AsyncStorage.setItem('companyId', id);
               setCompanyId(id);
-              setAppState('company');
+              if (onboardingStatus && onboardingStatus !== 'approved') {
+                setAppState('companyOnboarding');
+              } else {
+                setAppState('company');
+              }
             }}
             onBack={() => {
               if (userId) {
@@ -232,6 +259,52 @@ export default function App() {
       </ConvexProvider>
       </LanguageProvider>
     );
+  }
+
+  if (appState === 'companyOnboarding' && companyId) {
+    return (
+      <LanguageProvider>
+      <ConvexProvider client={convex}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
+          <StatusBar style="light" />
+          <CompanyOnboarding
+            companyId={companyId}
+            onComplete={() => setAppState('company')}
+            onLogout={async () => {
+              await AsyncStorage.removeItem('companyId');
+              setCompanyId(null);
+              const storedUserId = await AsyncStorage.getItem('userId');
+              if (storedUserId) {
+                setUserId(storedUserId);
+                setAppState('main');
+              } else {
+                setAppState('login');
+              }
+            }}
+          />
+        </View>
+      </ConvexProvider>
+      </LanguageProvider>
+    );
+  }
+
+  if (appState === 'adminReview') {
+    return (
+      <LanguageProvider>
+      <ConvexProvider client={convex}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
+          <StatusBar style="light" />
+          <AdminReview onBack={() => setAppState('main')} />
+        </View>
+      </ConvexProvider>
+      </LanguageProvider>
+    );
+  }
+
+  /* ── Notification watcher (must be inside ConvexProvider) ── */
+  function NotificationWatcher({ userId, companyId }: { userId: string | null; companyId: string | null }) {
+    useNotificationWatcher(userId, companyId);
+    return null;
   }
 
   /* ── Company Tabs Navigator ── */
@@ -321,7 +394,8 @@ export default function App() {
       <UserProvider userId={userId} onLogout={handleLogout} onSwitchToCompany={handleSwitchToCompany}>
         <View style={{ flex: 1 }}>
           <StatusBar style="light" />
-          <NavigationContainer theme={DarkNavTheme}>
+          <NotificationWatcher userId={userId} companyId={companyId} />
+          <NavigationContainer ref={navigationRef} theme={DarkNavTheme}>
             <Stack.Navigator
               screenOptions={{
                 headerShown: false,
@@ -342,12 +416,16 @@ export default function App() {
                   <Stack.Screen name="CompanyAddBooking">
                     {(props) => <CompanyAddBooking {...(props as any)} companyId={companyId} />}
                   </Stack.Screen>
+                  <Stack.Screen name="CompanyQRScanner">
+                    {(props) => <CompanyQRScanner companyId={companyId} onClose={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
                 </>
               ) : (
                 <>
                   <Stack.Screen name="MainTabs">
-                    {() => <MainTabs onSwitchToCompany={handleSwitchToCompany} />}
+                    {() => <MainTabs onSwitchToCompany={handleSwitchToCompany} onAdminReview={() => setAppState('adminReview')} />}
                   </Stack.Screen>
+                  <Stack.Screen name="Notifications" component={NotificationsScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />
@@ -356,10 +434,14 @@ export default function App() {
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth
-                        onLogin={async (id) => {
+                        onLogin={async (id, onboardingStatus) => {
                           await AsyncStorage.setItem('companyId', id);
                           setCompanyId(id);
-                          setAppState('company');
+                          if (onboardingStatus && onboardingStatus !== 'approved') {
+                            setAppState('companyOnboarding');
+                          } else {
+                            setAppState('company');
+                          }
                         }}
                         onBack={() => {}}
                       />

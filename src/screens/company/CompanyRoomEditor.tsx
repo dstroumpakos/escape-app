@@ -815,6 +815,39 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         {/* Terms of Use */}
         <Text style={styles.sectionTitle}>{t('roomEditor.termsOfUse')}</Text>
         <View style={styles.card}>
+          <Text style={styles.fieldLabel}>{t('roomEditor.termsTemplates')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+            {[
+              { key: 'standard', label: t('roomEditor.tplStandard') },
+              { key: 'strict', label: t('roomEditor.tplStrict') },
+              { key: 'flexible', label: t('roomEditor.tplFlexible') },
+              { key: 'minors', label: t('roomEditor.tplMinors') },
+            ].map((tpl) => (
+              <TouchableOpacity
+                key={tpl.key}
+                style={[styles.tplChip]}
+                onPress={() => {
+                  const body = t(`roomEditor.tplBody_${tpl.key}`);
+                  if (termsOfUse.trim().length > 0) {
+                    Alert.alert(
+                      t('roomEditor.tplReplaceTitle'),
+                      t('roomEditor.tplReplaceMsg'),
+                      [
+                        { text: t('cancel'), style: 'cancel' },
+                        { text: t('roomEditor.tplReplace'), onPress: () => setTermsOfUse(body) },
+                        { text: t('roomEditor.tplAppend'), onPress: () => setTermsOfUse((prev) => prev + '\n\n' + body) },
+                      ]
+                    );
+                  } else {
+                    setTermsOfUse(body);
+                  }
+                }}
+              >
+                <Ionicons name="document-text-outline" size={14} color={theme.colors.redPrimary} />
+                <Text style={styles.tplChipText}>{tpl.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
           <TextInput
             style={[styles.input, styles.textArea, { minHeight: 100 }]}
             value={termsOfUse}
@@ -823,6 +856,19 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             placeholderTextColor={theme.colors.textMuted}
             multiline
           />
+          {termsOfUse.trim().length > 0 && (
+            <TouchableOpacity
+              style={{ alignSelf: 'flex-end', marginTop: 6 }}
+              onPress={() => {
+                Alert.alert(t('roomEditor.tplClearTitle'), t('roomEditor.tplClearMsg'), [
+                  { text: t('cancel'), style: 'cancel' },
+                  { text: t('roomEditor.tplClear'), style: 'destructive', onPress: () => setTermsOfUse('') },
+                ]);
+              }}
+            >
+              <Text style={{ color: theme.colors.textMuted, fontSize: 13 }}>{t('roomEditor.tplClear')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Booking Mode */}
@@ -1144,6 +1190,19 @@ const styles = StyleSheet.create({
   },
   overflowFieldLabel: {
     fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary, width: 50,
+  },
+  fieldLabel: {
+    fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary, marginBottom: 8,
+  },
+  tplChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingVertical: 8, paddingHorizontal: 14, marginRight: 8,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.redSubtle,
+    borderWidth: 1, borderColor: theme.colors.redPrimary,
+  },
+  tplChipText: {
+    fontSize: 13, fontWeight: '600', color: theme.colors.redPrimary,
   },
 });
 

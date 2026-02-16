@@ -196,3 +196,19 @@ export const seed = mutation({
     return "Seeded successfully";
   },
 });
+
+// Delete all seeded rooms (rooms without a companyId = not created by a real company)
+export const clearSeedRooms = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const rooms = await ctx.db.query("rooms").collect();
+    let deleted = 0;
+    for (const room of rooms) {
+      if (!room.companyId) {
+        await ctx.db.delete(room._id);
+        deleted++;
+      }
+    }
+    return `Deleted ${deleted} seed rooms`;
+  },
+});

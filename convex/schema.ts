@@ -10,15 +10,33 @@ export default defineSchema({
     logo: v.string(),
     address: v.string(),
     city: v.string(),
+    vatNumber: v.optional(v.string()),
     description: v.string(),
     password: v.string(), // hashed in production
     verified: v.boolean(),
     createdAt: v.number(),
-    // Subscription offering
+    // Subscription offering (to players)
     subscriptionEnabled: v.boolean(),
     subscriptionMonthlyPrice: v.optional(v.number()),
     subscriptionYearlyPrice: v.optional(v.number()),
     subscriptionPerks: v.optional(v.array(v.string())),
+    // ── Company Onboarding ──
+    onboardingStatus: v.optional(v.union(
+      v.literal("pending_terms"),     // Step 1: needs to accept terms
+      v.literal("pending_plan"),      // Step 2: needs to pick a plan
+      v.literal("pending_review"),    // Step 3: submitted, waiting for admin
+      v.literal("approved"),          // Admin approved
+      v.literal("declined")           // Admin declined (with notes)
+    )),
+    termsAcceptedAt: v.optional(v.number()),
+    platformPlan: v.optional(v.union(
+      v.literal("starter"),
+      v.literal("pro"),
+      v.literal("enterprise")
+    )),
+    platformSubscribedAt: v.optional(v.number()),
+    adminNotes: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
   })
     .index("by_email", ["email"]),
 
@@ -217,4 +235,38 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_post", ["postId"]),
+
+  // ─── Slot Availability Alerts ───
+  // Users subscribe to get notified when an unavailable slot becomes free
+  slotAlerts: defineTable({
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    date: v.string(),
+    time: v.string(),
+    createdAt: v.number(),
+    notified: v.boolean(), // true once the alert has fired
+  })
+    .index("by_user", ["userId"])
+    .index("by_slot", ["roomId", "date", "time"])
+    .index("by_user_slot", ["userId", "roomId", "date", "time"]),
+
+  // ─── In-App Notifications ───
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("booking"),
+      v.literal("cancelled"),
+      v.literal("reminder"),
+      v.literal("promo"),
+      v.literal("system"),
+      v.literal("slot_available")
+    ),
+    title: v.string(),
+    message: v.string(),
+    read: v.boolean(),
+    createdAt: v.number(),
+    data: v.optional(v.any()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"]),
 });

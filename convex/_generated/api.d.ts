@@ -10,9 +10,11 @@
 
 import type * as bookings from "../bookings.js";
 import type * as companies from "../companies.js";
+import type * as notifications from "../notifications.js";
 import type * as posts from "../posts.js";
 import type * as rooms from "../rooms.js";
 import type * as seed from "../seed.js";
+import type * as slotAlerts from "../slotAlerts.js";
 import type * as timeSlots from "../timeSlots.js";
 import type * as users from "../users.js";
 
@@ -25,9 +27,11 @@ import type {
 declare const fullApi: ApiFromModules<{
   bookings: typeof bookings;
   companies: typeof companies;
+  notifications: typeof notifications;
   posts: typeof posts;
   rooms: typeof rooms;
   seed: typeof seed;
+  slotAlerts: typeof slotAlerts;
   timeSlots: typeof timeSlots;
   users: typeof users;
 }>;

@@ -7,7 +7,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
@@ -19,9 +18,10 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface ProfileProps {
   onSwitchToCompany: () => void;
+  onAdminReview?: () => void;
 }
 
-export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
+export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: ProfileProps) {
   const navigation = useNavigation<Nav>();
   const { userId, onLogout } = useUser();
   const { t, language, setLanguage } = useTranslation();
@@ -31,10 +31,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
     userId ? { userId: userId as Id<"users"> } : "skip"
   );
   const convexRooms = useQuery(api.rooms.list);
-  const rooms = (convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms
-  );
+  const rooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const wishlist = rooms.filter((r: any) => r.tags?.includes('Featured') || r.tags?.includes('New'));
 
   if (!userId || user === undefined) {
@@ -174,7 +171,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
             { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => Alert.alert(t('profile.notifications'), t('profile.notifMessage')) },
             { icon: 'card-outline' as const, label: t('profile.paymentMethods'), action: () => Alert.alert(t('profile.paymentMethods'), t('profile.paymentMessage')) },
             { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Alert.alert(t('profile.helpSupport'), t('profile.helpMessage')) },
-            { icon: 'language-outline' as const, label: t('profile.language'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
+            { icon: 'language-outline' as const, label: language === 'en' ? t('profile.switchToGreek') : t('profile.switchToEnglish'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
             { icon: 'log-out-outline' as const, label: t('profile.signOut'), action: () => Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMessage'), [
               { text: t('cancel'), style: 'cancel' },
               { text: t('profile.signOut'), style: 'destructive', onPress: () => onLogout() },
@@ -198,6 +195,17 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
           <Ionicons name="business-outline" size={20} color={theme.colors.redPrimary} />
           <Text style={styles.switchBusinessText}>{t('profile.switchBusiness')}</Text>
         </TouchableOpacity>
+
+        {/* Admin Review */}
+        {onAdminReview && user.email === 'apple_001386.f@private.relay' && (
+          <TouchableOpacity
+            style={[styles.switchBusinessBtn, { marginTop: 10, borderColor: '#FFA726' }]}
+            onPress={onAdminReview}
+          >
+            <Ionicons name="shield-checkmark-outline" size={20} color="#FFA726" />
+            <Text style={[styles.switchBusinessText, { color: '#FFA726' }]}>{t('admin.title')}</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
       {/* Edit Profile Modal */}
       <EditProfileModal

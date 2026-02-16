@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
-import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function formatDisplayDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+}
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'Checkout'>;
@@ -19,11 +25,12 @@ export default function Checkout() {
   const { id, date, time, players, total } = route.params;
 
   const { t } = useTranslation();
+  const { userId } = useUser();
+  const createBooking = useMutation(api.bookings.create);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const convexRooms = useQuery(api.rooms.list);
-  const allRooms = convexRooms && convexRooms.length > 0
-    ? convexRooms.map((r: any) => ({ ...r, id: r._id }))
-    : staticRooms;
+  const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === id) || allRooms[0];
 
   const [paymentMethod, setPaymentMethod] = useState<'apple' | 'credit'>('apple');
@@ -57,7 +64,7 @@ export default function Checkout() {
           <Text style={styles.roomName}>{room.title}</Text>
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.detailText}>{date}</Text>
+            <Text style={styles.detailText}>{formatDisplayDate(date)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
@@ -126,7 +133,7 @@ export default function Checkout() {
                 >
                   <View style={styles.payRow}>
                     <Ionicons name={icon as any} size={22} color="#fff" />
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.payText}>{label}</Text>
                       <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>{desc}</Text>
                     </View>
@@ -190,14 +197,50 @@ export default function Checkout() {
       {/* Bottom CTA */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.confirmBtn}
+          style={[styles.confirmBtn, isSubmitting && { opacity: 0.6 }]}
           activeOpacity={0.8}
-          onPress={() => navigation.navigate('BookingConfirmation', {
-            id: room.id, date, time, players, total: finalTotal,
-          })}
+          disabled={isSubmitting}
+          onPress={async () => {
+            if (!userId) {
+              Alert.alert(t('error'), t('checkout.loginRequired'));
+              return;
+            }
+            setIsSubmitting(true);
+            try {
+              const result = await createBooking({
+                userId: userId as any,
+                roomId: room.id as any,
+                date,
+                time,
+                players,
+                total: finalTotal,
+                paymentTerms: selectedTerm as any,
+                paymentMethod: isPayOnArrival ? 'pay_on_arrival' : paymentMethod,
+              });
+              navigation.navigate('BookingConfirmation', {
+                id: room.id,
+                date,
+                time,
+                players,
+                total: finalTotal,
+                bookingCode: result.bookingCode,
+                paymentStatus: isPayOnArrival ? 'unpaid' : selectedTerm === 'deposit_20' ? 'deposit' : 'paid',
+              });
+            } catch (e: any) {
+              Alert.alert(t('error'), e.message || t('checkout.bookingFailed'));
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
         >
-          <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.confirmText}>{isPayOnArrival ? t('checkout.confirmReservation') : t('checkout.confirmPay', { amount: finalTotal.toFixed(2) })}</Text>
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.confirmText}>{isPayOnArrival ? t('checkout.confirmReservation') : t('checkout.confirmPay', { amount: finalTotal.toFixed(2) })}</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -270,7 +313,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   payOptionActive: { borderColor: theme.colors.redPrimary },
-  payRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  payRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   payText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   radio: {
     width: 22, height: 22, borderRadius: 11,
