@@ -33,9 +33,8 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "YOUR_APPLE_ID@example.com",
-        "ascAppId": "YOUR_ASC_APP_ID",
-        "appleTeamId": "YOUR_TEAM_ID"
+        "ascAppId": "6759263899",
+        "bundleIdentifier": "com.unlocked.escapeapp"
       },
       "android": {
         "serviceAccountKeyPath": "./google-services.json",

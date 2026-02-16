@@ -18,7 +18,9 @@
       "bundleIdentifier": "com.unlocked.escapeapp",
       "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSCameraUsageDescription": "We need access to your camera to scan QR codes for bookings.",
         "NSLocationWhenInUseUsageDescription": "We use your location to show nearby escape rooms.",
         "NSPhotoLibraryUsageDescription": "Upload photos for your profile and social posts."
@@ -36,12 +38,13 @@
       "versionCode": 1,
       "useNextNotificationsApi": true,
       "permissions": [
-        "CAMERA",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "READ_MEDIA_IMAGES",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -71,18 +74,18 @@
         }
       ]
     ],
-    "platforms": ["ios", "android"],
-    "extra": {
-      "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
-      }
-    },
-    "owner": "YOUR_EXPO_ACCOUNT",
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/YOUR_EAS_PROJECT_ID"
-    }
+    "extra": {
+      "eas": {
+        "projectId": "63ddda73-e173-4fb4-a368-c4cc5652e509"
+      }
+    },
+    "owner": "dstroump"
   }
 }
