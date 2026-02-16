@@ -9,6 +9,12 @@ import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
+import Constants from 'expo-constants';
+
+// Admin secret from env — must match the ADMIN_SECRET in Convex dashboard
+const ADMIN_SECRET = Constants.expoConfig?.extra?.adminSecret
+  || process.env.EXPO_PUBLIC_ADMIN_SECRET
+  || '';
 
 interface Props {
   onBack: () => void;
@@ -30,7 +36,7 @@ const PLAN_LABELS: Record<string, string> = {
 
 export default function AdminReview({ onBack }: Props) {
   const { t } = useTranslation();
-  const companies = useQuery(api.companies.getAllCompanies);
+  const companies = useQuery(api.companies.getAllCompanies, { adminSecret: ADMIN_SECRET });
   const approveMut = useMutation(api.companies.approveCompany);
   const declineMut = useMutation(api.companies.declineCompany);
 
@@ -53,7 +59,7 @@ export default function AdminReview({ onBack }: Props) {
           text: t('admin.approve'),
           onPress: async () => {
             setLoading(true);
-            await approveMut({ companyId: id as Id<"companies"> });
+            await approveMut({ companyId: id as Id<"companies">, adminSecret: ADMIN_SECRET });
             setLoading(false);
           },
         },
@@ -70,6 +76,7 @@ export default function AdminReview({ onBack }: Props) {
     await declineMut({
       companyId: declineModal as Id<"companies">,
       notes: declineNotes.trim(),
+      adminSecret: ADMIN_SECRET,
     });
     setLoading(false);
     setDeclineModal(null);

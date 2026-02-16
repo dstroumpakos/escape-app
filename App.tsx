@@ -14,6 +14,13 @@ import { UserProvider } from './src/UserContext';
 import { LanguageProvider } from './src/i18n';
 import { registerForPushNotificationsAsync, addNotificationResponseListener } from './src/notifications';
 import { useNotificationWatcher } from './src/useNotificationWatcher';
+import { ErrorBoundary } from './src/ErrorBoundary';
+import { initCrashReporting, setUser as setCrashUser } from './src/crashReporting';
+import { initializePayments } from './src/payments';
+
+// Initialize crash reporting and payments as early as possible
+initCrashReporting();
+initializePayments();
 
 // Player Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -156,12 +163,14 @@ export default function App() {
   const handleLogin = async (id: string) => {
     await AsyncStorage.setItem('userId', id);
     setUserId(id);
+    setCrashUser(id);
     setAppState('onboarding');
   };
 
   const handleLogout = async () => {
     await AsyncStorage.removeItem('userId');
     setUserId(null);
+    setCrashUser(null);
     setAppState('login');
   };
 
@@ -389,6 +398,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <LanguageProvider>
     <ConvexProvider client={convex}>
       <UserProvider userId={userId} onLogout={handleLogout} onSwitchToCompany={handleSwitchToCompany}>
@@ -455,6 +465,7 @@ export default function App() {
       </UserProvider>
     </ConvexProvider>
     </LanguageProvider>
+    </ErrorBoundary>
   );
 }
 

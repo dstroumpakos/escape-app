@@ -7,6 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "scheme": "unlocked",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -14,8 +15,16 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.unlocked.escapeapp",
+      "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "NSCameraUsageDescription": "We need access to your camera to scan QR codes for bookings.",
+        "NSLocationWhenInUseUsageDescription": "We use your location to show nearby escape rooms.",
+        "NSPhotoLibraryUsageDescription": "Upload photos for your profile and social posts."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -23,7 +32,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1A0D0D"
       },
-      "useNextNotificationsApi": true
+      "package": "com.unlocked.escapeapp",
+      "versionCode": 1,
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_MEDIA_IMAGES",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "plugins": [
       [
@@ -32,8 +51,38 @@
           "icon": "./assets/icon.png",
           "color": "#DC2626"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Unlocked to access your camera for QR code scanning."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Unlocked to use your location to find escape rooms near you."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Unlocked to access your photos for your profile and social posts."
+        }
       ]
     ],
-    "platforms": ["ios", "android"]
+    "platforms": ["ios", "android"],
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    },
+    "owner": "YOUR_EXPO_ACCOUNT",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/YOUR_EAS_PROJECT_ID"
+    }
   }
 }

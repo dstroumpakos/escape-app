@@ -130,7 +130,8 @@ export default defineSchema({
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     city: v.optional(v.string()),
-  }).index("by_email", ["email"]),
+  }).index("by_email", ["email"])
+    .index("by_apple_id", ["appleId"]),
 
   badges: defineTable({
     userId: v.id("users"),

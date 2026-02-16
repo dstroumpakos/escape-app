@@ -1,5 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { hashPassword, verifyPassword } from "./passwordUtils";
+import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 
 export const getByEmail = query({
   args: { email: v.string() },
@@ -22,7 +24,8 @@ export const getByEmail = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    return { ...user, avatar, badges };
+    const { password: _pw, ...safeUser } = user;
+    return { ...safeUser, avatar, badges };
   },
 });
 
@@ -44,7 +47,8 @@ export const getById = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
-    return { ...user, avatar, badges };
+    const { password: _pw, ...safeUser } = user;
+    return { ...safeUser, avatar, badges };
   },
 });
 
@@ -55,10 +59,16 @@ export const register = mutation({
     password: v.string(),
   },
   handler: async (ctx, args) => {
+    // Validate inputs
+    const name = requireNonEmpty(args.name, "Name");
+    if (!validateEmail(args.email)) throw new Error("Invalid email format");
+    const pwError = validatePassword(args.password);
+    if (pwError) throw new Error(pwError);
+
     // Check if email already exists
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
     if (existing) {
       throw new Error("An account with this email already exists");
@@ -68,10 +78,12 @@ export const register = mutation({
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const memberSince = `Member since ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
+    const hashedPw = await hashPassword(args.password);
+
     const userId = await ctx.db.insert("users", {
-      name: args.name,
+      name,
       email: args.email.toLowerCase(),
-      password: args.password, // In production, hash this
+      password: hashedPw,
       avatar: "",
       title: "Escape Rookie",
       memberSince,
@@ -100,8 +112,19 @@ export const login = mutation({
       throw new Error("No account found with this email");
     }
 
-    if (!user.password || user.password !== args.password) {
+    if (!user.password) {
       throw new Error("Incorrect password");
+    }
+
+    const valid = await verifyPassword(args.password, user.password);
+    if (!valid) {
+      throw new Error("Incorrect password");
+    }
+
+    // Upgrade legacy plaintext passwords to hashed on successful login
+    if (!user.password.includes(":")) {
+      const hashed = await hashPassword(args.password);
+      await ctx.db.patch(user._id, { password: hashed });
     }
 
     return user._id;
@@ -116,8 +139,10 @@ export const loginWithApple = mutation({
   },
   handler: async (ctx, args) => {
     // Check if user already exists with this Apple ID
-    const users = await ctx.db.query("users").collect();
-    const existingByApple = users.find((u) => u.appleId === args.appleId);
+    const existingByApple = await ctx.db
+      .query("users")
+      .withIndex("by_apple_id", (q) => q.eq("appleId", args.appleId))
+      .first();
     if (existingByApple) {
       return existingByApple._id;
     }

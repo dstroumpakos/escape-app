@@ -1,5 +1,11 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { hashPassword, verifyPassword } from "./passwordUtils";
+import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
+
+// ─── Admin secret: set this env var in your Convex dashboard ───
+// In Convex Dashboard → Settings → Environment Variables → ADMIN_SECRET
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "";
 
 // ─── Auth ───
 export const login = query({
@@ -10,8 +16,13 @@ export const login = query({
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
     if (!company) return null;
-    if (company.password !== args.password) return null;
-    return company;
+
+    const valid = await verifyPassword(args.password, company.password);
+    if (!valid) return null;
+
+    // Return safe fields only — NEVER return the password
+    const { password: _pw, ...safe } = company;
+    return safe;
   },
 });
 
@@ -27,14 +38,26 @@ export const register = mutation({
     password: v.string(),
   },
   handler: async (ctx, args) => {
+    // Validate inputs
+    requireNonEmpty(args.name, "Company name");
+    if (!validateEmail(args.email)) return { error: "Invalid email format" };
+    const pwError = validatePassword(args.password);
+    if (pwError) return { error: pwError };
+    requireNonEmpty(args.phone, "Phone");
+    requireNonEmpty(args.address, "Address");
+    requireNonEmpty(args.city, "City");
+
     const existing = await ctx.db
       .query("companies")
       .withIndex("by_email", (q) => q.eq("email", args.email))
       .first();
     if (existing) return { error: "Email already registered" };
 
+    const hashedPw = await hashPassword(args.password);
+
     const id = await ctx.db.insert("companies", {
       ...args,
+      password: hashedPw,
       logo: "",
       verified: false,
       createdAt: Date.now(),
@@ -51,7 +74,9 @@ export const getById = query({
   handler: async (ctx, args) => {
     const company = await ctx.db.get(args.id);
     if (!company) return null;
-    return { ...company, onboardingStatus: company.onboardingStatus || "approved" };
+    // Never return the password field
+    const { password: _pw, ...safe } = company;
+    return { ...safe, onboardingStatus: company.onboardingStatus || "approved" };
   },
 });
 
@@ -340,7 +365,16 @@ export const loginCompany = mutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .first();
     if (!company) throw new Error("No business account found with this email");
-    if (company.password !== args.password) throw new Error("Incorrect password");
+
+    const valid = await verifyPassword(args.password, company.password);
+    if (!valid) throw new Error("Incorrect password");
+
+    // Upgrade legacy plaintext passwords on successful login
+    if (!company.password.includes(":")) {
+      const hashed = await hashPassword(args.password);
+      await ctx.db.patch(company._id, { password: hashed });
+    }
+
     // Auto-patch old companies that existed before onboarding flow
     if (!company.onboardingStatus) {
       await ctx.db.patch(company._id, { onboardingStatus: "approved" });
@@ -380,26 +414,37 @@ export const selectPlan = mutation({
 
 // Admin: list all pending review companies
 export const getPendingReview = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { adminSecret: v.string() },
+  handler: async (ctx, args) => {
+    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
+      throw new Error("Unauthorized: invalid admin credentials");
+    }
     const all = await ctx.db.query("companies").collect();
-    return all.filter((c) => c.onboardingStatus === "pending_review");
+    return all
+      .filter((c) => c.onboardingStatus === "pending_review")
+      .map(({ password: _pw, ...safe }) => safe);
   },
 });
 
 // Admin: list all companies for management
 export const getAllCompanies = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { adminSecret: v.string() },
+  handler: async (ctx, args) => {
+    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
+      throw new Error("Unauthorized: invalid admin credentials");
+    }
     const all = await ctx.db.query("companies").collect();
-    return all.map((c) => ({ ...c, onboardingStatus: c.onboardingStatus || "approved" }));
+    return all.map(({ password: _pw, ...c }) => ({ ...c, onboardingStatus: c.onboardingStatus || "approved" }));
   },
 });
 
 // Admin: approve company
 export const approveCompany = mutation({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), adminSecret: v.string() },
   handler: async (ctx, args) => {
+    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
+      throw new Error("Unauthorized: invalid admin credentials");
+    }
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "approved",
       verified: true,
@@ -411,8 +456,11 @@ export const approveCompany = mutation({
 
 // Admin: decline company with notes
 export const declineCompany = mutation({
-  args: { companyId: v.id("companies"), notes: v.string() },
+  args: { companyId: v.id("companies"), notes: v.string(), adminSecret: v.string() },
   handler: async (ctx, args) => {
+    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
+      throw new Error("Unauthorized: invalid admin credentials");
+    }
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "declined",
       reviewedAt: Date.now(),
