@@ -3,9 +3,14 @@ import { v } from "convex/values";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 
-// ─── Admin secret: set this env var in your Convex dashboard ───
-// In Convex Dashboard → Settings → Environment Variables → ADMIN_SECRET
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "";
+// ─── Admin helper: verify the calling user has isAdmin ───
+async function requireAdmin(ctx: any, userId: string) {
+  const user = await ctx.db.get(userId);
+  if (!user || !user.isAdmin) {
+    throw new Error("Unauthorized: admin access required");
+  }
+  return user;
+}
 
 // ─── Auth ───
 export const login = query({
@@ -414,11 +419,9 @@ export const selectPlan = mutation({
 
 // Admin: list all pending review companies
 export const getPendingReview = query({
-  args: { adminSecret: v.string() },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Unauthorized: invalid admin credentials");
-    }
+    await requireAdmin(ctx, args.userId);
     const all = await ctx.db.query("companies").collect();
     return all
       .filter((c) => c.onboardingStatus === "pending_review")
@@ -428,11 +431,9 @@ export const getPendingReview = query({
 
 // Admin: list all companies for management
 export const getAllCompanies = query({
-  args: { adminSecret: v.string() },
+  args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Unauthorized: invalid admin credentials");
-    }
+    await requireAdmin(ctx, args.userId);
     const all = await ctx.db.query("companies").collect();
     return all.map(({ password: _pw, ...c }) => ({ ...c, onboardingStatus: c.onboardingStatus || "approved" }));
   },
@@ -440,11 +441,9 @@ export const getAllCompanies = query({
 
 // Admin: approve company
 export const approveCompany = mutation({
-  args: { companyId: v.id("companies"), adminSecret: v.string() },
+  args: { companyId: v.id("companies"), userId: v.id("users") },
   handler: async (ctx, args) => {
-    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Unauthorized: invalid admin credentials");
-    }
+    await requireAdmin(ctx, args.userId);
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "approved",
       verified: true,
@@ -456,11 +455,9 @@ export const approveCompany = mutation({
 
 // Admin: decline company with notes
 export const declineCompany = mutation({
-  args: { companyId: v.id("companies"), notes: v.string(), adminSecret: v.string() },
+  args: { companyId: v.id("companies"), notes: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => {
-    if (!ADMIN_SECRET || args.adminSecret !== ADMIN_SECRET) {
-      throw new Error("Unauthorized: invalid admin credentials");
-    }
+    await requireAdmin(ctx, args.userId);
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "declined",
       reviewedAt: Date.now(),

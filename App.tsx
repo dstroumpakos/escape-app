@@ -305,10 +305,12 @@ export default function App() {
     return (
       <LanguageProvider>
       <ConvexProvider client={convex}>
+        <UserProvider userId={userId} onLogout={handleLogout} onSwitchToCompany={handleSwitchToCompany}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
           <AdminReview onBack={() => setAppState('main')} />
         </View>
+        </UserProvider>
       </ConvexProvider>
       </LanguageProvider>
     );
