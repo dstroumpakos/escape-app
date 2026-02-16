@@ -15,6 +15,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyAddBooking'>;
 
@@ -24,6 +25,13 @@ export default function CompanyAddBooking() {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
   const { companyId, roomId: preselectedRoom, date: preselectedDate, time: preselectedTime } = route.params;
+  const { t } = useTranslation();
+  const sourceLabels: Record<string, string> = {
+    'EscapeAll': t('addBooking.escapeAll'),
+    'Phone': t('addBooking.phone'),
+    'Walk-in': t('addBooking.walkIn'),
+    'Private Event': t('addBooking.privateEvent'),
+  };
 
   const rooms = useQuery(api.companies.getRooms, {
     companyId: companyId as Id<"companies">,
@@ -85,11 +93,11 @@ export default function CompanyAddBooking() {
   );
 
   const handleSave = async () => {
-    if (!selectedRoom) { Alert.alert('Error', 'Select a room.'); return; }
-    if (!date.trim()) { Alert.alert('Error', 'Enter a date.'); return; }
-    if (!time.trim()) { Alert.alert('Error', 'Select or enter a time.'); return; }
+    if (!selectedRoom) { Alert.alert(t('error'), t('addBooking.selectRoom')); return; }
+    if (!date.trim()) { Alert.alert(t('error'), t('addBooking.enterDate')); return; }
+    if (!time.trim()) { Alert.alert(t('error'), t('addBooking.selectTime')); return; }
     if (bookingType === 'unlocked' && !playerName.trim()) {
-      Alert.alert('Error', 'Enter the player name.'); return;
+      Alert.alert(t('error'), t('addBooking.enterName')); return;
     }
 
     setSaving(true);
@@ -106,8 +114,8 @@ export default function CompanyAddBooking() {
           notes: notes.trim() || undefined,
           total: parseFloat(total) || 0,
         });
-        Alert.alert('Booking Created', `Code: ${result.bookingCode}`, [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('addBooking.bookingCreated'), t('addBooking.codeMessage', { code: result.bookingCode }), [
+          { text: t('ok'), onPress: () => navigation.goBack() },
         ]);
       } else {
         const result = await createExternalBlock({
@@ -120,12 +128,12 @@ export default function CompanyAddBooking() {
           players: parseInt(players) || undefined,
           notes: notes.trim() || undefined,
         });
-        Alert.alert('Slot Blocked', `External block created: ${result.bookingCode}`, [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('addBooking.slotBlocked'), t('addBooking.externalCode', { code: result.bookingCode }), [
+          { text: t('ok'), onPress: () => navigation.goBack() },
         ]);
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to create booking.');
+      Alert.alert(t('error'), e.message || t('addBooking.createFailed'));
     }
     setSaving(false);
   };
@@ -139,7 +147,7 @@ export default function CompanyAddBooking() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add Booking</Text>
+        <Text style={styles.headerTitle}>{t('addBooking.title')}</Text>
       </View>
 
       <ScrollView
@@ -155,7 +163,7 @@ export default function CompanyAddBooking() {
           >
             <Ionicons name="lock-closed" size={16} color={bookingType === 'unlocked' ? '#fff' : theme.colors.textMuted} />
             <Text style={[styles.typeBtnText, bookingType === 'unlocked' && styles.typeBtnTextActive]}>
-              UNLOCKED Booking
+              {t('addBooking.unlockedBooking')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -164,7 +172,7 @@ export default function CompanyAddBooking() {
           >
             <Ionicons name="globe-outline" size={16} color={bookingType === 'external' ? '#fff' : theme.colors.textMuted} />
             <Text style={[styles.typeBtnText, bookingType === 'external' && styles.typeBtnTextActive]}>
-              External Block
+              {t('addBooking.externalBlock')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -173,7 +181,7 @@ export default function CompanyAddBooking() {
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={16} color="#FFA726" />
             <Text style={styles.infoBoxText}>
-              External blocks reserve the slot without collecting payment. Use for EscapeAll, phone, or walk-in bookings.
+              {t('addBooking.externalInfo')}
             </Text>
           </View>
         )}
@@ -181,7 +189,7 @@ export default function CompanyAddBooking() {
         {/* External Source */}
         {bookingType === 'external' && (
           <>
-            <Text style={styles.label}>Booking Source</Text>
+            <Text style={styles.label}>{t('addBooking.source')}</Text>
             <View style={styles.sourceRow}>
               {EXTERNAL_SOURCES.map((src) => (
                 <TouchableOpacity
@@ -190,7 +198,7 @@ export default function CompanyAddBooking() {
                   onPress={() => setExternalSource(src)}
                 >
                   <Text style={[styles.sourceChipText, externalSource === src && styles.sourceChipTextActive]}>
-                    {src}
+                    {sourceLabels[src] || src}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -199,7 +207,7 @@ export default function CompanyAddBooking() {
         )}
 
         {/* Room Selection */}
-        <Text style={styles.label}>Room *</Text>
+        <Text style={styles.label}>{t('addBooking.room')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.roomScroll}>
           {activeRooms.map((room: any) => (
             <TouchableOpacity
@@ -210,23 +218,23 @@ export default function CompanyAddBooking() {
               <Text style={[styles.roomCardTitle, selectedRoom === room._id && styles.roomCardTitleActive]} numberOfLines={1}>
                 {room.title}
               </Text>
-              <Text style={styles.roomCardMeta}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}/person`}</Text>
+              <Text style={styles.roomCardMeta}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}${t('perPerson')}`}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* Date */}
-        <Text style={styles.label}>Date *</Text>
+        <Text style={styles.label}>{t('addBooking.date')}</Text>
         <TextInput
           style={styles.input}
           value={date}
           onChangeText={setDate}
-          placeholder="YYYY-MM-DD"
+          placeholder={t('addBooking.datePlaceholder')}
           placeholderTextColor={theme.colors.textMuted}
         />
 
         {/* Time Slot Selection */}
-        <Text style={styles.label}>Time *</Text>
+        <Text style={styles.label}>{t('addBooking.time')}</Text>
         {availableSlots.length > 0 ? (
           <View style={styles.slotsGrid}>
             {availableSlots.map((slot: any) => (
@@ -248,7 +256,7 @@ export default function CompanyAddBooking() {
                   {slot.time}
                 </Text>
                 {slot.isBooked && (
-                  <Text style={styles.slotBookedLabel}>Booked</Text>
+                  <Text style={styles.slotBookedLabel}>{t('booked')}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -258,31 +266,31 @@ export default function CompanyAddBooking() {
             style={styles.input}
             value={time}
             onChangeText={setTime}
-            placeholder="e.g. 3:00 PM"
+            placeholder={t('addBooking.timePlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
           />
         )}
 
         {/* Player Info */}
         <Text style={styles.label}>
-          {bookingType === 'unlocked' ? 'Player Name *' : 'Name (optional)'}
+          {bookingType === 'unlocked' ? t('addBooking.playerName') : t('addBooking.nameOptional')}
         </Text>
         <TextInput
           style={styles.input}
           value={playerName}
           onChangeText={setPlayerName}
-          placeholder="Enter player name"
+          placeholder={t('addBooking.namePlaceholder')}
           placeholderTextColor={theme.colors.textMuted}
         />
 
         {bookingType === 'unlocked' && (
           <>
-            <Text style={styles.label}>Contact (email/phone)</Text>
+            <Text style={styles.label}>{t('addBooking.contact')}</Text>
             <TextInput
               style={styles.input}
               value={playerContact}
               onChangeText={setPlayerContact}
-              placeholder="player@email.com"
+              placeholder={t('addBooking.contactPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
               autoCapitalize="none"
             />
@@ -291,7 +299,7 @@ export default function CompanyAddBooking() {
 
         <View style={styles.rowInputs}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.label}>Players</Text>
+            <Text style={styles.label}>{t('addBooking.players')}</Text>
             <TextInput
               style={styles.input}
               value={players}
@@ -302,25 +310,25 @@ export default function CompanyAddBooking() {
           </View>
           {bookingType === 'unlocked' && (
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Total ($)</Text>
+              <Text style={styles.label}>{t('addBooking.totalPrice')}</Text>
               <TextInput
                 style={styles.input}
                 value={total}
                 onChangeText={setTotal}
                 keyboardType="decimal-pad"
-                placeholder="0.00"
+                placeholder={t('addBooking.totalPlaceholder')}
                 placeholderTextColor={theme.colors.textMuted}
               />
             </View>
           )}
         </View>
 
-        <Text style={styles.label}>Notes</Text>
+        <Text style={styles.label}>{t('addBooking.notes')}</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={notes}
           onChangeText={setNotes}
-          placeholder="Internal notes…"
+          placeholder={t('addBooking.notesPlaceholder')}
           placeholderTextColor={theme.colors.textMuted}
           multiline
         />
@@ -341,10 +349,10 @@ export default function CompanyAddBooking() {
           />
           <Text style={styles.saveBtnText}>
             {saving
-              ? 'Saving...'
+              ? t('saving')
               : bookingType === 'external'
-              ? 'Block Slot'
-              : 'Create Booking'}
+              ? t('addBooking.blockSlot')
+              : t('addBooking.createBooking')}
           </Text>
         </TouchableOpacity>
       </View>

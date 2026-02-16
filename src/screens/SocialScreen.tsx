@@ -19,22 +19,23 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { useUser } from '../UserContext';
+import { useTranslation } from '../i18n';
 import CreatePostModal from './CreatePostModal';
 import type { Id } from '../../convex/_generated/dataModel';
 
 const { width } = Dimensions.get('window');
 
-function timeAgo(timestamp: number): string {
+function timeAgo(timestamp: number, t: (key: string, params?: Record<string, any>) => string): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  if (seconds < 60) return 'just now';
+  if (seconds < 60) return t('social.justNow');
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 60) return t('social.mAgo', { n: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t('social.hAgo', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return t('social.dAgo', { n: days });
   const weeks = Math.floor(days / 7);
-  return `${weeks}w ago`;
+  return t('social.wAgo', { n: weeks });
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -61,6 +62,7 @@ interface PostCardProps {
 }
 
 function PostCard({ post, isLiked, userId, onToggleLike, onComment }: PostCardProps) {
+  const { t } = useTranslation();
   const initials = post.authorName
     .split(' ')
     .map((n: string) => n[0])
@@ -88,11 +90,11 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment }: PostCardPr
               )}
               {post.authorType === 'company' && (
                 <View style={styles.companyBadge}>
-                  <Text style={styles.companyBadgeText}>Business</Text>
+                  <Text style={styles.companyBadgeText}>{t('social.business')}</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.timeText}>{timeAgo(post.createdAt)}</Text>
+            <Text style={styles.timeText}>{timeAgo(post.createdAt, t)}</Text>
           </View>
         </View>
       </View>
@@ -178,6 +180,7 @@ function CommentSection({
   userId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const comments = useQuery(api.posts.getComments, { postId });
   const addComment = useMutation(api.posts.addComment);
   const [newComment, setNewComment] = useState('');
@@ -203,7 +206,7 @@ function CommentSection({
   return (
     <View style={styles.commentSheet}>
       <View style={styles.commentHeader}>
-        <Text style={styles.commentTitle}>Comments</Text>
+        <Text style={styles.commentTitle}>{t('social.comments')}</Text>
         <TouchableOpacity onPress={onClose}>
           <Ionicons name="close" size={22} color="#fff" />
         </TouchableOpacity>
@@ -232,14 +235,14 @@ function CommentSection({
               <View style={styles.commentContent}>
                 <Text style={styles.commentUser}>{item.userName}</Text>
                 <Text style={styles.commentText}>{item.text}</Text>
-                <Text style={styles.commentTime}>{timeAgo(item.createdAt)}</Text>
+                <Text style={styles.commentTime}>{timeAgo(item.createdAt, t)}</Text>
               </View>
             </View>
           );
         }}
         ListEmptyComponent={
           <View style={styles.emptyComments}>
-            <Text style={styles.emptyText}>No comments yet. Be the first!</Text>
+            <Text style={styles.emptyText}>{t('social.noComments')}</Text>
           </View>
         }
       />
@@ -247,7 +250,7 @@ function CommentSection({
       <View style={styles.commentInputRow}>
         <TextInput
           style={styles.commentInput}
-          placeholder="Add a comment..."
+          placeholder={t('social.addComment')}
           placeholderTextColor={theme.colors.textMuted}
           value={newComment}
           onChangeText={setNewComment}
@@ -283,6 +286,7 @@ export default function SocialScreen() {
     userId ? { userId: userId as Id<'users'> } : 'skip'
   );
   const toggleLike = useMutation(api.posts.toggleLike);
+  const { t } = useTranslation();
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [commentPostId, setCommentPostId] = useState<Id<'posts'> | null>(null);
@@ -317,7 +321,7 @@ export default function SocialScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.screenHeader}>
-        <Text style={styles.screenTitle}>Social</Text>
+        <Text style={styles.screenTitle}>{t('social.title')}</Text>
         <TouchableOpacity
           style={styles.newPostBtn}
           onPress={() => setCreateModalVisible(true)}
@@ -351,9 +355,9 @@ export default function SocialScreen() {
         ListEmptyComponent={
           <View style={styles.emptyFeed}>
             <Ionicons name="people-outline" size={56} color={theme.colors.textMuted} />
-            <Text style={styles.emptyTitle}>No posts yet</Text>
+            <Text style={styles.emptyTitle}>{t('social.noPosts')}</Text>
             <Text style={styles.emptySubtitle}>
-              Be the first to share your escape room experience!
+              {t('social.beFirst')}
             </Text>
             <TouchableOpacity
               style={styles.emptyBtn}
@@ -366,7 +370,7 @@ export default function SocialScreen() {
                 end={{ x: 1, y: 0 }}
               >
                 <Ionicons name="add" size={18} color="#fff" />
-                <Text style={styles.emptyBtnText}>Create Post</Text>
+                <Text style={styles.emptyBtnText}>{t('social.createPost')}</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

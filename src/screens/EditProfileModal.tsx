@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
+import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
 
 interface Props {
@@ -33,13 +34,14 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
   const [newImageSelected, setNewImageSelected] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const { t } = useTranslation();
   const updateProfile = useMutation(api.users.updateProfile);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photo library to change your profile picture.');
+      Alert.alert(t('editProfile.permissionRequired'), t('editProfile.libraryPermission'));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow camera access to take a profile photo.');
+      Alert.alert(t('editProfile.permissionRequired'), t('editProfile.cameraPermission'));
       return;
     }
 
@@ -76,17 +78,17 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
   };
 
   const showImageOptions = () => {
-    Alert.alert('Profile Photo', 'Choose an option', [
-      { text: 'Take Photo', onPress: takePhoto },
-      { text: 'Choose from Library', onPress: pickImage },
-      ...(avatarUri ? [{ text: 'Remove Photo', style: 'destructive' as const, onPress: () => { setAvatarUri(''); setNewImageSelected(true); } }] : []),
-      { text: 'Cancel', style: 'cancel' as const },
+    Alert.alert(t('editProfile.photoTitle'), t('editProfile.photoMessage'), [
+      { text: t('editProfile.takePhoto'), onPress: takePhoto },
+      { text: t('editProfile.chooseLibrary'), onPress: pickImage },
+      ...(avatarUri ? [{ text: t('editProfile.removePhoto'), style: 'destructive' as const, onPress: () => { setAvatarUri(''); setNewImageSelected(true); } }] : []),
+      { text: t('cancel'), style: 'cancel' as const },
     ]);
   };
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Name cannot be empty');
+      Alert.alert(t('error'), t('editProfile.nameEmpty'));
       return;
     }
 
@@ -124,7 +126,7 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
 
       onClose();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to update profile');
+      Alert.alert(t('error'), err.message || t('editProfile.failed'));
     } finally {
       setSaving(false);
     }
@@ -149,14 +151,14 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} disabled={saving}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t('cancel')}</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Edit Profile</Text>
+            <Text style={styles.headerTitle}>{t('editProfile.title')}</Text>
             <TouchableOpacity onPress={handleSave} disabled={saving || !hasChanges}>
               {saving ? (
                 <ActivityIndicator size="small" color={theme.colors.redPrimary} />
               ) : (
-                <Text style={[styles.saveText, !hasChanges && styles.saveTextDisabled]}>Save</Text>
+                <Text style={[styles.saveText, !hasChanges && styles.saveTextDisabled]}>{t('save')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -175,19 +177,19 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
                 <Ionicons name="camera" size={16} color="#fff" />
               </View>
             </View>
-            <Text style={styles.changePhotoText}>Change Photo</Text>
+            <Text style={styles.changePhotoText}>{t('editProfile.changePhoto')}</Text>
           </TouchableOpacity>
 
           {/* Name Input */}
           <View style={styles.fieldSection}>
-            <Text style={styles.fieldLabel}>Name</Text>
+            <Text style={styles.fieldLabel}>{t('editProfile.name')}</Text>
             <View style={styles.inputWrap}>
               <Ionicons name="person-outline" size={18} color={theme.colors.textMuted} />
               <TextInput
                 style={styles.input}
                 value={name}
                 onChangeText={setName}
-                placeholder="Your name"
+                placeholder={t('editProfile.namePlaceholder')}
                 placeholderTextColor={theme.colors.textMuted}
                 autoCapitalize="words"
                 returnKeyType="done"

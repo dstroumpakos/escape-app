@@ -8,6 +8,7 @@ import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { useTranslation } from '../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'BookingConfirmation'>;
@@ -16,6 +17,7 @@ export default function BookingConfirmation() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteType>();
   const { id, date, time, players, total } = route.params;
+  const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = convexRooms && convexRooms.length > 0
@@ -47,8 +49,8 @@ export default function BookingConfirmation() {
         </Animated.View>
 
         <Animated.View style={{ opacity: fadeAnim, alignItems: 'center' }}>
-          <Text style={styles.title}>Room Unlocked!</Text>
-          <Text style={styles.subtitle}>Your escape awaits. Don't be late.</Text>
+          <Text style={styles.title}>{t('confirmation.title')}</Text>
+          <Text style={styles.subtitle}>{t('confirmation.subtitle')}</Text>
 
           {/* Booking Card */}
           <View style={styles.card}>
@@ -60,12 +62,12 @@ export default function BookingConfirmation() {
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Ionicons name="calendar-outline" size={16} color={theme.colors.textMuted} />
-                <Text style={styles.infoLabel}>Date</Text>
+                <Text style={styles.infoLabel}>{t('confirmation.date')}</Text>
                 <Text style={styles.infoVal}>{date}</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="time-outline" size={16} color={theme.colors.textMuted} />
-                <Text style={styles.infoLabel}>Time</Text>
+                <Text style={styles.infoLabel}>{t('confirmation.time')}</Text>
                 <Text style={styles.infoVal}>{time}</Text>
               </View>
             </View>
@@ -73,12 +75,12 @@ export default function BookingConfirmation() {
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <Ionicons name="people-outline" size={16} color={theme.colors.textMuted} />
-                <Text style={styles.infoLabel}>Players</Text>
+                <Text style={styles.infoLabel}>{t('confirmation.players')}</Text>
                 <Text style={styles.infoVal}>{players}</Text>
               </View>
               <View style={styles.infoItem}>
                 <Ionicons name="pricetag-outline" size={16} color={theme.colors.textMuted} />
-                <Text style={styles.infoLabel}>Total</Text>
+                <Text style={styles.infoLabel}>{t('confirmation.total')}</Text>
                 <Text style={styles.infoVal}>€{total.toFixed(2)}</Text>
               </View>
             </View>
@@ -90,39 +92,39 @@ export default function BookingConfirmation() {
               <View style={styles.qrBox}>
                 <Ionicons name="qr-code-outline" size={80} color={theme.colors.textMuted} />
               </View>
-              <Text style={styles.bookingId}>Booking ID: {bookingId}</Text>
+              <Text style={styles.bookingId}>{t('confirmation.bookingId', { id: bookingId })}</Text>
             </View>
           </View>
 
           {/* Action Buttons */}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={() => {
-              Alert.alert('Add to Calendar', `Your booking for ${room.title} on ${date} at ${time} has been added to your calendar!`);
+              Alert.alert(t('confirmation.calendarTitle'), t('confirmation.calendarMessage', { title: room.title, date, time }));
             }}>
               <Ionicons name="calendar" size={20} color={theme.colors.redPrimary} />
-              <Text style={styles.actionText}>Add to Calendar</Text>
+              <Text style={styles.actionText}>{t('confirmation.addCalendar')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={async () => {
               try {
                 await Share.share({
-                  message: `Booking Confirmation\n\nRoom: ${room.title}\nDate: ${date}\nTime: ${time}\nPlayers: ${players}\nTotal: €${total.toFixed(2)}\nBooking ID: ${bookingId}\n\nSee you at ${room.location}!`,
-                  title: 'Booking Receipt',
+                  message: `${t('confirmation.receiptTitle')}\n\n${t('confirmation.date')}: ${room.title}\n${t('confirmation.date')}: ${date}\n${t('confirmation.time')}: ${time}\n${t('confirmation.players')}: ${players}\n${t('confirmation.total')}: €${total.toFixed(2)}\n${t('confirmation.bookingId', { id: bookingId })}\n\n${room.location}`,
+                  title: t('confirmation.receiptTitle'),
                 });
               } catch {
-                Alert.alert('Receipt', 'Your receipt has been saved.');
+                Alert.alert(t('confirmation.receiptTitle'), t('confirmation.receiptSaved'));
               }
             }}>
               <Ionicons name="download-outline" size={20} color={theme.colors.redPrimary} />
-              <Text style={styles.actionText}>Share Receipt</Text>
+              <Text style={styles.actionText}>{t('confirmation.shareReceipt')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} activeOpacity={0.7} onPress={() => {
               const query = encodeURIComponent(room.location);
               Linking.openURL(`https://maps.apple.com/?q=${query}`).catch(() => {
-                Alert.alert('Directions', `Navigate to: ${room.location}`);
+                Alert.alert(t('confirmation.directionsTitle'), t('confirmation.directionsMessage', { location: room.location }));
               });
             }}>
               <Ionicons name="navigate-outline" size={20} color={theme.colors.redPrimary} />
-              <Text style={styles.actionText}>Get Directions</Text>
+              <Text style={styles.actionText}>{t('confirmation.getDirections')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -136,7 +138,7 @@ export default function BookingConfirmation() {
               );
             }}
           >
-            <Text style={styles.homeBtnText}>Back to Home</Text>
+            <Text style={styles.homeBtnText}>{t('confirmation.backHome')}</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>

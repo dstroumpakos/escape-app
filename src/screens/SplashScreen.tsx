@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { useTranslation } from '../i18n';
 
 interface Props {
   onComplete: () => void;
@@ -12,6 +13,7 @@ export default function SplashScreen({ onComplete }: Props) {
   const [progress, setProgress] = useState(0);
   const glowAnim = useRef(new Animated.Value(0.3)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const { t } = useTranslation();
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -49,8 +51,8 @@ export default function SplashScreen({ onComplete }: Props) {
           </View>
         </Animated.View>
 
-        <Text style={styles.title}>UNLOCKED</Text>
-        <Text style={styles.subtitle}>ESCAPE ROOM DISCOVERY</Text>
+        <Text style={styles.title}>{t('splash.title')}</Text>
+        <Text style={styles.subtitle}>{t('splash.subtitle')}</Text>
       </Animated.View>
 
       <View style={styles.loaderWrap}>

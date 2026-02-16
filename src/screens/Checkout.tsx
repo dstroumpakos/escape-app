@@ -8,6 +8,7 @@ import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { useTranslation } from '../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'Checkout'>;
@@ -16,6 +17,8 @@ export default function Checkout() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteType>();
   const { id, date, time, players, total } = route.params;
+
+  const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = convexRooms && convexRooms.length > 0
@@ -44,13 +47,13 @@ export default function Checkout() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
+        <Text style={styles.headerTitle}>{t('checkout.title')}</Text>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
         {/* Booking Summary */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Booking Summary</Text>
+          <Text style={styles.cardTitle}>{t('checkout.bookingSummary')}</Text>
           <Text style={styles.roomName}>{room.title}</Text>
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
@@ -62,47 +65,47 @@ export default function Checkout() {
           </View>
           <View style={styles.detailRow}>
             <Ionicons name="people-outline" size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.detailText}>{players} player{players > 1 ? 's' : ''}</Text>
+            <Text style={styles.detailText}>{players} {players > 1 ? t('players') : t('player')}</Text>
           </View>
         </View>
 
         {/* Price Breakdown */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Price Breakdown</Text>
+          <Text style={styles.cardTitle}>{t('checkout.priceBreakdown')}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>{players}x Tickets</Text>
+            <Text style={styles.priceLabel}>{t('checkout.tickets', { n: players })}</Text>
             <Text style={styles.priceVal}>€{total.toFixed(2)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Service Fee</Text>
+            <Text style={styles.priceLabel}>{t('checkout.serviceFee')}</Text>
             <Text style={styles.priceVal}>€{serviceFee.toFixed(2)}</Text>
           </View>
           <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t('checkout.total')}</Text>
             <Text style={styles.totalVal}>€{finalTotal.toFixed(2)}</Text>
           </View>
         </View>
 
         {/* Promo Code */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Promo Code</Text>
+          <Text style={styles.cardTitle}>{t('checkout.promoCode')}</Text>
           <View style={styles.promoRow}>
             <TextInput
               style={styles.promoInput}
-              placeholder="Enter promo code"
+              placeholder={t('checkout.enterPromo')}
               placeholderTextColor={theme.colors.textMuted}
               value={promoCode}
               onChangeText={setPromoCode}
             />
             <TouchableOpacity style={styles.promoBtn} onPress={() => {
               if (promoCode.trim().length === 0) {
-                Alert.alert('Promo Code', 'Please enter a promo code.');
+                Alert.alert(t('checkout.promoCode'), t('checkout.promoEmpty'));
               } else {
-                Alert.alert('Invalid Code', `"${promoCode}" is not a valid promo code. Try again!`);
+                Alert.alert(t('checkout.invalidCode'), t('checkout.invalidCodeMsg', { code: promoCode }));
                 setPromoCode('');
               }
             }}>
-              <Text style={styles.promoBtnText}>Apply</Text>
+              <Text style={styles.promoBtnText}>{t('checkout.apply')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -110,10 +113,10 @@ export default function Checkout() {
         {/* Payment Term Selection */}
         {availableTerms.length > 1 && (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Payment Option</Text>
+            <Text style={styles.cardTitle}>{t('checkout.paymentOption')}</Text>
             {availableTerms.map((term) => {
-              const label = term === 'deposit_20' ? '20% Deposit' : term === 'pay_on_arrival' ? 'Pay on Arrival' : 'Full Payment';
-              const desc = term === 'deposit_20' ? 'Pay 20% now, rest on arrival' : term === 'pay_on_arrival' ? 'No payment now — pay at the venue' : 'Pay 100% when booking';
+              const label = term === 'deposit_20' ? t('checkout.deposit20') : term === 'pay_on_arrival' ? t('checkout.payOnArrival') : t('checkout.fullPayment');
+              const desc = term === 'deposit_20' ? t('checkout.deposit20Desc') : term === 'pay_on_arrival' ? t('checkout.payOnArrivalDesc') : t('checkout.fullPaymentDesc');
               const icon = term === 'deposit_20' ? 'card-outline' : term === 'pay_on_arrival' ? 'location-outline' : 'cash-outline';
               return (
                 <TouchableOpacity
@@ -140,14 +143,14 @@ export default function Checkout() {
         {/* Payment Method */}
         {isPayOnArrival ? (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Payment</Text>
+            <Text style={styles.cardTitle}>{t('checkout.payment')}</Text>
             <View style={[styles.payOption, styles.payOptionActive]}>
               <View style={styles.payRow}>
                 <Ionicons name="location-outline" size={22} color={theme.colors.redPrimary} />
                 <View>
-                  <Text style={styles.payText}>Pay on Arrival</Text>
+                  <Text style={styles.payText}>{t('checkout.payOnArrival')}</Text>
                   <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
-                    No payment required now — pay at the venue
+                    {t('checkout.payOnArrivalNote')}
                   </Text>
                 </View>
               </View>
@@ -155,14 +158,14 @@ export default function Checkout() {
           </View>
         ) : (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Payment Method</Text>
+            <Text style={styles.cardTitle}>{t('checkout.paymentMethod')}</Text>
             <TouchableOpacity
               style={[styles.payOption, paymentMethod === 'apple' && styles.payOptionActive]}
               onPress={() => setPaymentMethod('apple')}
             >
               <View style={styles.payRow}>
                 <Ionicons name="logo-apple" size={22} color="#fff" />
-                <Text style={styles.payText}>Apple Pay</Text>
+                <Text style={styles.payText}>{t('checkout.applePay')}</Text>
               </View>
               <View style={[styles.radio, paymentMethod === 'apple' && styles.radioActive]}>
                 {paymentMethod === 'apple' && <View style={styles.radioDot} />}
@@ -174,7 +177,7 @@ export default function Checkout() {
             >
               <View style={styles.payRow}>
                 <Ionicons name="card-outline" size={22} color="#fff" />
-                <Text style={styles.payText}>Credit Card</Text>
+                <Text style={styles.payText}>{t('checkout.creditCard')}</Text>
               </View>
               <View style={[styles.radio, paymentMethod === 'credit' && styles.radioActive]}>
                 {paymentMethod === 'credit' && <View style={styles.radioDot} />}
@@ -194,7 +197,7 @@ export default function Checkout() {
           })}
         >
           <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.confirmText}>{isPayOnArrival ? 'Confirm Reservation' : `Confirm & Pay €${finalTotal.toFixed(2)}`}</Text>
+          <Text style={styles.confirmText}>{isPayOnArrival ? t('checkout.confirmReservation') : t('checkout.confirmPay', { amount: finalTotal.toFixed(2) })}</Text>
         </TouchableOpacity>
       </View>
     </View>

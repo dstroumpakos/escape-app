@@ -8,6 +8,7 @@ import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,6 +21,8 @@ export default function DateTimeSelect() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteType>();
   const roomId = route.params.id;
+
+  const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = convexRooms && convexRooms.length > 0
@@ -130,7 +133,7 @@ export default function DateTimeSelect() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Select Date & Time</Text>
+        <Text style={styles.headerTitle}>{t('dateTime.title')}</Text>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
@@ -153,7 +156,7 @@ export default function DateTimeSelect() {
           </View>
 
           <View style={styles.calWeekdays}>
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+            {t('dateTime.weekdays').split(',').map(d => (
               <Text key={d} style={styles.calWeekday}>{d}</Text>
             ))}
           </View>
@@ -185,7 +188,7 @@ export default function DateTimeSelect() {
 
         {/* Players */}
         <View style={styles.playersRow}>
-          <Text style={styles.playersLabel}>Players</Text>
+          <Text style={styles.playersLabel}>{t('dateTime.players')}</Text>
           <View style={styles.playersControl}>
             <TouchableOpacity style={styles.playersBtn} onPress={() => setPlayers(p => Math.max(room.playersMin, p - 1))}>
               <Text style={styles.playersBtnText}>−</Text>
@@ -198,7 +201,7 @@ export default function DateTimeSelect() {
         </View>
 
         {/* Time Slots */}
-        <Text style={styles.timeSectionTitle}>Available Slots</Text>
+        <Text style={styles.timeSectionTitle}>{t('dateTime.availableSlots')}</Text>
         <View style={styles.timeGrid}>
           {displaySlots.map((slot: any) => {
             const slotTotal = getSlotPrice(slot);
@@ -217,7 +220,7 @@ export default function DateTimeSelect() {
               >
                 {discount > 0 && (
                   <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>{discount}% OFF</Text>
+                    <Text style={styles.discountText}>{t('dateTime.off', { n: discount })}</Text>
                   </View>
                 )}
                 <Text style={[styles.timeVal, !slot.available && styles.timeValDisabled]}>{slot.time}</Text>
@@ -237,9 +240,9 @@ export default function DateTimeSelect() {
           <View style={styles.overflowSection}>
             <View style={styles.overflowBadge}>
               <Ionicons name="flash" size={14} color="#FFD700" />
-              <Text style={styles.overflowBadgeText}>Bonus Slot Unlocked!</Text>
+              <Text style={styles.overflowBadgeText}>{t('dateTime.bonusSlot')}</Text>
             </View>
-            <Text style={styles.overflowHint}>All regular slots are booked — a bonus slot is now available</Text>
+            <Text style={styles.overflowHint}>{t('dateTime.bonusHint')}</Text>
             <TouchableOpacity
               style={[
                 styles.timeCard,
@@ -271,7 +274,7 @@ export default function DateTimeSelect() {
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
+          <Text style={styles.totalLabel}>{t('dateTime.total')}</Text>
           <Text style={styles.totalVal}>${total}</Text>
         </View>
         <TouchableOpacity
@@ -286,7 +289,7 @@ export default function DateTimeSelect() {
             total,
           })}
         >
-          <Text style={styles.continueBtnText}>Continue to Checkout</Text>
+          <Text style={styles.continueBtnText}>{t('dateTime.continue')}</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -8,6 +8,7 @@ import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { useTranslation } from '../i18n';
 
 const { width: screenW, height: screenH } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -29,6 +30,7 @@ export default function MapView() {
     : staticRooms
   );
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const { t } = useTranslation();
   const selectedRoom = rooms[selectedIdx] || rooms[0];
 
   return (
@@ -69,13 +71,13 @@ export default function MapView() {
 
       {/* Controls */}
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7} onPress={() => Alert.alert('Zoom In', 'Map zoom will be available with Apple Maps integration.')}>
+        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7} onPress={() => Alert.alert(t('map.zoomIn'), t('map.zoomMessage'))}>
           <Ionicons name="add" size={20} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7} onPress={() => Alert.alert('Zoom Out', 'Map zoom will be available with Apple Maps integration.')}>
+        <TouchableOpacity style={styles.ctrlBtn} activeOpacity={0.7} onPress={() => Alert.alert(t('map.zoomOut'), t('map.zoomMessage'))}>
           <Ionicons name="remove" size={20} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.ctrlBtn, styles.locBtn]} activeOpacity={0.7} onPress={() => Alert.alert('My Location', 'Location services will be enabled with Apple Maps integration.')}>
+        <TouchableOpacity style={[styles.ctrlBtn, styles.locBtn]} activeOpacity={0.7} onPress={() => Alert.alert(t('map.myLocation'), t('map.myLocationMessage'))}>
           <Ionicons name="locate" size={20} color={theme.colors.redPrimary} />
         </TouchableOpacity>
       </View>
@@ -90,14 +92,14 @@ export default function MapView() {
               <Ionicons name="star" size={14} color={theme.colors.gold} />
               <Text style={styles.cardRatingText}>{selectedRoom.rating}</Text>
             </View>
-            <Text style={styles.cardPrice}>{selectedRoom.pricePerGroup?.length ? `From €${Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price))}` : `€${selectedRoom.price}/person`}</Text>
+            <Text style={styles.cardPrice}>{selectedRoom.pricePerGroup?.length ? `From €${Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price))}` : `€${selectedRoom.price}${t('perPerson')}`}</Text>
           </View>
           <TouchableOpacity
             style={styles.bookBtn}
             activeOpacity={0.8}
             onPress={() => navigation.navigate('RoomDetails', { id: selectedRoom.id })}
           >
-            <Text style={styles.bookBtnText}>Book Now</Text>
+            <Text style={styles.bookBtnText}>{t('map.bookNow')}</Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -11,6 +11,7 @@ import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
+import { useTranslation } from '../i18n';
 import EditProfileModal from './EditProfileModal';
 import type { Id } from '../../convex/_generated/dataModel';
 
@@ -23,6 +24,7 @@ interface ProfileProps {
 export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
   const navigation = useNavigation<Nav>();
   const { userId, onLogout } = useUser();
+  const { t, language, setLanguage } = useTranslation();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const user = useQuery(
     api.users.getById,
@@ -48,13 +50,13 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
       <View style={[styles.container, { alignItems: 'center', justifyContent: 'center', padding: 30 }]}>
         <Ionicons name="alert-circle-outline" size={48} color={theme.colors.redPrimary} />
         <Text style={{ color: '#fff', fontSize: 16, marginTop: 12, textAlign: 'center' }}>
-          Account not found. Please sign in again.
+          {t('profile.notFound')}
         </Text>
         <TouchableOpacity
           style={{ marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.colors.redPrimary, borderRadius: 12 }}
           onPress={onLogout}
         >
-          <Text style={{ color: '#fff', fontWeight: '700' }}>Sign Out</Text>
+          <Text style={{ color: '#fff', fontWeight: '700' }}>{t('profile.signOut')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -75,8 +77,8 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
           style={styles.headerBg}
         >
           <View style={styles.topRow}>
-            <Text style={styles.screenTitle}>Profile</Text>
-            <TouchableOpacity style={styles.settingsBtn} onPress={() => Alert.alert('Settings', 'App settings coming soon!')}>
+            <Text style={styles.screenTitle}>{t('profile.title')}</Text>
+            <TouchableOpacity style={styles.settingsBtn} onPress={() => Alert.alert(t('profile.settingsTitle'), t('profile.settingsMessage'))}>
               <Ionicons name="settings-outline" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -111,9 +113,9 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
         {/* Stats */}
         <View style={styles.statsRow}>
           {[
-            { label: 'Rooms\nPlayed', value: user.played, icon: 'game-controller' as const },
-            { label: 'Rooms\nEscaped', value: user.escaped, icon: 'key' as const },
-            { label: 'Awards\nEarned', value: user.awards, icon: 'trophy' as const },
+            { label: t('profile.roomsPlayed'), value: user.played, icon: 'game-controller' as const },
+            { label: t('profile.roomsEscaped'), value: user.escaped, icon: 'key' as const },
+            { label: t('profile.awards'), value: user.awards, icon: 'trophy' as const },
           ].map((stat, i) => (
             <View key={i} style={styles.statCard}>
               <Ionicons name={stat.icon} size={22} color={theme.colors.redPrimary} />
@@ -126,7 +128,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
         {/* Badges */}
         {user.badges && user.badges.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Badges</Text>
+            <Text style={styles.sectionTitle}>{t('profile.badges')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.badgeScroll}>
               {user.badges.map((badge: any, i: number) => (
                 <View key={i} style={[styles.badgeCard, !badge.earned && styles.badgeLocked]}>
@@ -145,7 +147,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
 
         {/* Wishlist */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Wishlist</Text>
+          <Text style={styles.sectionTitle}>{t('profile.wishlist')}</Text>
           {wishlist.map(room => (
             <TouchableOpacity key={room.id} style={styles.wishItem} activeOpacity={0.8} onPress={() => navigation.navigate('RoomDetails', { id: room.id })}>
               <Image source={{ uri: room.image }} style={styles.wishImage} />
@@ -155,10 +157,10 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
                 <View style={styles.wishRow}>
                   <Ionicons name="star" size={12} color="#FFD700" />
                   <Text style={styles.wishRating}>{room.rating}</Text>
-                  <Text style={styles.wishPrice}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
+                  <Text style={styles.wishPrice}>{room.pricePerGroup?.length ? t('profile.fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => Alert.alert('Wishlist', `${room.title} removed from wishlist.`)}>
+              <TouchableOpacity onPress={() => Alert.alert(t('profile.wishlist'), t('profile.wishlistRemoved', { title: room.title }))}>
                 <Ionicons name="heart" size={22} color={theme.colors.redPrimary} />
               </TouchableOpacity>
             </TouchableOpacity>
@@ -168,19 +170,20 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
         {/* Menu */}
         <View style={styles.section}>
           {[
-            { icon: 'create-outline' as const, label: 'Edit Profile', action: () => setEditModalVisible(true) },
-            { icon: 'notifications-outline' as const, label: 'Notifications', action: () => Alert.alert('Notifications', 'Push notification preferences coming soon!') },
-            { icon: 'card-outline' as const, label: 'Payment Methods', action: () => Alert.alert('Payment Methods', 'Manage your saved payment methods coming soon!') },
-            { icon: 'help-circle-outline' as const, label: 'Help & Support', action: () => Alert.alert('Help & Support', 'Need help? Contact us at support@unlocked.app') },
-            { icon: 'log-out-outline' as const, label: 'Sign Out', action: () => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Sign Out', style: 'destructive', onPress: () => onLogout() },
+            { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
+            { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => Alert.alert(t('profile.notifications'), t('profile.notifMessage')) },
+            { icon: 'card-outline' as const, label: t('profile.paymentMethods'), action: () => Alert.alert(t('profile.paymentMethods'), t('profile.paymentMessage')) },
+            { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Alert.alert(t('profile.helpSupport'), t('profile.helpMessage')) },
+            { icon: 'language-outline' as const, label: t('profile.language'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
+            { icon: 'log-out-outline' as const, label: t('profile.signOut'), action: () => Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMessage'), [
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('profile.signOut'), style: 'destructive', onPress: () => onLogout() },
             ]) },
           ].map((item, i) => (
             <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
               <View style={styles.menuLeft}>
-                <Ionicons name={item.icon} size={20} color={item.label === 'Edit Profile' ? theme.colors.redPrimary : theme.colors.textSecondary} />
-                <Text style={[styles.menuLabel, item.label === 'Edit Profile' && { color: theme.colors.redPrimary }]}>{item.label}</Text>
+                <Ionicons name={item.icon} size={20} color={item.label === t('profile.editProfile') ? theme.colors.redPrimary : theme.colors.textSecondary} />
+                <Text style={[styles.menuLabel, item.label === t('profile.editProfile') && { color: theme.colors.redPrimary }]}>{item.label}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
             </TouchableOpacity>
@@ -193,7 +196,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
           onPress={() => onSwitchToCompany()}
         >
           <Ionicons name="business-outline" size={20} color={theme.colors.redPrimary} />
-          <Text style={styles.switchBusinessText}>Switch to Business Portal</Text>
+          <Text style={styles.switchBusinessText}>{t('profile.switchBusiness')}</Text>
         </TouchableOpacity>
       </ScrollView>
       {/* Edit Profile Modal */}

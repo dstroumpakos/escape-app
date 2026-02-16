@@ -16,6 +16,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -30,6 +31,7 @@ interface Props {
 
 export default function CompanyBookings({ companyId }: Props) {
   const navigation = useNavigation<Nav>();
+  const { t } = useTranslation();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -81,7 +83,7 @@ export default function CompanyBookings({ companyId }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Calendar</Text>
+        <Text style={styles.headerTitle}>{t('companyBookings.title')}</Text>
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
@@ -109,7 +111,7 @@ export default function CompanyBookings({ companyId }: Props) {
             </TouchableOpacity>
           </View>
           <View style={styles.calWeekdays}>
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+            {t('dateTime.weekdays').split(',').map((d: string) => (
               <Text key={d} style={styles.calWeekday}>{d}</Text>
             ))}
           </View>
@@ -144,7 +146,7 @@ export default function CompanyBookings({ companyId }: Props) {
             {MONTH_NAMES[currentMonth]} {selectedDate}, {currentYear}
           </Text>
           <Text style={styles.bookingCount}>
-            {bookings?.filter((b: any) => b.status !== 'cancelled').length ?? 0} bookings
+            {t('companyBookings.bookings', { n: bookings?.filter((b: any) => b.status !== 'cancelled').length ?? 0 })}
           </Text>
         </View>
 
@@ -156,8 +158,8 @@ export default function CompanyBookings({ companyId }: Props) {
         ) : rooms.filter((r: any) => r.isActive !== false).length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="cube-outline" size={40} color={theme.colors.textMuted} />
-            <Text style={styles.emptyTitle}>No Active Rooms</Text>
-            <Text style={styles.emptyText}>Add rooms to start managing bookings</Text>
+            <Text style={styles.emptyTitle}>{t('companyBookings.noActiveRooms')}</Text>
+            <Text style={styles.emptyText}>{t('companyBookings.noActiveRoomsHint')}</Text>
           </View>
         ) : (
           rooms
@@ -169,13 +171,13 @@ export default function CompanyBookings({ companyId }: Props) {
                   <View style={styles.roomHeader}>
                     <Text style={styles.roomName} numberOfLines={1}>{room.title}</Text>
                     <Text style={styles.roomCount}>
-                      {roomBookings.length} booked
+                      {t('companyBookings.bookedCount', { n: roomBookings.length })}
                     </Text>
                   </View>
 
                   {roomBookings.length === 0 ? (
                     <View style={styles.noBookings}>
-                      <Text style={styles.noBookingsText}>No bookings</Text>
+                      <Text style={styles.noBookingsText}>{t('companyBookings.noBookings')}</Text>
                       <TouchableOpacity
                         onPress={() =>
                           navigation.navigate('CompanyAddBooking', {
@@ -183,7 +185,7 @@ export default function CompanyBookings({ companyId }: Props) {
                           })
                         }
                       >
-                        <Text style={styles.addLink}>+ Add</Text>
+                        <Text style={styles.addLink}>{t('companyBookings.add')}</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -204,13 +206,13 @@ export default function CompanyBookings({ companyId }: Props) {
                                 <Text style={[styles.srcBadgeText, { color: sc.text }]}>
                                   {booking.source === 'external'
                                     ? booking.externalSource || 'External'
-                                    : 'UNLOCKED'}
+                                    : t('companyBookings.unlocked')}
                                 </Text>
                               </View>
                             </View>
                             <Text style={styles.slotPlayer}>{booking.playerName}</Text>
                             <Text style={styles.slotMeta}>
-                              {booking.players} players
+                              {t('companyBookings.playersCount', { n: booking.players })}
                               {booking.source !== 'external' && booking.total > 0
                                 ? ` · €${booking.total}`
                                 : ''}

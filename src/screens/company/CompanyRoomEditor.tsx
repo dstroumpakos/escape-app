@@ -12,6 +12,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyRoomEditor'>;
 
@@ -23,6 +24,38 @@ const TAG_OPTIONS = [
   'Enchanted', 'Story-Driven', 'Zero-G Simulation', 'Immersive Sound',
   'Dark Theme', 'Family Friendly', 'VR Enhanced', 'Time Pressure',
 ];
+
+const THEME_KEYS: Record<string, string> = {
+  Horror: 'theme.horror',
+  'Sci-Fi': 'theme.sciFi',
+  Mystery: 'theme.mystery',
+  Historical: 'theme.historical',
+  Fantasy: 'theme.fantasy',
+  Adventure: 'theme.adventure',
+};
+
+const TAG_KEYS: Record<string, string> = {
+  'Horror Theme': 'tag.horrorTheme',
+  'Sci-Fi Theme': 'tag.sciFiTheme',
+  'Mystery Theme': 'tag.mysteryTheme',
+  'Historical Theme': 'tag.historicalTheme',
+  'Live Actor': 'tag.liveActor',
+  'Physical Puzzles': 'tag.physicalPuzzles',
+  'Multi-room': 'tag.multiRoom',
+  'High-Tech Puzzles': 'tag.highTechPuzzles',
+  'Neon Atmosphere': 'tag.neonAtmosphere',
+  'Team Challenge': 'tag.teamChallenge',
+  Atmospheric: 'tag.atmospheric',
+  'Beginner Friendly': 'tag.beginnerFriendly',
+  Enchanted: 'tag.enchanted',
+  'Story-Driven': 'tag.storyDriven',
+  'Zero-G Simulation': 'tag.zeroGSimulation',
+  'Immersive Sound': 'tag.immersiveSound',
+  'Dark Theme': 'tag.darkTheme',
+  'Family Friendly': 'tag.familyFriendly',
+  'VR Enhanced': 'tag.vrEnhanced',
+  'Time Pressure': 'tag.timePressure',
+};
 
 interface Props {
   companyId: string;
@@ -41,6 +74,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
 
   const createRoom = useMutation(api.companies.createRoom);
   const updateRoom = useMutation(api.companies.updateRoom);
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -175,17 +209,17 @@ export default function CompanyRoomEditor({ companyId }: Props) {
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((tg) => tg !== tag) : [...prev, tag]
     );
   };
 
   const handleSave = async () => {
     if (!title.trim() || !location.trim() || !price.trim()) {
-      Alert.alert('Error', 'Title, location and price are required.');
+      Alert.alert(t('error'), t('roomEditor.requiredFields'));
       return;
     }
     if (paymentTerms.length === 0) {
-      Alert.alert('Error', 'Please select at least one payment term.');
+      Alert.alert(t('error'), t('roomEditor.paymentRequired'));
       return;
     }
     setLoading(true);
@@ -237,8 +271,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           ...(timeSlotData.length > 0 ? { defaultTimeSlots: timeSlotData } : {}),
           ...overflowData,
         });
-        Alert.alert('Success', 'Room updated!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('success'), t('roomEditor.roomUpdated'), [
+          { text: t('ok'), onPress: () => navigation.goBack() },
         ]);
       } else {
         await createRoom({
@@ -267,12 +301,12 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           ...(timeSlotData.length > 0 ? { defaultTimeSlots: timeSlotData } : {}),
           ...overflowData,
         });
-        Alert.alert('Success', 'Room created!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+        Alert.alert(t('success'), t('roomEditor.roomCreated'), [
+          { text: t('ok'), onPress: () => navigation.goBack() },
         ]);
       }
     } catch {
-      Alert.alert('Error', 'Failed to save room. Please try again.');
+      Alert.alert(t('error'), t('roomEditor.saveFailed'));
     }
     setLoading(false);
   };
@@ -287,7 +321,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isEditing ? 'Edit Room' : 'Add New Room'}</Text>
+        <Text style={styles.headerTitle}>{isEditing ? t('roomEditor.editTitle') : t('roomEditor.addTitle')}</Text>
       </View>
 
       <ScrollView
@@ -297,28 +331,28 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* Basic Info */}
-        <Text style={styles.sectionTitle}>Basic Information</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.basicInfo')}</Text>
         <View style={styles.card}>
-          <Text style={styles.label}>Room Name *</Text>
+          <Text style={styles.label}>{t('roomEditor.roomName')}</Text>
           <TextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="e.g. The Haunted Manor"
+            placeholder={t('roomEditor.roomNamePlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
           />
 
-          <Text style={styles.label}>Location *</Text>
+          <Text style={styles.label}>{t('roomEditor.location')}</Text>
           <TextInput
             style={styles.input}
             value={location}
             onChangeText={setLocation}
-            placeholder="San Francisco, CA"
+            placeholder={t('roomEditor.locationPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
           />
 
           {/* Map Pin Picker */}
-          <Text style={[styles.label, { marginTop: 14 }]}>Pin Location on Map</Text>
+          <Text style={[styles.label, { marginTop: 14 }]}>{t('roomEditor.pinLocation')}</Text>
           <View style={styles.mapContainer}>
             <MapView
               ref={mapRef}
@@ -354,7 +388,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             {!latitude && (
               <View style={styles.mapOverlay}>
                 <Ionicons name="location-outline" size={24} color={theme.colors.textMuted} />
-                <Text style={styles.mapOverlayText}>Tap the map to place a pin</Text>
+                <Text style={styles.mapOverlayText}>{t('roomEditor.tapMap')}</Text>
               </View>
             )}
           </View>
@@ -364,43 +398,43 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             </Text>
           )}
 
-          <Text style={styles.label}>Cover Image URL</Text>
+          <Text style={styles.label}>{t('roomEditor.coverImage')}</Text>
           <TextInput
             style={styles.input}
             value={image}
             onChangeText={setImage}
-            placeholder="https://..."
+            placeholder={t('roomEditor.coverPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
             autoCapitalize="none"
           />
 
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>{t('roomEditor.description')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
-            placeholder="A brief description of the room..."
+            placeholder={t('roomEditor.descPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
             multiline
           />
 
-          <Text style={styles.label}>The Story</Text>
+          <Text style={styles.label}>{t('roomEditor.story')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={story}
             onChangeText={setStory}
-            placeholder="The immersive backstory players will read..."
+            placeholder={t('roomEditor.storyPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
             multiline
           />
         </View>
 
         {/* Room Details */}
-        <Text style={styles.sectionTitle}>Room Details</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.roomDetails')}</Text>
         <View style={styles.card}>
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Duration (min)</Text>
+              <Text style={styles.label}>{t('roomEditor.duration')}</Text>
               <TextInput
                 style={styles.input}
                 value={duration}
@@ -411,7 +445,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Base Price (€) *</Text>
+              <Text style={styles.label}>{t('roomEditor.basePrice')}</Text>
               <TextInput
                 style={styles.input}
                 value={price}
@@ -435,7 +469,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
 
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Min Players</Text>
+              <Text style={styles.label}>{t('roomEditor.minPlayers')}</Text>
               <TextInput
                 style={styles.input}
                 value={playersMin}
@@ -445,7 +479,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Max Players</Text>
+              <Text style={styles.label}>{t('roomEditor.maxPlayers')}</Text>
               <TextInput
                 style={styles.input}
                 value={playersMax}
@@ -465,7 +499,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               for (let p = pMin; p <= pMax; p++) counts.push(p);
               return (
                 <>
-                  <Text style={[styles.label, { marginTop: 16 }]}>Price per Group Size</Text>
+                  <Text style={[styles.label, { marginTop: 16 }]}>{t('roomEditor.groupPrice')}</Text>
                   <View style={styles.pricingGrid}>
                     {counts.map((p) => (
                       <View key={p} style={styles.pricingRow}>
@@ -485,14 +519,14 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                       </View>
                     ))}
                   </View>
-                  <Text style={styles.pricingHint}>Set different prices for each group size. Leave empty to use base price.</Text>
+                  <Text style={styles.pricingHint}>{t('roomEditor.groupPriceHint')}</Text>
                 </>
               );
             }
             return null;
           })()}
 
-          <Text style={styles.label}>Difficulty ({difficulty}/5)</Text>
+          <Text style={styles.label}>{t('roomEditor.difficulty', { n: difficulty })}</Text>
           <View style={styles.difficultyRow}>
             {[1, 2, 3, 4, 5].map((d) => (
               <TouchableOpacity
@@ -507,21 +541,21 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         </View>
 
         {/* Theme */}
-        <Text style={styles.sectionTitle}>Theme</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.themeSection')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: 20 }}>
-          {THEMES.map((t) => (
+          {THEMES.map((th) => (
             <TouchableOpacity
-              key={t}
-              style={[styles.chip, selectedTheme === t && styles.chipActive]}
-              onPress={() => setSelectedTheme(t)}
+              key={th}
+              style={[styles.chip, selectedTheme === th && styles.chipActive]}
+              onPress={() => setSelectedTheme(th)}
             >
-              <Text style={[styles.chipText, selectedTheme === t && styles.chipTextActive]}>{t}</Text>
+              <Text style={[styles.chipText, selectedTheme === th && styles.chipTextActive]}>{t(THEME_KEYS[th])}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
         {/* Tags */}
-        <Text style={styles.sectionTitle}>Experience Tags</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.tagsSection')}</Text>
         <View style={styles.tagsGrid}>
           {TAG_OPTIONS.map((tag) => (
             <TouchableOpacity
@@ -529,15 +563,15 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               style={[styles.tagChip, selectedTags.includes(tag) && styles.tagChipActive]}
               onPress={() => toggleTag(tag)}
             >
-              <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>{tag}</Text>
+              <Text style={[styles.tagText, selectedTags.includes(tag) && styles.tagTextActive]}>{t(TAG_KEYS[tag])}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ─── Availability ─── */}
-        <Text style={styles.sectionTitle}>Operating Days</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.operatingDays')}</Text>
         <View style={styles.card}>
-          <Text style={styles.availHint}>Select which days of the week this room is open</Text>
+          <Text style={styles.availHint}>{t('roomEditor.operatingDaysHint')}</Text>
           <View style={styles.daysRow}>
             {(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const).map((day, idx) => {
               const isOn = operatingDays.includes(idx);
@@ -551,16 +585,16 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                     );
                   }}
                 >
-                  <Text style={[styles.dayChipText, isOn && styles.dayChipTextActive]}>{day}</Text>
+                  <Text style={[styles.dayChipText, isOn && styles.dayChipTextActive]}>{t(`day.${day.toLowerCase()}`)}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Default Time Slots</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.defaultSlots')}</Text>
         <View style={styles.card}>
-          <Text style={styles.availHint}>Group pricing from Room Details applies to all slots. Set a different base price on a slot to offer a discount — players will see the % off.</Text>
+          <Text style={styles.availHint}>{t('roomEditor.slotsHint')}</Text>
           {defaultTimeSlots.map((slot, idx) => (
             <View key={idx} style={styles.slotRow}>
               <View style={styles.slotTimeWrap}>
@@ -600,14 +634,14 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               style={[styles.input, { flex: 1 }]}
               value={newSlotTime}
               onChangeText={setNewSlotTime}
-              placeholder="e.g. 9:00 AM"
+              placeholder={t('roomEditor.slotPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
             />
             <TouchableOpacity
               style={styles.addSlotBtn}
               onPress={() => {
                 if (!newSlotTime.trim()) {
-                  Alert.alert('Error', 'Enter a time for the new slot (e.g. 9:00 AM)');
+                  Alert.alert(t('error'), t('roomEditor.slotError'));
                   return;
                 }
                 setDefaultTimeSlots((prev) => [
@@ -618,16 +652,16 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               }}
             >
               <Ionicons name="add-circle" size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.addSlotText}>Add</Text>
+              <Text style={styles.addSlotText}>{t('roomEditor.add')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Overflow / Bonus Slot */}
-        <Text style={styles.sectionTitle}>Overflow Slot</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.overflowSlot')}</Text>
         <View style={styles.card}>
           <Text style={styles.availHint}>
-            A bonus time slot that automatically opens when all regular slots for a date are fully booked.
+            {t('roomEditor.overflowHint')}
           </Text>
           <TouchableOpacity
             style={styles.overflowToggleRow}
@@ -640,14 +674,14 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               color={overflowEnabled ? theme.colors.redPrimary : theme.colors.textMuted}
             />
             <Text style={[styles.overflowToggleLabel, overflowEnabled && { color: '#fff' }]}>
-              {overflowEnabled ? 'Enabled' : 'Disabled'}
+              {overflowEnabled ? t('roomEditor.enabled') : t('roomEditor.disabled')}
             </Text>
           </TouchableOpacity>
 
           {overflowEnabled && (
             <View style={styles.overflowFields}>
               {/* Days picker */}
-              <Text style={styles.overflowFieldLabel}>Active Days</Text>
+              <Text style={styles.overflowFieldLabel}>{t('roomEditor.activeDays')}</Text>
               <View style={styles.daysRow}>
                 {(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const).map((day, idx) => {
                   const isOn = overflowDays.includes(idx);
@@ -661,24 +695,24 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                         );
                       }}
                     >
-                      <Text style={[styles.dayChipText, isOn && styles.dayChipTextActive]}>{day}</Text>
+                      <Text style={[styles.dayChipText, isOn && styles.dayChipTextActive]}>{t(`day.${day.toLowerCase()}`)}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
               <View style={styles.overflowFieldRow}>
-                <Text style={styles.overflowFieldLabel}>Time</Text>
+                <Text style={styles.overflowFieldLabel}>{t('roomEditor.time')}</Text>
                 <TextInput
                   style={[styles.input, { flex: 1 }]}
                   value={overflowTime}
                   onChangeText={setOverflowTime}
-                  placeholder="e.g. 10:00 PM"
+                  placeholder={t('roomEditor.timePlaceholder')}
                   placeholderTextColor={theme.colors.textMuted}
                 />
               </View>
               <View style={styles.overflowFieldRow}>
-                <Text style={styles.overflowFieldLabel}>Base Price</Text>
+                <Text style={styles.overflowFieldLabel}>{t('roomEditor.overflowBasePrice')}</Text>
                 <View style={styles.slotPriceWrap}>
                   <Text style={styles.slotCurrency}>€</Text>
                   <TextInput
@@ -700,7 +734,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                   for (let p = pMin; p <= pMax; p++) counts.push(p);
                   return (
                     <>
-                      <Text style={[styles.overflowFieldLabel, { marginTop: 12 }]}>Price per Group Size</Text>
+                      <Text style={[styles.overflowFieldLabel, { marginTop: 12 }]}>{t('roomEditor.overflowGroupPrice')}</Text>
                       <View style={styles.pricingGrid}>
                         {counts.map((p) => (
                           <View key={p} style={styles.pricingRow}>
@@ -720,7 +754,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                           </View>
                         ))}
                       </View>
-                      <Text style={styles.pricingHint}>Leave empty to use base overflow price.</Text>
+                      <Text style={styles.pricingHint}>{t('roomEditor.overflowGroupHint')}</Text>
                     </>
                   );
                 }
@@ -731,12 +765,12 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         </View>
 
         {/* Payment Terms */}
-        <Text style={styles.sectionTitle}>Payment Terms (select up to 2)</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.paymentTerms')}</Text>
         <View style={styles.card}>
           {([
-            { key: 'full' as const, icon: 'cash-outline' as const, title: 'Full Payment', desc: 'Players pay 100% when booking' },
-            { key: 'deposit_20' as const, icon: 'card-outline' as const, title: '20% Deposit', desc: 'Players pay 20% now, rest on arrival' },
-            { key: 'pay_on_arrival' as const, icon: 'location-outline' as const, title: 'Pay on Arrival', desc: 'No online payment — players pay at the venue' },
+            { key: 'full' as const, icon: 'cash-outline' as const, title: t('roomEditor.fullPaymentTitle'), desc: t('roomEditor.fullPaymentDesc') },
+            { key: 'deposit_20' as const, icon: 'card-outline' as const, title: t('roomEditor.depositTitle'), desc: t('roomEditor.depositDesc') },
+            { key: 'pay_on_arrival' as const, icon: 'location-outline' as const, title: t('roomEditor.payOnArrivalTitle'), desc: t('roomEditor.payOnArrivalDesc') },
           ]).map((opt) => {
             const selected = paymentTerms.includes(opt.key);
             // Incompatible pairs: deposit_20 <-> pay_on_arrival
@@ -745,7 +779,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               deposit_20: ['pay_on_arrival'],
               pay_on_arrival: ['deposit_20'],
             };
-            const blocked = !selected && paymentTerms.some((t) => incompatible[opt.key]?.includes(t));
+            const blocked = !selected && paymentTerms.some((pt) => incompatible[opt.key]?.includes(pt));
             return (
               <TouchableOpacity
                 key={opt.key}
@@ -754,7 +788,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 onPress={() => {
                   setPaymentTerms((prev) => {
                     if (selected) {
-                      return prev.filter((t) => t !== opt.key);
+                      return prev.filter((pt) => pt !== opt.key);
                     }
                     if (prev.length >= 2) {
                       return [...prev.slice(1), opt.key];
@@ -779,20 +813,20 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         </View>
 
         {/* Terms of Use */}
-        <Text style={styles.sectionTitle}>Terms of Use</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.termsOfUse')}</Text>
         <View style={styles.card}>
           <TextInput
             style={[styles.input, styles.textArea, { minHeight: 100 }]}
             value={termsOfUse}
             onChangeText={setTermsOfUse}
-            placeholder="Enter your room's terms and conditions, cancellation policy, age requirements, etc..."
+            placeholder={t('roomEditor.termsPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
             multiline
           />
         </View>
 
         {/* Booking Mode */}
-        <Text style={styles.sectionTitle}>Booking Mode</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.bookingMode')}</Text>
         <View style={styles.card}>
           <TouchableOpacity
             style={[styles.payOption, bookingMode === 'unlocked_primary' && styles.payOptionActive]}
@@ -801,8 +835,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             <View style={styles.payLeft}>
               <Ionicons name="lock-open-outline" size={20} color="#fff" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.payTitle}>UNLOCKED Primary</Text>
-                <Text style={styles.payDesc}>Bookings come through the UNLOCKED app. You can also add external blocks manually.</Text>
+                <Text style={styles.payTitle}>{t('roomEditor.unlockedPrimary')}</Text>
+                <Text style={styles.payDesc}>{t('roomEditor.unlockedPrimaryDesc')}</Text>
               </View>
             </View>
             <View style={[styles.radio, bookingMode === 'unlocked_primary' && styles.radioActive]}>
@@ -817,8 +851,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             <View style={styles.payLeft}>
               <Ionicons name="swap-horizontal-outline" size={20} color="#fff" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.payTitle}>External Primary</Text>
-                <Text style={styles.payDesc}>You manage bookings externally (EscapeAll, phone, etc.) and block slots here. Transition mode.</Text>
+                <Text style={styles.payTitle}>{t('roomEditor.externalPrimary')}</Text>
+                <Text style={styles.payDesc}>{t('roomEditor.externalPrimaryDesc')}</Text>
               </View>
             </View>
             <View style={[styles.radio, bookingMode === 'external_primary' && styles.radioActive]}>
@@ -828,16 +862,16 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         </View>
 
         {/* Subscription Toggle */}
-        <Text style={styles.sectionTitle}>Subscription Access</Text>
+        <Text style={styles.sectionTitle}>{t('roomEditor.subscriptionAccess')}</Text>
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.toggleRow}
             onPress={() => setIsSubOnly(!isSubOnly)}
           >
             <View style={{ flex: 1 }}>
-              <Text style={styles.payTitle}>Subscription Only</Text>
+              <Text style={styles.payTitle}>{t('roomEditor.subOnly')}</Text>
               <Text style={styles.payDesc}>
-                Only subscribers can see and book this room. Great for exclusive experiences.
+                {t('roomEditor.subOnlyDesc')}
               </Text>
             </View>
             <View style={[styles.switch, isSubOnly && styles.switchOn]}>
@@ -856,7 +890,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           onPress={handleSave}
         >
           <Text style={styles.saveBtnText}>
-            {loading ? 'Saving...' : isEditing ? 'Update Room' : 'Create Room'}
+            {loading ? t('saving') : isEditing ? t('roomEditor.updateRoom') : t('roomEditor.createRoom')}
           </Text>
         </TouchableOpacity>
       </View>

@@ -7,6 +7,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import type { Id } from '../../convex/_generated/dataModel';
+import { useTranslation } from '../i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const [cityName, setCityName] = useState('');
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const { t } = useTranslation();
 
   const updateLocation = useMutation(api.users.updateLocation);
 
@@ -51,7 +53,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
           }
         } catch {}
 
-        setCityName(city || 'Location found');
+        setCityName(city || t('onboarding.locationFound'));
         setLocationStatus('granted');
 
         // Save to user record
@@ -73,15 +75,15 @@ export default function Onboarding({ onComplete, userId }: Props) {
     }
   };
 
-  const toggleTheme = (t: string) => {
-    setSelectedThemes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+  const toggleTheme = (themeName: string) => {
+    setSelectedThemes(prev => prev.includes(themeName) ? prev.filter(x => x !== themeName) : [...prev, themeName]);
   };
 
   const themeOptions = [
-    { name: 'Horror', icon: '👻' },
-    { name: 'Mystery', icon: '🔍' },
-    { name: 'Sci-Fi', icon: '🚀' },
-    { name: 'Historical', icon: '🏛️' },
+    { name: t('theme.horror'), icon: '👻' },
+    { name: t('theme.mystery'), icon: '🔍' },
+    { name: t('theme.sciFi'), icon: '🚀' },
+    { name: t('theme.historical'), icon: '🏛️' },
   ];
 
   return (
@@ -102,8 +104,8 @@ export default function Onboarding({ onComplete, userId }: Props) {
               <Ionicons name="flask-outline" size={32} color={theme.colors.redPrimary} />
               <Ionicons name="business-outline" size={32} color={theme.colors.redPrimary} />
             </View>
-            <Text style={styles.title}>Discover top-rated{'\n'}escape rooms{'\n'}near you.</Text>
-            <Text style={styles.desc}>Explore hundreds of immersive experiences curated just for you.</Text>
+            <Text style={styles.title}>{t('onboarding.discoverTitle')}</Text>
+            <Text style={styles.desc}>{t('onboarding.discoverDesc')}</Text>
           </View>
         )}
 
@@ -115,9 +117,9 @@ export default function Onboarding({ onComplete, userId }: Props) {
               </View>
               <View style={styles.locationPulse} />
             </View>
-            <Text style={styles.title}>Where are you{'\n'}located?</Text>
+            <Text style={styles.title}>{t('onboarding.locationTitle')}</Text>
             <Text style={styles.desc}>
-              We'll show escape rooms near you on the map. You can always browse anywhere.
+              {t('onboarding.locationDesc')}
             </Text>
 
             {locationStatus === 'idle' ? (
@@ -133,13 +135,13 @@ export default function Onboarding({ onComplete, userId }: Props) {
                   style={styles.locationBtnGrad}
                 >
                   <Ionicons name="navigate" size={18} color="#fff" />
-                  <Text style={styles.locationBtnText}>Enable Location</Text>
+                  <Text style={styles.locationBtnText}>{t('onboarding.enableLocation')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ) : locationStatus === 'requesting' ? (
               <View style={styles.locationState}>
                 <ActivityIndicator size="large" color={theme.colors.redPrimary} />
-                <Text style={styles.locationStateText}>Finding your location...</Text>
+                <Text style={styles.locationStateText}>{t('onboarding.findingLocation')}</Text>
               </View>
             ) : locationStatus === 'granted' ? (
               <View style={styles.locationState}>
@@ -147,16 +149,16 @@ export default function Onboarding({ onComplete, userId }: Props) {
                   <Ionicons name="checkmark" size={28} color="#fff" />
                 </View>
                 <Text style={styles.locationSuccessText}>{cityName}</Text>
-                <Text style={styles.locationStateText}>We'll center the map here for you</Text>
+                <Text style={styles.locationStateText}>{t('onboarding.locationHint')}</Text>
               </View>
             ) : (
               <View style={styles.locationState}>
                 <Ionicons name="location-outline" size={32} color={theme.colors.textMuted} />
                 <Text style={styles.locationStateText}>
-                  No worries! You can browse rooms anywhere on the map.
+                  {t('onboarding.locationDenied')}
                 </Text>
                 <Text style={styles.locationHint}>
-                  You can enable it later in Settings.
+                  {t('onboarding.locationDeniedHint')}
                 </Text>
               </View>
             )}
@@ -165,18 +167,18 @@ export default function Onboarding({ onComplete, userId }: Props) {
 
         {step === 2 && (
           <View style={styles.slide}>
-            <Text style={styles.title}>Filter Your{'\n'}Adventure</Text>
-            <Text style={styles.desc}>Choose your preferred themes.</Text>
+            <Text style={styles.title}>{t('onboarding.filterTitle')}</Text>
+            <Text style={styles.desc}>{t('onboarding.filterDesc')}</Text>
             <View style={styles.themeGrid}>
-              {themeOptions.map(t => (
+              {themeOptions.map(opt => (
                 <TouchableOpacity
-                  key={t.name}
-                  style={[styles.themeCard, selectedThemes.includes(t.name) && styles.themeCardActive]}
-                  onPress={() => toggleTheme(t.name)}
+                  key={opt.name}
+                  style={[styles.themeCard, selectedThemes.includes(opt.name) && styles.themeCardActive]}
+                  onPress={() => toggleTheme(opt.name)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.themeEmoji}>{t.icon}</Text>
-                  <Text style={styles.themeName}>{t.name}</Text>
+                  <Text style={styles.themeEmoji}>{opt.icon}</Text>
+                  <Text style={styles.themeName}>{opt.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -186,19 +188,19 @@ export default function Onboarding({ onComplete, userId }: Props) {
 
         {step === 3 && (
           <View style={styles.slide}>
-            <Text style={styles.title}>Book instantly{'\n'}& track history</Text>
-            <Text style={styles.desc}>Seamless booking with Apple Pay and live QR tickets.</Text>
+            <Text style={styles.title}>{t('onboarding.bookTitle')}</Text>
+            <Text style={styles.desc}>{t('onboarding.bookDesc')}</Text>
             <View style={styles.mockCard}>
               <View style={styles.mockHeader}>
                 <Ionicons name="flash" size={16} color={theme.colors.redPrimary} />
-                <Text style={styles.mockHeaderText}>Upcoming Booking</Text>
+                <Text style={styles.mockHeaderText}>{t('onboarding.mockHeader')}</Text>
               </View>
               <View style={styles.mockBody}>
                 <View style={styles.mockImg} />
                 <View style={styles.mockInfo}>
-                  <Text style={styles.mockTitle}>The Haunted Manor</Text>
-                  <Text style={styles.mockDate}>Feb 14, 2026 · 7:00 PM</Text>
-                  <Text style={styles.mockStatus}>Confirmed ✓</Text>
+                  <Text style={styles.mockTitle}>{t('onboarding.mockTitle')}</Text>
+                  <Text style={styles.mockDate}>{t('onboarding.mockDate')}</Text>
+                  <Text style={styles.mockStatus}>{t('onboarding.mockStatus')}</Text>
                 </View>
               </View>
             </View>
@@ -209,13 +211,13 @@ export default function Onboarding({ onComplete, userId }: Props) {
       <View style={styles.footer}>
         <TouchableOpacity style={styles.ctaBtn} onPress={() => animateStep(step + 1)} activeOpacity={0.8}>
           <Text style={styles.ctaText}>
-            {step === TOTAL_STEPS - 1 ? 'Get Started' : step === 1 ? (locationStatus === 'idle' ? 'Skip for Now' : 'Continue') : 'Next'}
+            {step === TOTAL_STEPS - 1 ? t('onboarding.getStarted') : step === 1 ? (locationStatus === 'idle' ? t('onboarding.skipForNow') : t('onboarding.continue')) : t('onboarding.next')}
           </Text>
           <Ionicons name="chevron-forward" size={18} color="#fff" />
         </TouchableOpacity>
         {step < TOTAL_STEPS - 1 && (
           <TouchableOpacity onPress={onComplete}>
-            <Text style={styles.skipText}>Skip</Text>
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         )}
       </View>

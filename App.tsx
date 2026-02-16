@@ -230,6 +230,7 @@ export default function App() {
           />
         </View>
       </ConvexProvider>
+      </LanguageProvider>
     );
   }
 
@@ -315,6 +316,7 @@ export default function App() {
   }
 
   return (
+    <LanguageProvider>
     <ConvexProvider client={convex}>
       <UserProvider userId={userId} onLogout={handleLogout} onSwitchToCompany={handleSwitchToCompany}>
         <View style={{ flex: 1 }}>
@@ -370,6 +372,7 @@ export default function App() {
         </View>
       </UserProvider>
     </ConvexProvider>
+    </LanguageProvider>
   );
 }
 

@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
+import { useTranslation } from '../../i18n';
 
 interface Props {
   onLogin: (companyId: string) => void;
@@ -17,6 +18,7 @@ interface Props {
 // string as companyId instead of verifying credentials against the DB.
 // Now uses the loginCompany mutation for proper credential verification.
 export default function CompanyAuth({ onLogin, onBack }: Props) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,7 +34,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter email and password.');
+      Alert.alert(t('error'), t('companyAuth.emailPassRequired'));
       return;
     }
     setLoading(true);
@@ -45,14 +47,14 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
         onLogin(result._id);
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Login failed. Please try again.');
+      Alert.alert(t('error'), error.message || t('companyAuth.loginFailed'));
     }
     setLoading(false);
   };
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim() || !phone.trim() || !city.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+      Alert.alert(t('error'), t('companyAuth.fillRequired'));
       return;
     }
     setLoading(true);
@@ -69,12 +71,12 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
       if (result && 'error' in result) {
         Alert.alert('Error', result.error);
       } else if (result && 'id' in result) {
-        Alert.alert('Success', 'Account created! You can now manage your rooms.', [
-          { text: 'OK', onPress: () => onLogin(result.id) },
+        Alert.alert(t('success'), t('companyAuth.accountCreated'), [
+          { text: t('ok'), onPress: () => onLogin(result.id) },
         ]);
       }
     } catch {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+      Alert.alert(t('error'), t('companyAuth.registrationFailed'));
     }
     setLoading(false);
   };
@@ -99,8 +101,8 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
           <View style={styles.iconCircle}>
             <Ionicons name="business" size={36} color={theme.colors.redPrimary} />
           </View>
-          <Text style={styles.title}>Business Portal</Text>
-          <Text style={styles.subtitle}>Manage your escape rooms</Text>
+          <Text style={styles.title}>{t('companyAuth.title')}</Text>
+          <Text style={styles.subtitle}>{t('companyAuth.subtitle')}</Text>
         </View>
 
         {/* Toggle */}
@@ -109,62 +111,62 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
             style={[styles.toggleBtn, mode === 'login' && styles.toggleBtnActive]}
             onPress={() => setMode('login')}
           >
-            <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>Sign In</Text>
+            <Text style={[styles.toggleText, mode === 'login' && styles.toggleTextActive]}>{t('companyAuth.signIn')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleBtn, mode === 'register' && styles.toggleBtnActive]}
             onPress={() => setMode('register')}
           >
-            <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>Register</Text>
+            <Text style={[styles.toggleText, mode === 'register' && styles.toggleTextActive]}>{t('companyAuth.register')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Form */}
         {mode === 'register' && (
           <>
-            <Text style={styles.label}>Company Name *</Text>
+            <Text style={styles.label}>{t('companyAuth.companyName')}</Text>
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="Your escape room business name"
+              placeholder={t('companyAuth.companyPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
             />
 
-            <Text style={styles.label}>Phone *</Text>
+            <Text style={styles.label}>{t('companyAuth.phone')}</Text>
             <TextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="+1 (555) 000-0000"
+              placeholder={t('companyAuth.phonePlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
               keyboardType="phone-pad"
             />
 
-            <Text style={styles.label}>City *</Text>
+            <Text style={styles.label}>{t('companyAuth.city')}</Text>
             <TextInput
               style={styles.input}
               value={city}
               onChangeText={setCity}
-              placeholder="San Francisco, CA"
+              placeholder={t('companyAuth.cityPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
             />
 
-            <Text style={styles.label}>Address</Text>
+            <Text style={styles.label}>{t('companyAuth.address')}</Text>
             <TextInput
               style={styles.input}
               value={address}
               onChangeText={setAddress}
-              placeholder="123 Main St"
+              placeholder={t('companyAuth.addressPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
             />
 
-            <Text style={styles.label}>About Your Business</Text>
+            <Text style={styles.label}>{t('companyAuth.about')}</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={description}
               onChangeText={setDescription}
-              placeholder="Tell players about your escape room business..."
+              placeholder={t('companyAuth.aboutPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
               multiline
               numberOfLines={3}
@@ -172,23 +174,23 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
           </>
         )}
 
-        <Text style={styles.label}>Email *</Text>
+        <Text style={styles.label}>{t('companyAuth.email')}</Text>
         <TextInput
           style={styles.input}
           value={email}
           onChangeText={setEmail}
-          placeholder="business@example.com"
+          placeholder={t('companyAuth.emailPlaceholder')}
           placeholderTextColor={theme.colors.textMuted}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
-        <Text style={styles.label}>Password *</Text>
+        <Text style={styles.label}>{t('companyAuth.password')}</Text>
         <TextInput
           style={styles.input}
           value={password}
           onChangeText={setPassword}
-          placeholder="Enter your password"
+          placeholder={t('companyAuth.passwordPlaceholder')}
           placeholderTextColor={theme.colors.textMuted}
           secureTextEntry
         />
@@ -200,7 +202,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
           onPress={mode === 'login' ? handleLogin : handleRegister}
         >
           <Text style={styles.submitText}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+            {loading ? t('companyAuth.pleaseWait') : mode === 'login' ? t('companyAuth.signIn') : t('companyAuth.createAccount')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

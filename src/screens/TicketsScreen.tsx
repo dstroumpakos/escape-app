@@ -6,6 +6,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
+import { useTranslation } from '../i18n';
 
 interface BookingItem {
   id: string;
@@ -26,6 +27,7 @@ const mockBookings: BookingItem[] = [
 
 export default function TicketsScreen() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const rooms = (convexRooms && convexRooms.length > 0
@@ -42,13 +44,13 @@ export default function TicketsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Tickets</Text>
+        <Text style={styles.headerTitle}>{t('tickets.title')}</Text>
         <TouchableOpacity style={styles.filterBtn} onPress={() => {
-          Alert.alert('Filter Tickets', 'Filter by', [
-            { text: 'All', onPress: () => {} },
-            { text: 'Upcoming Only', onPress: () => setActiveTab('upcoming') },
-            { text: 'Past Only', onPress: () => setActiveTab('past') },
-            { text: 'Cancel', style: 'cancel' },
+          Alert.alert(t('tickets.filterTitle'), t('tickets.filterMessage'), [
+            { text: t('tickets.all'), onPress: () => {} },
+            { text: t('tickets.upcomingOnly'), onPress: () => setActiveTab('upcoming') },
+            { text: t('tickets.pastOnly'), onPress: () => setActiveTab('past') },
+            { text: t('cancel'), style: 'cancel' },
           ]);
         }}>
           <Ionicons name="filter-outline" size={20} color="#fff" />
@@ -62,7 +64,7 @@ export default function TicketsScreen() {
           onPress={() => setActiveTab('upcoming')}
         >
           <Text style={[styles.tabText, activeTab === 'upcoming' && styles.tabTextActive]}>
-            Upcoming ({upcomingBookings.length})
+            {t('tickets.upcoming')} ({upcomingBookings.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -70,7 +72,7 @@ export default function TicketsScreen() {
           onPress={() => setActiveTab('past')}
         >
           <Text style={[styles.tabText, activeTab === 'past' && styles.tabTextActive]}>
-            Past ({pastBookings.length})
+            {t('tickets.past')} ({pastBookings.length})
           </Text>
         </TouchableOpacity>
       </View>
@@ -79,7 +81,7 @@ export default function TicketsScreen() {
         {currentBookings.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="ticket-outline" size={48} color={theme.colors.textMuted} />
-            <Text style={styles.emptyText}>No {activeTab} bookings</Text>
+            <Text style={styles.emptyText}>{t('tickets.noBookings', { tab: activeTab === 'upcoming' ? t('tickets.upcoming').toLowerCase() : t('tickets.past').toLowerCase() })}</Text>
           </View>
         ) : (
           currentBookings.map(booking => {
@@ -119,26 +121,26 @@ export default function TicketsScreen() {
                     </View>
                     <View style={styles.ticketInfo}>
                       <Ionicons name="people-outline" size={14} color={theme.colors.textSecondary} />
-                      <Text style={styles.ticketInfoText}>{booking.players} players</Text>
+                      <Text style={styles.ticketInfoText}>{booking.players} {t('players')}</Text>
                     </View>
                   </View>
 
                   {booking.status === 'upcoming' && (
                     <View style={styles.ticketActions}>
                       <TouchableOpacity style={styles.ticketBtn} onPress={() => {
-                        Alert.alert('QR Code', `Booking: ${booking.id.toUpperCase()}\n\nShow this QR code at the entrance for ${room.title} on ${booking.date} at ${booking.time}.`);
+                        Alert.alert(t('tickets.qrTitle'), t('tickets.qrMessage', { id: booking.id.toUpperCase(), title: room.title, date: booking.date, time: booking.time }));
                       }}>
                         <Ionicons name="qr-code-outline" size={16} color={theme.colors.redPrimary} />
-                        <Text style={styles.ticketBtnText}>Show QR</Text>
+                        <Text style={styles.ticketBtnText}>{t('tickets.showQR')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.ticketBtn} onPress={() => {
                         const query = encodeURIComponent(room.location);
                         Linking.openURL(`https://maps.apple.com/?q=${query}`).catch(() => {
-                          Alert.alert('Directions', `Navigate to: ${room.location}`);
+                          Alert.alert(t('tickets.directionsTitle'), t('tickets.directionsMessage', { location: room.location }));
                         });
                       }}>
                         <Ionicons name="navigate-outline" size={16} color={theme.colors.redPrimary} />
-                        <Text style={styles.ticketBtnText}>Directions</Text>
+                        <Text style={styles.ticketBtnText}>{t('tickets.directions')}</Text>
                       </TouchableOpacity>
                     </View>
                   )}

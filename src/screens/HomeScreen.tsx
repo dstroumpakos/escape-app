@@ -9,6 +9,7 @@ import { api } from '../../convex/_generated/api';
 import * as Location from 'expo-location';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
+import { useTranslation } from '../i18n';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -39,6 +40,7 @@ function DifficultyDots({ filled, total }: { filled: number; total: number }) {
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const tabNavigation = useNavigation<TabNav>();
+  const { t } = useTranslation();
 
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
@@ -97,11 +99,11 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert('Menu', 'Navigation menu coming soon!')}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert(t('home.menuTitle'), t('home.menuMessage'))}>
           <Ionicons name="menu" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.topTitle}>Unlocked</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert('Notifications', 'You have no new notifications.')}>
+        <Text style={styles.topTitle}>{t('home.title')}</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => Alert.alert(t('home.notifTitle'), t('home.notifMessage'))}>
           <Ionicons name="notifications-outline" size={22} color="#fff" />
           <View style={styles.notifDot} />
         </TouchableOpacity>
@@ -110,15 +112,15 @@ export default function HomeScreen() {
       {/* Search */}
       <TouchableOpacity style={styles.searchBar} activeOpacity={0.7} onPress={() => tabNavigation.navigate('Discover')}>
         <Ionicons name="search" size={18} color={theme.colors.textMuted} />
-        <Text style={styles.searchText}>Find your next escape...</Text>
+        <Text style={styles.searchText}>{t('home.searchPlaceholder')}</Text>
       </TouchableOpacity>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Featured */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Featured Rooms</Text>
+          <Text style={styles.sectionTitle}>{t('home.featured')}</Text>
           <TouchableOpacity style={styles.seeAll} onPress={() => tabNavigation.navigate('Discover')}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
             <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
           </TouchableOpacity>
         </View>
@@ -135,7 +137,7 @@ export default function HomeScreen() {
                 <View style={styles.featuredOverlay} />
                 {room.isNew && (
                   <View style={styles.newTag}>
-                    <Text style={styles.newTagText}>New Arrival</Text>
+                    <Text style={styles.newTagText}>{t('home.newArrival')}</Text>
                   </View>
                 )}
                 <View style={styles.ratingBadge}>
@@ -148,7 +150,7 @@ export default function HomeScreen() {
                 <View style={styles.featuredMeta}>
                   <View style={styles.metaItem}>
                     <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
-                    <Text style={styles.metaText}>{room.duration}m</Text>
+                    <Text style={styles.metaText}>{room.duration}{t('min')}</Text>
                   </View>
                   <DifficultyDots filled={room.difficulty} total={room.maxDifficulty} />
                   <View style={styles.metaItem}>
@@ -163,9 +165,9 @@ export default function HomeScreen() {
 
         {/* Near You */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Near You</Text>
+          <Text style={styles.sectionTitle}>{t('home.nearYou')}</Text>
           <TouchableOpacity style={styles.seeAll} onPress={() => navigation.navigate('MapView')}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
             <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
           </TouchableOpacity>
         </View>
@@ -195,9 +197,9 @@ export default function HomeScreen() {
 
         {/* Trending */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Trending Now</Text>
+          <Text style={styles.sectionTitle}>{t('home.trending')}</Text>
           <TouchableOpacity style={styles.seeAll} onPress={() => tabNavigation.navigate('Discover')}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
             <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
           </TouchableOpacity>
         </View>

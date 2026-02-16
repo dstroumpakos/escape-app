@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
+import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 interface Props {
@@ -17,6 +18,7 @@ export default function CompanySubscription({ companyId }: Props) {
   const company = useQuery(api.companies.getById, { id: companyId as Id<"companies"> });
   const subscribers = useQuery(api.companies.getSubscribers, { companyId: companyId as Id<"companies"> });
   const updateSub = useMutation(api.companies.updateSubscription);
+  const { t } = useTranslation();
 
   const [enabled, setEnabled] = useState(false);
   const [monthly, setMonthly] = useState('');
@@ -55,9 +57,9 @@ export default function CompanySubscription({ companyId }: Props) {
         subscriptionYearlyPrice: parseFloat(yearly) || undefined,
         subscriptionPerks: perks.length > 0 ? perks : undefined,
       });
-      Alert.alert('Saved', 'Subscription settings updated.');
+      Alert.alert(t('availability.saved'), t('subscription.settingsSaved'));
     } catch {
-      Alert.alert('Error', 'Failed to save settings.');
+      Alert.alert(t('error'), t('subscription.saveFailed'));
     }
     setSaving(false);
   };
@@ -68,7 +70,7 @@ export default function CompanySubscription({ companyId }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Subscriptions</Text>
+        <Text style={styles.headerTitle}>{t('subscription.title')}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -77,12 +79,12 @@ export default function CompanySubscription({ companyId }: Props) {
           <View style={styles.statCard}>
             <Ionicons name="people" size={22} color="#CE93D8" />
             <Text style={styles.statVal}>{activeCount}</Text>
-            <Text style={styles.statLabel}>Active Subs</Text>
+            <Text style={styles.statLabel}>{t('subscription.activeSubs')}</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="cash" size={22} color={theme.colors.success} />
             <Text style={styles.statVal}>€{totalRevenue}/mo</Text>
-            <Text style={styles.statLabel}>Monthly Rev</Text>
+            <Text style={styles.statLabel}>{t('subscription.monthlyRev')}</Text>
           </View>
         </View>
 
@@ -90,9 +92,9 @@ export default function CompanySubscription({ companyId }: Props) {
         <View style={styles.card}>
           <TouchableOpacity style={styles.toggleRow} onPress={() => setEnabled(!enabled)}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Enable Subscription Program</Text>
+              <Text style={styles.cardTitle}>{t('subscription.enableTitle')}</Text>
               <Text style={styles.cardDesc}>
-                Let players subscribe monthly or yearly to access exclusive rooms, early booking, and special perks.
+                {t('subscription.enableDesc')}
               </Text>
             </View>
             <View style={[styles.switch, enabled && styles.switchOn]}>
@@ -104,41 +106,41 @@ export default function CompanySubscription({ companyId }: Props) {
         {enabled && (
           <>
             {/* Pricing */}
-            <Text style={styles.sectionTitle}>Pricing</Text>
+            <Text style={styles.sectionTitle}>{t('subscription.pricing')}</Text>
             <View style={styles.card}>
               <View style={styles.row}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Monthly Price (€)</Text>
+                  <Text style={styles.label}>{t('subscription.monthlyPrice')}</Text>
                   <TextInput
                     style={styles.input}
                     value={monthly}
                     onChangeText={setMonthly}
                     keyboardType="decimal-pad"
-                    placeholder="9.99"
+                    placeholder={t('subscription.monthlyPlaceholder')}
                     placeholderTextColor={theme.colors.textMuted}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Yearly Price (€)</Text>
+                  <Text style={styles.label}>{t('subscription.yearlyPrice')}</Text>
                   <TextInput
                     style={styles.input}
                     value={yearly}
                     onChangeText={setYearly}
                     keyboardType="decimal-pad"
-                    placeholder="89.99"
+                    placeholder={t('subscription.yearlyPlaceholder')}
                     placeholderTextColor={theme.colors.textMuted}
                   />
                 </View>
               </View>
               {monthly && yearly && (
                 <Text style={styles.savings}>
-                  Yearly saves players €{(parseFloat(monthly) * 12 - parseFloat(yearly)).toFixed(2)}/year
+                  {t('subscription.yearlySaves', { amount: (parseFloat(monthly) * 12 - parseFloat(yearly)).toFixed(2) })}
                 </Text>
               )}
             </View>
 
             {/* Perks */}
-            <Text style={styles.sectionTitle}>Subscriber Perks</Text>
+            <Text style={styles.sectionTitle}>{t('subscription.perks')}</Text>
             <View style={styles.card}>
               {perks.map((perk, i) => (
                 <View key={i} style={styles.perkRow}>
@@ -154,7 +156,7 @@ export default function CompanySubscription({ companyId }: Props) {
                   style={[styles.input, { flex: 1 }]}
                   value={newPerk}
                   onChangeText={setNewPerk}
-                  placeholder="e.g. Early access to new rooms"
+                  placeholder={t('subscription.perkPlaceholder')}
                   placeholderTextColor={theme.colors.textMuted}
                   onSubmitEditing={addPerk}
                 />
@@ -165,14 +167,14 @@ export default function CompanySubscription({ companyId }: Props) {
             </View>
 
             {/* What subscribers get */}
-            <Text style={styles.sectionTitle}>Default Benefits</Text>
+            <Text style={styles.sectionTitle}>{t('subscription.defaultBenefits')}</Text>
             <View style={styles.card}>
               {[
-                'Access to subscription-only rooms',
-                'Priority booking on all rooms',
-                'Early access to new experiences',
-                '10% discount on regular rooms',
-                'Exclusive seasonal events',
+                t('subscription.benefit1'),
+                t('subscription.benefit2'),
+                t('subscription.benefit3'),
+                t('subscription.benefit4'),
+                t('subscription.benefit5'),
               ].map((benefit, i) => (
                 <View key={i} style={styles.benefitRow}>
                   <Ionicons name="star" size={14} color="#FFD700" />
@@ -182,11 +184,11 @@ export default function CompanySubscription({ companyId }: Props) {
             </View>
 
             {/* Subscribers List */}
-            <Text style={styles.sectionTitle}>Current Subscribers</Text>
+            <Text style={styles.sectionTitle}>{t('subscription.currentSubs')}</Text>
             {!subscribers || subscribers.length === 0 ? (
               <View style={styles.emptyCard}>
                 <Ionicons name="people-outline" size={32} color={theme.colors.textMuted} />
-                <Text style={styles.emptyText}>No subscribers yet</Text>
+                <Text style={styles.emptyText}>{t('subscription.noSubs')}</Text>
               </View>
             ) : (
               <View style={styles.card}>
@@ -198,12 +200,12 @@ export default function CompanySubscription({ companyId }: Props) {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.subName}>{sub.userName}</Text>
                       <Text style={styles.subPlan}>
-                        {sub.plan === 'monthly' ? 'Monthly' : 'Yearly'} — €{sub.price}/
+                        {sub.plan === 'monthly' ? t('subscription.monthly') : t('subscription.yearly')} — €{sub.price}/
                         {sub.plan === 'monthly' ? 'mo' : 'yr'}
                       </Text>
                     </View>
                     <View style={[styles.subStatus, sub.isActive ? styles.subActive : styles.subInactive]}>
-                      <Text style={styles.subStatusText}>{sub.isActive ? 'Active' : 'Expired'}</Text>
+                      <Text style={styles.subStatusText}>{sub.isActive ? t('subscription.active') : t('subscription.expired')}</Text>
                     </View>
                   </View>
                 ))}
@@ -221,7 +223,7 @@ export default function CompanySubscription({ companyId }: Props) {
           onPress={handleSave}
           activeOpacity={0.8}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Settings'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('saving') : t('subscription.saveSettings')}</Text>
         </TouchableOpacity>
       </View>
     </View>

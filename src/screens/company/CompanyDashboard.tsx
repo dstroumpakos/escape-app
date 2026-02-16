@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
+import { useTranslation } from '../../i18n';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props) {
+  const { t } = useTranslation();
   const navigation = useNavigation<Nav>();
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -54,8 +56,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Welcome back,</Text>
-          <Text style={styles.companyName}>{company?.name ?? 'Loading...'}</Text>
+          <Text style={styles.greeting}>{t('dashboard.welcome')}</Text>
+          <Text style={styles.companyName}>{company?.name ?? t('loading')}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {onSwitchToPlayer && (
@@ -88,17 +90,17 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statVal}>{stats?.totalBookings ?? 0}</Text>
-            <Text style={styles.statLabel}>Bookings</Text>
+            <Text style={styles.statLabel}>{t('dashboard.bookings')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statVal}>{stats?.availableSlots ?? 0}</Text>
-            <Text style={styles.statLabel}>Available</Text>
+            <Text style={styles.statLabel}>{t('dashboard.available')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={[styles.statVal, { color: theme.colors.success }]}>
               €{stats?.revenue ?? 0}
             </Text>
-            <Text style={styles.statLabel}>Revenue</Text>
+            <Text style={styles.statLabel}>{t('dashboard.revenue')}</Text>
           </View>
         </View>
 
@@ -106,26 +108,26 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         <View style={styles.sourceBreakdown}>
           <View style={styles.sourceItem}>
             <View style={[styles.sourceDot, { backgroundColor: '#4CAF50' }]} />
-            <Text style={styles.sourceLabel}>{stats?.unlockedBookings ?? 0} UNLOCKED</Text>
+            <Text style={styles.sourceLabel}>{t('dashboard.unlockedSource', { n: stats?.unlockedBookings ?? 0 })}</Text>
           </View>
           <View style={styles.sourceItem}>
             <View style={[styles.sourceDot, { backgroundColor: '#FFA726' }]} />
-            <Text style={styles.sourceLabel}>{stats?.externalBookings ?? 0} External</Text>
+            <Text style={styles.sourceLabel}>{t('dashboard.externalSource', { n: stats?.externalBookings ?? 0 })}</Text>
           </View>
           <View style={styles.sourceItem}>
             <View style={[styles.sourceDot, { backgroundColor: '#42A5F5' }]} />
-            <Text style={styles.sourceLabel}>{stats?.activeRooms ?? 0} Active Rooms</Text>
+            <Text style={styles.sourceLabel}>{t('dashboard.activeRooms', { n: stats?.activeRooms ?? 0 })}</Text>
           </View>
         </View>
 
         {/* Today's Timeline */}
-        <Text style={styles.sectionTitle}>Today's Schedule</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.todaySchedule')}</Text>
         {activeBookings.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="sunny-outline" size={40} color={theme.colors.textMuted} />
-            <Text style={styles.emptyTitle}>No Bookings Today</Text>
+            <Text style={styles.emptyTitle}>{t('dashboard.noBookingsToday')}</Text>
             <Text style={styles.emptyText}>
-              Tap + to add a booking or block a slot
+              {t('dashboard.noBookingsHint')}
             </Text>
           </View>
         ) : (
@@ -146,8 +148,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
                       <Ionicons name={src.icon} size={10} color={src.text} />
                       <Text style={[styles.sourceBadgeText, { color: src.text }]}>
                         {booking.source === 'external'
-                          ? booking.externalSource || 'External'
-                          : 'UNLOCKED'}
+                          ? booking.externalSource || t('dashboard.externalSource', { n: '' }).trim()
+                          : t('dashboard.unlocked')}
                       </Text>
                     </View>
                   </View>

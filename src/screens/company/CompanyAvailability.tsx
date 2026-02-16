@@ -10,6 +10,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyAvailability'>;
 
@@ -34,6 +35,7 @@ export default function CompanyAvailability() {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
   const { roomId, roomTitle } = route.params;
+  const { t } = useTranslation();
 
   // Fetch the room to get its defaultTimeSlots
   const room = useQuery(api.rooms.getById, { id: roomId as Id<"rooms"> });
@@ -176,9 +178,9 @@ export default function CompanyAvailability() {
           available: s.available,
         })),
       });
-      Alert.alert('Saved', `Time slots for ${monthNames[currentMonth]} ${selectedDate} saved.`);
+      Alert.alert(t('availability.saved'), t('availability.savedMessage', { month: monthNames[currentMonth], day: selectedDate }));
     } catch {
-      Alert.alert('Error', 'Failed to save slots.');
+      Alert.alert(t('error'), t('availability.saveFailed'));
     }
     setSaving(false);
   };
@@ -200,9 +202,9 @@ export default function CompanyAvailability() {
           })),
         });
       }
-      Alert.alert('Done', 'Slots copied to the next 7 days.');
+      Alert.alert(t('done'), t('availability.copied'));
     } catch {
-      Alert.alert('Error', 'Failed to copy slots.');
+      Alert.alert(t('error'), t('availability.copyFailed'));
     }
     setSaving(false);
   };
@@ -214,7 +216,7 @@ export default function CompanyAvailability() {
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Availability</Text>
+          <Text style={styles.headerTitle}>{t('availability.title')}</Text>
           <Text style={styles.headerSub} numberOfLines={1}>{roomTitle}</Text>
         </View>
       </View>
@@ -239,7 +241,7 @@ export default function CompanyAvailability() {
           </View>
 
           <View style={styles.calWeekdays}>
-            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+            {t('dateTime.weekdays').split(',').map((d) => (
               <Text key={d} style={styles.calWeekday}>{d}</Text>
             ))}
           </View>
@@ -267,7 +269,7 @@ export default function CompanyAvailability() {
         {/* Time Slots */}
         <View style={styles.slotsHeader}>
           <Text style={styles.sectionTitle}>
-            Time Slots — {monthNames[currentMonth]} {selectedDate}
+            {t('availability.slotsTitle', { month: monthNames[currentMonth], day: selectedDate })}
           </Text>
           <TouchableOpacity style={styles.addSlotBtn} onPress={addSlot}>
             <Ionicons name="add" size={18} color={theme.colors.redPrimary} />
@@ -279,7 +281,7 @@ export default function CompanyAvailability() {
           <View style={styles.overflowBanner}>
             <Ionicons name="flash" size={16} color="#FFD700" />
             <Text style={styles.overflowBannerText}>
-              All slots booked — overflow slot ({room.overflowSlot.time} · €{room.overflowSlot.price}) is now visible to players
+              {t('availability.overflowBanner', { time: room.overflowSlot.time, price: room.overflowSlot.price })}
             </Text>
           </View>
         )}
@@ -337,12 +339,12 @@ export default function CompanyAvailability() {
               {/* Expandable group breakdown when discount is active */}
               {isExpanded && breakdown.length > 0 && (
                 <View style={styles.breakdownCard}>
-                  <Text style={styles.breakdownTitle}>Discount Breakdown</Text>
+                  <Text style={styles.breakdownTitle}>{t('availability.discountBreakdown')}</Text>
                   {breakdown.map((g) => (
                     <View key={g.players} style={styles.breakdownRow}>
                       <View style={styles.breakdownPlayers}>
                         <Ionicons name="people" size={13} color={theme.colors.textSecondary} />
-                        <Text style={styles.breakdownPlayerText}>{g.players} players</Text>
+                        <Text style={styles.breakdownPlayerText}>{t('availability.playersCount', { n: g.players })}</Text>
                       </View>
                       <Text style={styles.breakdownOriginal}>${g.original}</Text>
                       <Ionicons name="arrow-forward" size={12} color={theme.colors.textMuted} />
@@ -361,7 +363,7 @@ export default function CompanyAvailability() {
         {/* Copy to Week */}
         <TouchableOpacity style={styles.copyBtn} onPress={copyToWeek} activeOpacity={0.7}>
           <Ionicons name="copy-outline" size={18} color={theme.colors.redPrimary} />
-          <Text style={styles.copyText}>Copy to next 7 days</Text>
+          <Text style={styles.copyText}>{t('availability.copyWeek')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -374,7 +376,7 @@ export default function CompanyAvailability() {
           activeOpacity={0.8}
         >
           <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Slots'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('saving') : t('availability.saveSlots')}</Text>
         </TouchableOpacity>
       </View>
     </View>

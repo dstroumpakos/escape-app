@@ -8,6 +8,7 @@ import { api } from '../../convex/_generated/api';
 import { rooms as staticRooms } from '../data';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { useTranslation } from '../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RoomDetails'>;
@@ -16,6 +17,8 @@ export default function RoomDetails() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const roomId = route.params.id;
+
+  const { t } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = convexRooms && convexRooms.length > 0
@@ -51,12 +54,12 @@ export default function RoomDetails() {
           <View style={styles.headerTags}>
             {room.isFeatured && (
               <View style={[styles.tag, styles.tagFeatured]}>
-                <Text style={styles.tagText}>FEATURED</Text>
+                <Text style={styles.tagText}>{t('roomDetails.featured')}</Text>
               </View>
             )}
             {room.isNew && (
               <View style={[styles.tag, styles.tagNew]}>
-                <Text style={styles.tagText}>NEW</Text>
+                <Text style={styles.tagText}>{t('roomDetails.new')}</Text>
               </View>
             )}
           </View>
@@ -73,7 +76,7 @@ export default function RoomDetails() {
           <View style={styles.ratingRow}>
             <Ionicons name="star" size={16} color={theme.colors.gold} />
             <Text style={styles.ratingVal}>{room.rating}</Text>
-            <Text style={styles.reviewsText}>({room.reviews} reviews)</Text>
+            <Text style={styles.reviewsText}>{t('roomDetails.reviews', { count: room.reviews })}</Text>
           </View>
 
           {/* Info Cards */}
@@ -84,30 +87,30 @@ export default function RoomDetails() {
                   <View key={i} style={[styles.diffDotLg, i < room.difficulty && styles.diffDotLgFilled]} />
                 ))}
               </View>
-              <Text style={styles.infoLabel}>DIFFICULTY</Text>
+              <Text style={styles.infoLabel}>{t('roomDetails.difficulty')}</Text>
               <Text style={styles.infoValue}>{room.difficulty}/{room.maxDifficulty}</Text>
             </View>
             <View style={styles.infoCard}>
               <Ionicons name="time-outline" size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.infoLabel}>DURATION</Text>
-              <Text style={styles.infoValue}>{room.duration} min</Text>
+              <Text style={styles.infoLabel}>{t('roomDetails.duration')}</Text>
+              <Text style={styles.infoValue}>{room.duration} {t('min')}</Text>
             </View>
             <View style={styles.infoCard}>
               <Ionicons name="people-outline" size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.infoLabel}>PLAYERS</Text>
+              <Text style={styles.infoLabel}>{t('roomDetails.players')}</Text>
               <Text style={styles.infoValue}>{room.players}</Text>
             </View>
           </View>
 
           {/* Story */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>The Story</Text>
+            <Text style={styles.sectionTitle}>{t('roomDetails.theStory')}</Text>
             <Text style={styles.storyText}>{room.story}</Text>
           </View>
 
           {/* Experience Tags */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Experience Tags</Text>
+            <Text style={styles.sectionTitle}>{t('roomDetails.experienceTags')}</Text>
             <View style={styles.expTags}>
               {room.tags.map((tag: string) => (
                 <View key={tag} style={styles.expTag}>
@@ -120,9 +123,9 @@ export default function RoomDetails() {
           {/* Review Preview */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
-              <TouchableOpacity onPress={() => Alert.alert('Reviews', `All ${room.reviews} reviews will be available soon!`)}>
-                <Text style={styles.seeAll}>View All</Text>
+              <Text style={styles.sectionTitle}>{t('roomDetails.reviewsSection')}</Text>
+              <TouchableOpacity onPress={() => Alert.alert(t('roomDetails.reviewsSection'), t('roomDetails.allReviews', { count: room.reviews }))}>
+                <Text style={styles.seeAll}>{t('roomDetails.viewAll')}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.reviewCard}>
@@ -151,14 +154,14 @@ export default function RoomDetails() {
       <View style={styles.ctaBar}>
         <View>
           <Text style={styles.ctaPriceVal}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
-          {!room.pricePerGroup?.length && <Text style={styles.ctaPriceLabel}>/person</Text>}
+          {!room.pricePerGroup?.length && <Text style={styles.ctaPriceLabel}>{t('perPerson')}</Text>}
         </View>
         <TouchableOpacity
           style={styles.ctaBtn}
           activeOpacity={0.8}
           onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
         >
-          <Text style={styles.ctaBtnText}>Unlock Now</Text>
+          <Text style={styles.ctaBtnText}>{t('roomDetails.unlockNow')}</Text>
         </TouchableOpacity>
       </View>
     </View>

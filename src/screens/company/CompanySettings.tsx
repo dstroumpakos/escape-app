@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
+import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer }: Props) {
   const company = useQuery(api.companies.getById, { id: companyId as Id<"companies"> });
   const updateProfile = useMutation(api.companies.updateProfile);
+  const { t, language, setLanguage } = useTranslation();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,9 +49,9 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
         city: city.trim(),
         description: description.trim(),
       });
-      Alert.alert('Saved', 'Company profile updated.');
+      Alert.alert(t('availability.saved'), t('settings.profileUpdated'));
     } catch {
-      Alert.alert('Error', 'Failed to update profile.');
+      Alert.alert(t('error'), t('settings.updateFailed'));
     }
     setSaving(false);
   };
@@ -57,7 +59,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -76,15 +78,15 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
               color={company?.verified ? theme.colors.success : theme.colors.textMuted}
             />
             <Text style={[styles.verifiedText, company?.verified && { color: theme.colors.success }]}>
-              {company?.verified ? 'Verified Business' : 'Verification Pending'}
+              {company?.verified ? t('settings.verified') : t('settings.pending')}
             </Text>
           </View>
         </View>
 
         {/* Profile Fields */}
-        <Text style={styles.sectionTitle}>Company Information</Text>
+        <Text style={styles.sectionTitle}>{t('settings.companyInfo')}</Text>
         <View style={styles.card}>
-          <Text style={styles.label}>Company Name</Text>
+          <Text style={styles.label}>{t('settings.companyName')}</Text>
           <TextInput
             style={styles.input}
             value={name}
@@ -92,7 +94,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             placeholderTextColor={theme.colors.textMuted}
           />
 
-          <Text style={styles.label}>Phone</Text>
+          <Text style={styles.label}>{t('settings.phone')}</Text>
           <TextInput
             style={styles.input}
             value={phone}
@@ -101,7 +103,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             placeholderTextColor={theme.colors.textMuted}
           />
 
-          <Text style={styles.label}>City</Text>
+          <Text style={styles.label}>{t('settings.city')}</Text>
           <TextInput
             style={styles.input}
             value={city}
@@ -109,7 +111,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             placeholderTextColor={theme.colors.textMuted}
           />
 
-          <Text style={styles.label}>Address</Text>
+          <Text style={styles.label}>{t('settings.address')}</Text>
           <TextInput
             style={styles.input}
             value={address}
@@ -117,7 +119,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             placeholderTextColor={theme.colors.textMuted}
           />
 
-          <Text style={styles.label}>About</Text>
+          <Text style={styles.label}>{t('settings.about')}</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={description}
@@ -134,17 +136,18 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
           onPress={handleSave}
           activeOpacity={0.8}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('saving') : t('settings.saveChanges')}</Text>
         </TouchableOpacity>
 
         {/* Menu */}
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
         <View style={styles.card}>
           {[
-            { icon: 'notifications-outline' as const, label: 'Notification Preferences', action: () => Alert.alert('Coming Soon', 'Notification settings will be available soon.') },
-            { icon: 'card-outline' as const, label: 'Payout Settings', action: () => Alert.alert('Coming Soon', 'Payout configuration will be available soon.') },
-            { icon: 'document-text-outline' as const, label: 'Legal & Compliance', action: () => Alert.alert('Coming Soon', 'Legal documents and compliance info.') },
-            { icon: 'help-circle-outline' as const, label: 'Help & Support', action: () => Alert.alert('Support', 'Contact us at business@unlocked.app') },
+            { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.notifMessage')) },
+            { icon: 'card-outline' as const, label: t('settings.payout'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.payoutMessage')) },
+            { icon: 'document-text-outline' as const, label: t('settings.legal'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.legalMessage')) },
+            { icon: 'help-circle-outline' as const, label: t('settings.helpSupport'), action: () => Alert.alert(t('settings.supportTitle'), t('settings.supportMessage')) },
+            { icon: 'language-outline' as const, label: t('settings.language'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
           ].map((item, i) => (
             <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
               <View style={styles.menuLeft}>
@@ -163,20 +166,20 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
             onPress={onSwitchToPlayer}
           >
             <Ionicons name="phone-portrait-outline" size={20} color={theme.colors.redPrimary} />
-            <Text style={styles.switchBtnText}>Switch to Player App</Text>
+            <Text style={styles.switchBtnText}>{t('settings.switchPlayer')}</Text>
           </TouchableOpacity>
         )}
 
         {/* Logout */}
         <TouchableOpacity
           style={styles.logoutBtn}
-          onPress={() => Alert.alert('Sign Out', 'Are you sure?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign Out', style: 'destructive', onPress: onLogout },
+          onPress={() => Alert.alert(t('settings.signOutTitle'), t('settings.signOutMessage'), [
+            { text: t('cancel'), style: 'cancel' },
+            { text: t('settings.signOut'), style: 'destructive', onPress: onLogout },
           ])}
         >
           <Ionicons name="log-out-outline" size={20} color="#F44336" />
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <Text style={styles.logoutText}>{t('settings.signOut')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

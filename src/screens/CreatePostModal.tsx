@@ -19,6 +19,7 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { useUser } from '../UserContext';
+import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
 
 interface Props {
@@ -40,11 +41,12 @@ export default function CreatePostModal({ visible, onClose }: Props) {
 
   const createPost = useMutation(api.posts.createPost);
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
+  const { t } = useTranslation();
 
   const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      Alert.alert(t('createPost.permissionRequired'), t('createPost.photoLibraryPermission'));
       return;
     }
 
@@ -67,7 +69,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Please allow camera access.');
+      Alert.alert(t('createPost.permissionRequired'), t('createPost.cameraPermission'));
       return;
     }
 
@@ -88,7 +90,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
 
   const handlePost = async () => {
     if (!text.trim() && media.length === 0) {
-      Alert.alert('Error', 'Add some text or media to your post');
+      Alert.alert(t('error'), t('createPost.addContent'));
       return;
     }
     if (!userId) return;
@@ -125,7 +127,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
       setRating(0);
       onClose();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to create post');
+      Alert.alert(t('error'), err.message || t('createPost.failed'));
     } finally {
       setPosting(false);
     }
@@ -141,9 +143,9 @@ export default function CreatePostModal({ visible, onClose }: Props) {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} disabled={posting}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t('cancel')}</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>New Post</Text>
+            <Text style={styles.headerTitle}>{t('createPost.title')}</Text>
             <TouchableOpacity
               onPress={handlePost}
               disabled={posting || (!text.trim() && media.length === 0)}
@@ -157,7 +159,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
                     !text.trim() && media.length === 0 && styles.postBtnDisabled,
                   ]}
                 >
-                  Post
+                  {t('createPost.post')}
                 </Text>
               )}
             </TouchableOpacity>
@@ -171,7 +173,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
             {/* Text Input */}
             <TextInput
               style={styles.textInput}
-              placeholder="Share your escape room experience..."
+              placeholder={t('createPost.placeholder')}
               placeholderTextColor={theme.colors.textMuted}
               multiline
               value={text}
@@ -181,7 +183,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
 
             {/* Star Rating */}
             <View style={styles.ratingSection}>
-              <Text style={styles.ratingLabel}>Rate the experience</Text>
+              <Text style={styles.ratingLabel}>{t('createPost.rateExperience')}</Text>
               <View style={styles.stars}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <TouchableOpacity key={star} onPress={() => setRating(star === rating ? 0 : star)}>
@@ -219,11 +221,11 @@ export default function CreatePostModal({ visible, onClose }: Props) {
           <View style={styles.toolbar}>
             <TouchableOpacity style={styles.toolBtn} onPress={pickImages}>
               <Ionicons name="images-outline" size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.toolLabel}>Gallery</Text>
+              <Text style={styles.toolLabel}>{t('createPost.gallery')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.toolBtn} onPress={takePhoto}>
               <Ionicons name="camera-outline" size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.toolLabel}>Camera</Text>
+              <Text style={styles.toolLabel}>{t('createPost.camera')}</Text>
             </TouchableOpacity>
             <Text style={styles.charCount}>{text.length}/500</Text>
           </View>

@@ -14,6 +14,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyBookingDetail'>;
 
@@ -25,6 +26,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
   const { bookingId } = route.params;
+  const { t } = useTranslation();
 
   const booking = useQuery(api.companies.getBookingDetail, {
     bookingId: bookingId as Id<"bookings">,
@@ -67,12 +69,12 @@ export default function CompanyBookingDetail({ companyId }: Props) {
 
   const handleCancel = () => {
     Alert.alert(
-      'Cancel Booking',
-      `Cancel this ${isExternal ? 'external block' : 'booking'}? This cannot be undone.`,
+      t('bookingDetail.cancelBookingTitle'),
+      t('bookingDetail.cancelMessage', { type: isExternal ? t('bookingDetail.externalBlock') : t('bookingDetail.booking') }),
       [
-        { text: 'Keep', style: 'cancel' },
+        { text: t('bookingDetail.keep'), style: 'cancel' },
         {
-          text: 'Cancel Booking',
+          text: t('bookingDetail.cancelBookingBtn'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -80,9 +82,9 @@ export default function CompanyBookingDetail({ companyId }: Props) {
                 companyId: companyId as Id<"companies">,
                 bookingId: bookingId as Id<"bookings">,
               });
-              Alert.alert('Done', 'Booking cancelled.');
+              Alert.alert(t('done'), t('bookingDetail.bookingCancelled'));
             } catch (e: any) {
-              Alert.alert('Error', e.message || 'Failed to cancel.');
+              Alert.alert(t('error'), e.message || t('bookingDetail.cancelFailed'));
             }
           },
         },
@@ -92,7 +94,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
 
   const handleReschedule = async () => {
     if (!newDate.trim() || !newTime.trim()) {
-      Alert.alert('Error', 'Enter both new date (YYYY-MM-DD) and time.');
+      Alert.alert(t('error'), t('bookingDetail.enterBothFields'));
       return;
     }
     try {
@@ -102,10 +104,10 @@ export default function CompanyBookingDetail({ companyId }: Props) {
         newDate: newDate.trim(),
         newTime: newTime.trim(),
       });
-      Alert.alert('Done', 'Booking rescheduled.');
+      Alert.alert(t('done'), t('bookingDetail.rescheduled'));
       setShowReschedule(false);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to reschedule.');
+      Alert.alert(t('error'), e.message || t('bookingDetail.rescheduleFailed'));
     }
   };
 
@@ -117,9 +119,9 @@ export default function CompanyBookingDetail({ companyId }: Props) {
         bookingId: bookingId as Id<"bookings">,
         notes: notes.trim(),
       });
-      Alert.alert('Saved', 'Notes updated.');
+      Alert.alert(t('availability.saved'), t('bookingDetail.notesSaved'));
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Failed to save notes.');
+      Alert.alert(t('error'), e.message || t('bookingDetail.notesFailed'));
     }
     setSavingNotes(false);
   };
@@ -131,7 +133,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Booking Detail</Text>
+        <Text style={styles.headerTitle}>{t('bookingDetail.title')}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -144,7 +146,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
               color={sourceColor.text}
             />
             <Text style={[styles.badgeText, { color: sourceColor.text }]}>
-              {isExternal ? `External — ${booking.externalSource || 'Other'}` : 'UNLOCKED Booking'}
+              {isExternal ? t('bookingDetail.externalBadge', { source: booking.externalSource || 'Other' }) : t('bookingDetail.unlockedBadge')}
             </Text>
           </View>
           <View style={[styles.badge, { backgroundColor: statusColor.bg }]}>
@@ -156,7 +158,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
 
         {/* Room info */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Room</Text>
+          <Text style={styles.cardLabel}>{t('bookingDetail.room')}</Text>
           <Text style={styles.cardValueLg}>{booking.roomTitle}</Text>
         </View>
 
@@ -165,14 +167,14 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           <View style={[styles.card, { flex: 1 }]}>
             <View style={styles.iconRow}>
               <Ionicons name="calendar-outline" size={16} color={theme.colors.redPrimary} />
-              <Text style={styles.cardLabel}>Date</Text>
+              <Text style={styles.cardLabel}>{t('bookingDetail.date')}</Text>
             </View>
             <Text style={styles.cardValue}>{booking.date}</Text>
           </View>
           <View style={[styles.card, { flex: 1 }]}>
             <View style={styles.iconRow}>
               <Ionicons name="time-outline" size={16} color={theme.colors.redPrimary} />
-              <Text style={styles.cardLabel}>Time</Text>
+              <Text style={styles.cardLabel}>{t('bookingDetail.time')}</Text>
             </View>
             <Text style={styles.cardValue}>{booking.time}</Text>
           </View>
@@ -180,7 +182,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
 
         {/* Player info */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Player Information</Text>
+          <Text style={styles.cardLabel}>{t('bookingDetail.playerInfo')}</Text>
           <View style={styles.infoRow}>
             <Ionicons name="person-outline" size={16} color={theme.colors.textSecondary} />
             <Text style={styles.infoText}>{booking.playerName}</Text>
@@ -193,14 +195,14 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           ) : null}
           <View style={styles.infoRow}>
             <Ionicons name="people-outline" size={16} color={theme.colors.textSecondary} />
-            <Text style={styles.infoText}>{booking.players} players</Text>
+            <Text style={styles.infoText}>{t('bookingDetail.playersCount', { n: booking.players })}</Text>
           </View>
         </View>
 
         {/* Payment — only for UNLOCKED bookings */}
         {!isExternal && (
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Payment</Text>
+            <Text style={styles.cardLabel}>{t('bookingDetail.payment')}</Text>
             <View style={styles.payRow}>
               <Text style={styles.payTotal}>€{booking.total.toFixed(2)}</Text>
               <View style={[styles.payBadge, {
@@ -215,28 +217,28 @@ export default function CompanyBookingDetail({ companyId }: Props) {
               </View>
             </View>
             {(booking.paymentTerms === 'deposit_20' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('deposit_20'))) && (
-              <Text style={styles.payNote}>20% deposit terms</Text>
+              <Text style={styles.payNote}>{t('bookingDetail.depositNote')}</Text>
             )}
             {(booking.paymentTerms === 'pay_on_arrival' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('pay_on_arrival'))) && (
-              <Text style={styles.payNote}>Pay on arrival</Text>
+              <Text style={styles.payNote}>{t('bookingDetail.payOnArrivalNote')}</Text>
             )}
           </View>
         )}
 
         {/* Booking code */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Booking Code</Text>
+          <Text style={styles.cardLabel}>{t('bookingDetail.bookingCode')}</Text>
           <Text style={styles.codeText}>{booking.bookingCode}</Text>
         </View>
 
         {/* Notes */}
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Internal Notes</Text>
+          <Text style={styles.cardLabel}>{t('bookingDetail.notes')}</Text>
           <TextInput
             style={styles.notesInput}
             value={notes}
             onChangeText={setNotes}
-            placeholder="Add internal notes about this booking..."
+            placeholder={t('bookingDetail.notesPlaceholder')}
             placeholderTextColor={theme.colors.textMuted}
             multiline
           />
@@ -246,7 +248,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
             onPress={handleSaveNotes}
           >
             <Text style={styles.notesSaveText}>
-              {savingNotes ? 'Saving...' : 'Save Notes'}
+              {savingNotes ? t('saving') : t('bookingDetail.saveNotes')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -264,24 +266,24 @@ export default function CompanyBookingDetail({ companyId }: Props) {
                 }}
               >
                 <Ionicons name="swap-horizontal-outline" size={18} color="#42A5F5" />
-                <Text style={styles.actionText}>Reschedule</Text>
+                <Text style={styles.actionText}>{t('bookingDetail.reschedule')}</Text>
               </TouchableOpacity>
             ) : (
               <View>
-                <Text style={styles.cardLabel}>Reschedule To</Text>
+                <Text style={styles.cardLabel}>{t('bookingDetail.rescheduleTo')}</Text>
                 <View style={styles.row}>
                   <TextInput
                     style={[styles.reschedInput, { flex: 1 }]}
                     value={newDate}
                     onChangeText={setNewDate}
-                    placeholder="YYYY-MM-DD"
+                    placeholder={t('bookingDetail.datePlaceholder')}
                     placeholderTextColor={theme.colors.textMuted}
                   />
                   <TextInput
                     style={[styles.reschedInput, { flex: 1 }]}
                     value={newTime}
                     onChangeText={setNewTime}
-                    placeholder="3:00 PM"
+                    placeholder={t('bookingDetail.timePlaceholder')}
                     placeholderTextColor={theme.colors.textMuted}
                   />
                 </View>
@@ -291,11 +293,11 @@ export default function CompanyBookingDetail({ companyId }: Props) {
                     onPress={() => setShowReschedule(false)}
                   >
                     <Text style={[styles.reschedBtnText, { color: theme.colors.textSecondary }]}>
-                      Cancel
+                      {t('cancel')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.reschedBtn} onPress={handleReschedule}>
-                    <Text style={styles.reschedBtnText}>Confirm</Text>
+                    <Text style={styles.reschedBtnText}>{t('confirm')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -309,7 +311,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
             <Ionicons name="close-circle-outline" size={18} color="#F44336" />
-            <Text style={styles.cancelText}>Cancel Booking</Text>
+            <Text style={styles.cancelText}>{t('bookingDetail.cancelBookingBtn')}</Text>
           </TouchableOpacity>
         </View>
       )}

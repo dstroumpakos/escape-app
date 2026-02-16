@@ -10,6 +10,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { useTranslation } from '../../i18n';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -24,12 +25,13 @@ export default function CompanyRoomsList({ companyId }: Props) {
   });
   const deleteRoom = useMutation(api.companies.deleteRoom);
   const updateRoom = useMutation(api.companies.updateRoom);
+  const { t } = useTranslation();
 
   const handleDelete = (roomId: string, title: string) => {
-    Alert.alert('Delete Room', `Are you sure you want to delete "${title}"? This cannot be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('roomsList.deleteTitle'), t('roomsList.deleteMessage', { title }), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           await deleteRoom({ roomId: roomId as Id<"rooms"> });
         },
@@ -47,7 +49,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Rooms</Text>
+        <Text style={styles.headerTitle}>{t('roomsList.title')}</Text>
         <TouchableOpacity
           style={styles.addBtn}
           onPress={() => navigation.navigate('CompanyRoomEditor', {})}
@@ -60,8 +62,8 @@ export default function CompanyRoomsList({ companyId }: Props) {
         {!rooms || rooms.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="cube-outline" size={56} color={theme.colors.textMuted} />
-            <Text style={styles.emptyTitle}>No Rooms Yet</Text>
-            <Text style={styles.emptyText}>Tap + to add your first escape room</Text>
+            <Text style={styles.emptyTitle}>{t('roomsList.noRooms')}</Text>
+            <Text style={styles.emptyText}>{t('roomsList.noRoomsHint')}</Text>
           </View>
         ) : (
           rooms.map((room: any) => {
@@ -76,7 +78,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
                       {room.isSubscriptionOnly && (
                         <View style={styles.subBadge}>
                           <Ionicons name="star" size={10} color="#FFD700" />
-                          <Text style={styles.subBadgeText}>Sub Only</Text>
+                          <Text style={styles.subBadgeText}>{t('roomsList.subOnly')}</Text>
                         </View>
                       )}
                       <View style={[styles.statusDot, { backgroundColor: isActive ? theme.colors.success : theme.colors.textMuted }]} />
@@ -87,9 +89,9 @@ export default function CompanyRoomsList({ companyId }: Props) {
                   <View style={styles.roomMeta}>
                     <Text style={styles.roomMetaText}>{room.theme}</Text>
                     <Text style={styles.roomMetaText}>{room.duration}min</Text>
-                    <Text style={styles.roomMetaText}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}/person`}</Text>
+                    <Text style={styles.roomMetaText}>{room.pricePerGroup?.length ? `€${Math.min(...room.pricePerGroup.map((g: any) => g.price))}-€${Math.max(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}${t('perPerson')}`}</Text>
                     <Text style={styles.roomMetaText}>
-                      {(Array.isArray(room.paymentTerms) ? room.paymentTerms : [room.paymentTerms || 'full']).map((t: string) => t === 'deposit_20' ? '20% deposit' : t === 'pay_on_arrival' ? 'Pay on arrival' : 'Full payment').join(' / ')}
+                      {(Array.isArray(room.paymentTerms) ? room.paymentTerms : [room.paymentTerms || 'full']).map((pt: string) => pt === 'deposit_20' ? t('roomsList.deposit') : pt === 'pay_on_arrival' ? t('roomsList.payOnArrival') : t('roomsList.fullPayment')).join(' / ')}
                     </Text>
                     {room.operatingDays && (
                       <Text style={styles.roomMetaText}>
@@ -98,7 +100,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
                     )}
                     {room.defaultTimeSlots && (
                       <Text style={styles.roomMetaText}>
-                        {room.defaultTimeSlots.length} slots
+                        {t('roomsList.slots', { n: room.defaultTimeSlots.length })}
                       </Text>
                     )}
                   </View>
@@ -109,14 +111,14 @@ export default function CompanyRoomsList({ companyId }: Props) {
                       onPress={() => navigation.navigate('CompanyRoomEditor', { roomId: room._id })}
                     >
                       <Ionicons name="create-outline" size={16} color={theme.colors.redPrimary} />
-                      <Text style={styles.actionText}>Edit</Text>
+                      <Text style={styles.actionText}>{t('roomsList.edit')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.actionBtn}
                       onPress={() => navigation.navigate('CompanyAvailability', { roomId: room._id, roomTitle: room.title })}
                     >
                       <Ionicons name="calendar-outline" size={16} color="#42A5F5" />
-                      <Text style={styles.actionText}>Slots</Text>
+                      <Text style={styles.actionText}>{t('roomsList.slotsBtn')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.actionBtn}
@@ -127,14 +129,14 @@ export default function CompanyRoomsList({ companyId }: Props) {
                         size={16}
                         color={isActive ? '#FFA726' : theme.colors.success}
                       />
-                      <Text style={styles.actionText}>{isActive ? 'Pause' : 'Activate'}</Text>
+                      <Text style={styles.actionText}>{isActive ? t('roomsList.pause') : t('roomsList.activate')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.actionBtn}
                       onPress={() => handleDelete(room._id, room.title)}
                     >
                       <Ionicons name="trash-outline" size={16} color="#F44336" />
-                      <Text style={[styles.actionText, { color: '#F44336' }]}>Delete</Text>
+                      <Text style={[styles.actionText, { color: '#F44336' }]}>{t('delete')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

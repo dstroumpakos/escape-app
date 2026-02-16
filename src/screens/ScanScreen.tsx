@@ -2,13 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { useTranslation } from '../i18n';
 
 export default function ScanScreen() {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Scan QR</Text>
+        <Text style={styles.headerTitle}>{t('scan.title')}</Text>
       </View>
 
       {/* Scanner Area */}
@@ -21,7 +23,7 @@ export default function ScanScreen() {
           <View style={[styles.corner, styles.bottomRight]} />
 
           <Ionicons name="qr-code-outline" size={80} color="rgba(255,30,30,0.3)" />
-          <Text style={styles.scanHint}>Point your camera at a QR code</Text>
+          <Text style={styles.scanHint}>{t('scan.hint')}</Text>
         </View>
       </View>
 
@@ -32,8 +34,8 @@ export default function ScanScreen() {
             <Ionicons name="ticket-outline" size={22} color={theme.colors.redPrimary} />
           </View>
           <View style={styles.instructionText}>
-            <Text style={styles.instructionTitle}>Scan Ticket</Text>
-            <Text style={styles.instructionDesc}>Scan a QR code on your physical ticket</Text>
+            <Text style={styles.instructionTitle}>{t('scan.ticket')}</Text>
+            <Text style={styles.instructionDesc}>{t('scan.ticketDesc')}</Text>
           </View>
         </View>
 
@@ -42,8 +44,8 @@ export default function ScanScreen() {
             <Ionicons name="game-controller-outline" size={22} color={theme.colors.redPrimary} />
           </View>
           <View style={styles.instructionText}>
-            <Text style={styles.instructionTitle}>In-Room Clues</Text>
-            <Text style={styles.instructionDesc}>Scan QR codes inside escape rooms for hints</Text>
+            <Text style={styles.instructionTitle}>{t('scan.clues')}</Text>
+            <Text style={styles.instructionDesc}>{t('scan.cluesDesc')}</Text>
           </View>
         </View>
 
@@ -52,8 +54,8 @@ export default function ScanScreen() {
             <Ionicons name="gift-outline" size={22} color={theme.colors.redPrimary} />
           </View>
           <View style={styles.instructionText}>
-            <Text style={styles.instructionTitle}>Promotions</Text>
-            <Text style={styles.instructionDesc}>Scan promotional QR codes for discounts</Text>
+            <Text style={styles.instructionTitle}>{t('scan.promos')}</Text>
+            <Text style={styles.instructionDesc}>{t('scan.promosDesc')}</Text>
           </View>
         </View>
       </View>
@@ -62,10 +64,10 @@ export default function ScanScreen() {
       <TouchableOpacity
         style={styles.scanBtn}
         activeOpacity={0.8}
-        onPress={() => Alert.alert('Camera Required', 'Camera access is needed to scan QR codes. This feature will work on your physical device.')}
+        onPress={() => Alert.alert(t('scan.cameraRequired'), t('scan.cameraMessage'))}
       >
         <Ionicons name="camera-outline" size={22} color="#fff" />
-        <Text style={styles.scanBtnText}>Open Camera</Text>
+        <Text style={styles.scanBtnText}>{t('scan.openCamera')}</Text>
       </TouchableOpacity>
     </View>
   );

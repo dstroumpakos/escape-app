@@ -17,6 +17,7 @@ import { useMutation } from 'convex/react';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
+import { useTranslation } from '../i18n';
 
 interface Props {
   onLogin: (userId: string) => void;
@@ -31,6 +32,7 @@ export default function LoginScreen({ onLogin }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const { t } = useTranslation();
 
   const loginMutation = useMutation(api.users.login);
   const registerMutation = useMutation(api.users.register);
@@ -64,7 +66,7 @@ export default function LoginScreen({ onLogin }: Props) {
       onLogin(userId);
     } catch (err: any) {
       if (err.code !== 'ERR_REQUEST_CANCELED') {
-        Alert.alert('Apple Sign In Failed', err.message || 'Something went wrong');
+        Alert.alert(t('login.appleSignInFailed'), err.message || t('login.somethingWentWrong'));
       }
     } finally {
       setLoading(false);
@@ -73,21 +75,21 @@ export default function LoginScreen({ onLogin }: Props) {
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t('error'), t('login.fillAllFields'));
       return;
     }
 
     if (isRegister) {
       if (!name.trim()) {
-        Alert.alert('Error', 'Please enter your name');
+        Alert.alert(t('error'), t('login.enterName'));
         return;
       }
       if (password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
+        Alert.alert(t('error'), t('login.passwordMinLength'));
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
+        Alert.alert(t('error'), t('login.passwordsNoMatch'));
         return;
       }
     }
@@ -109,7 +111,7 @@ export default function LoginScreen({ onLogin }: Props) {
         onLogin(userId);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Something went wrong');
+      Alert.alert(t('error'), err.message || t('login.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
@@ -131,9 +133,9 @@ export default function LoginScreen({ onLogin }: Props) {
             <View style={styles.iconCircle}>
               <Ionicons name="lock-closed-outline" size={40} color={theme.colors.redPrimary} />
             </View>
-            <Text style={styles.appTitle}>UNLOCKED</Text>
+            <Text style={styles.appTitle}>{t('login.title')}</Text>
             <Text style={styles.appSubtitle}>
-              {isRegister ? 'Create your account' : 'Welcome back, adventurer'}
+              {isRegister ? t('login.createAccount') : t('login.welcomeBack')}
             </Text>
           </View>
 
@@ -144,7 +146,7 @@ export default function LoginScreen({ onLogin }: Props) {
                 <Ionicons name="person-outline" size={20} color={theme.colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Full Name"
+                  placeholder={t('login.fullName')}
                   placeholderTextColor={theme.colors.textMuted}
                   value={name}
                   onChangeText={setName}
@@ -157,7 +159,7 @@ export default function LoginScreen({ onLogin }: Props) {
               <Ionicons name="mail-outline" size={20} color={theme.colors.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Email"
+                placeholder={t('login.email')}
                 placeholderTextColor={theme.colors.textMuted}
                 value={email}
                 onChangeText={setEmail}
@@ -171,7 +173,7 @@ export default function LoginScreen({ onLogin }: Props) {
               <Ionicons name="lock-closed-outline" size={20} color={theme.colors.textMuted} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
-                placeholder="Password"
+                placeholder={t('login.password')}
                 placeholderTextColor={theme.colors.textMuted}
                 value={password}
                 onChangeText={setPassword}
@@ -192,7 +194,7 @@ export default function LoginScreen({ onLogin }: Props) {
                 <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.textMuted} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Confirm Password"
+                  placeholder={t('login.confirmPassword')}
                   placeholderTextColor={theme.colors.textMuted}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -220,7 +222,7 @@ export default function LoginScreen({ onLogin }: Props) {
                 ) : (
                   <>
                     <Text style={styles.submitText}>
-                      {isRegister ? 'Create Account' : 'Sign In'}
+                      {isRegister ? t('login.createAccountBtn') : t('login.signIn')}
                     </Text>
                     <Ionicons name="arrow-forward" size={20} color="#fff" />
                   </>
@@ -232,7 +234,7 @@ export default function LoginScreen({ onLogin }: Props) {
           {/* Toggle */}
           <View style={styles.toggleSection}>
             <Text style={styles.toggleText}>
-              {isRegister ? 'Already have an account?' : "Don't have an account?"}
+              {isRegister ? t('login.alreadyHaveAccount') : t('login.dontHaveAccount')}
             </Text>
             <TouchableOpacity
               onPress={() => {
@@ -242,7 +244,7 @@ export default function LoginScreen({ onLogin }: Props) {
               }}
             >
               <Text style={styles.toggleLink}>
-                {isRegister ? 'Sign In' : 'Sign Up'}
+                {isRegister ? t('login.signIn') : t('login.signUp')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -252,7 +254,7 @@ export default function LoginScreen({ onLogin }: Props) {
             <View style={styles.appleSection}>
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
+                <Text style={styles.dividerText}>{t('or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
               <AppleAuthentication.AppleAuthenticationButton

@@ -23,6 +23,7 @@ import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
+import { useTranslation } from '../i18n';
 
 const { width, height } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -47,10 +48,10 @@ const DEFAULT_REGION: Region = {
 const filters = ['All', 'Horror', 'Sci-Fi', 'Mystery', 'Historical'];
 
 function getDiffLabel(d: number) {
-  if (d <= 2) return 'Easy';
-  if (d <= 3) return 'Medium';
-  if (d <= 4) return 'Hard';
-  return 'Expert';
+  if (d <= 2) return 'discover.easy';
+  if (d <= 3) return 'discover.medium';
+  if (d <= 4) return 'discover.hard';
+  return 'discover.expert';
 }
 
 function getDiffColor(d: number) {
@@ -80,6 +81,7 @@ const darkMapStyle = [
 export default function DiscoverScreen() {
   const navigation = useNavigation<Nav>();
   const { userId } = useUser();
+  const { t } = useTranslation();
   const user = useQuery(
     api.users.getById,
     userId ? { userId: userId as Id<'users'> } : 'skip'
@@ -100,16 +102,24 @@ export default function DiscoverScreen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [initialRegionSet, setInitialRegionSet] = useState(false);
-  const [cityLabel, setCityLabel] = useState('Locating...');
+  const [cityLabel, setCityLabel] = useState(t('discover.locating'));
 
   const filtered = activeFilter === 'All' ? rooms : rooms.filter((r) => r.theme === activeFilter);
+
+  const filterLabels: Record<string, string> = {
+    All: t('discover.all'),
+    Horror: t('theme.horror'),
+    'Sci-Fi': t('theme.sciFi'),
+    Mystery: t('theme.mystery'),
+    Historical: t('theme.historical'),
+  };
 
   // Use saved user location as initial region, fall back to device location
   useEffect(() => {
     if (user && user.latitude && user.longitude && !initialRegionSet) {
       const savedLoc = { latitude: user.latitude, longitude: user.longitude };
       setUserLocation(savedLoc);
-      setCityLabel(user.city || 'Your Area');
+      setCityLabel(user.city || t('discover.yourArea'));
       if (mapRef.current) {
         mapRef.current.animateToRegion(
           { ...savedLoc, latitudeDelta: 0.25, longitudeDelta: 0.25 },
@@ -255,7 +265,7 @@ export default function DiscoverScreen() {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.headerTitle}>Discover</Text>
+            <Text style={styles.headerTitle}>{t('discover.title')}</Text>
             <View style={styles.locationRow}>
               <Ionicons name="location" size={12} color={theme.colors.redPrimary} />
               <Text style={styles.locationText}>{cityLabel}</Text>
@@ -284,7 +294,7 @@ export default function DiscoverScreen() {
               activeOpacity={0.7}
             >
               <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
-                {f}
+                {filterLabels[f]}
               </Text>
             </TouchableOpacity>
           ))}
@@ -293,7 +303,7 @@ export default function DiscoverScreen() {
         <View style={styles.countBadge}>
           <Ionicons name="key-outline" size={12} color={theme.colors.redPrimary} />
           <Text style={styles.countText}>
-            {filtered.length} room{filtered.length !== 1 ? 's' : ''} nearby
+            {t('discover.roomsNearby', { n: filtered.length })}
           </Text>
         </View>
       </View>
@@ -356,6 +366,7 @@ export default function DiscoverScreen() {
 }
 
 function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
+  const { t } = useTranslation();
   const dc = getDiffColor(room.difficulty);
 
   return (
@@ -392,7 +403,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
             </View>
             <View style={[styles.diffBadge, { backgroundColor: dc.bg }]}>
               <Text style={[styles.diffText, { color: dc.text }]}>
-                {getDiffLabel(room.difficulty)}
+                {t(getDiffLabel(room.difficulty))}
               </Text>
             </View>
           </View>
@@ -400,7 +411,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
           <View style={styles.cardBottom}>
             <Text style={styles.cardPrice}>
               {room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}
-              {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>/person</Text>}
+              {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>{t('perPerson')}</Text>}
             </Text>
             <TouchableOpacity
               style={styles.bookBtn}
@@ -413,7 +424,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
                 end={{ x: 1, y: 0 }}
                 style={styles.bookBtnGrad}
               >
-                <Text style={styles.bookBtnText}>Book Now</Text>
+                <Text style={styles.bookBtnText}>{t('discover.bookNow')}</Text>
                 <Ionicons name="arrow-forward" size={14} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
