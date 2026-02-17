@@ -54,9 +54,14 @@ export default function AdminReview({ onBack }: Props) {
         {
           text: t('admin.approve'),
           onPress: async () => {
-            setLoading(true);
-            await approveMut({ companyId: id as Id<"companies">, userId: userId as Id<"users"> });
-            setLoading(false);
+            try {
+              setLoading(true);
+              await approveMut({ companyId: id as Id<"companies">, userId: userId as Id<"users"> });
+            } catch (err: any) {
+              Alert.alert(t('error'), err.message || 'Failed to approve company');
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -68,15 +73,20 @@ export default function AdminReview({ onBack }: Props) {
       Alert.alert(t('error'), t('admin.notesRequired'));
       return;
     }
-    setLoading(true);
-    await declineMut({
-      companyId: declineModal as Id<"companies">,
-      notes: declineNotes.trim(),
-      userId: userId as Id<"users">,
-    });
-    setLoading(false);
-    setDeclineModal(null);
-    setDeclineNotes('');
+    try {
+      setLoading(true);
+      await declineMut({
+        companyId: declineModal as Id<"companies">,
+        notes: declineNotes.trim(),
+        userId: userId as Id<"users">,
+      });
+      setDeclineModal(null);
+      setDeclineNotes('');
+    } catch (err: any) {
+      Alert.alert(t('error'), err.message || 'Failed to decline company');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!companies) {
