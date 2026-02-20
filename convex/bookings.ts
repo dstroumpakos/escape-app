@@ -133,9 +133,20 @@ export const cancel = mutation({
           .collect();
         for (const alert of alerts) {
           if (!alert.notified) {
-            // Mark as notified — the client watcher will detect this transition
-            // We use a different field "slotAvailableAt" to signal the watcher
             await ctx.db.patch(alert._id, { notified: true });
+          }
+        }
+
+        // Also mark guest (widget) slot alerts as notified
+        const guestAlerts = await ctx.db
+          .query("guestSlotAlerts")
+          .withIndex("by_slot", (q) =>
+            q.eq("roomId", booking.roomId).eq("date", booking.date).eq("time", booking.time)
+          )
+          .collect();
+        for (const ga of guestAlerts) {
+          if (!ga.notified) {
+            await ctx.db.patch(ga._id, { notified: true });
           }
         }
       }

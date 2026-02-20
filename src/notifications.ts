@@ -57,9 +57,12 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   try {
-    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: '63ddda73-e173-4fb4-a368-c4cc5652e509',
+    });
     return tokenData.data;
-  } catch {
+  } catch (e) {
+    console.warn('Failed to get push token:', e);
     return null;
   }
 }

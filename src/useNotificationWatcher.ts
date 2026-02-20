@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../convex/_generated/api';
 import type { Id } from '../convex/_generated/dataModel';
 import {
@@ -38,13 +39,18 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
       const lastCount = await getLastRoomCount();
 
       if (lastCount === 0) {
-        // First run – just record baseline, don't spam
+        // First ever run – record baseline
         await setLastRoomCount(rooms.length);
         roomsInitialised.current = true;
         return;
       }
 
-      if (roomsInitialised.current && rooms.length > lastCount) {
+      // Mark initialised on remount (baseline already exists)
+      if (!roomsInitialised.current) {
+        roomsInitialised.current = true;
+      }
+
+      if (rooms.length > lastCount) {
         const newCount = rooms.length - lastCount;
         // Find the newest rooms (Convex returns in insertion order)
         const newest = rooms.slice(-newCount);
@@ -90,59 +96,64 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
       const lastIds = await getLastBookingIds();
       const currentIds = bookings.map((b: any) => b._id);
 
-      if (lastIds.length === 0) {
-        // First run – record baseline
+      if (lastIds.length === 0 && !bookingsInitialised.current) {
+        // First ever run – record baseline
         await setLastBookingIds(currentIds);
+        const statusMap: Record<string, string> = {};
+        for (const b of bookings) statusMap[(b as any)._id] = (b as any).status;
+        await setLastBookingStatuses(statusMap);
         bookingsInitialised.current = true;
         return;
       }
 
-      if (bookingsInitialised.current) {
-        // Find newly appeared bookings
-        const newBookings = bookings.filter(
-          (b: any) => !lastIds.includes(b._id),
-        );
+      if (!bookingsInitialised.current) {
+        bookingsInitialised.current = true;
+      }
 
-        for (const booking of newBookings) {
-          const title = '🎟️ ' + t('notifications.bookingConfirmed');
-          const body = t('notifications.bookingConfirmedBody', { date: booking.date, time: booking.time });
+      // Find newly appeared bookings
+      const newBookings = bookings.filter(
+        (b: any) => !lastIds.includes(b._id),
+      );
+
+      for (const booking of newBookings) {
+        const title = '🎟️ ' + t('notifications.bookingConfirmed');
+        const body = t('notifications.bookingConfirmedBody', { date: booking.date, time: booking.time });
+        await sendLocalNotification(title, body,
+          { type: 'booking_confirmed', bookingId: booking._id },
+          'bookings',
+        );
+        if (userId) {
+          await createNotification({
+            userId: userId as Id<"users">,
+            type: 'booking',
+            title,
+            message: body,
+            data: { bookingId: booking._id },
+          });
+        }
+      }
+
+      // Detect cancellations by comparing statuses
+      const lastStatuses = await getLastBookingStatuses();
+      for (const booking of bookings) {
+        const id = (booking as any)._id;
+        const prevStatus = lastStatuses[id];
+        if (prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
+          const roomTitle = (booking as any).room?.title || 'escape room';
+          const title = '❌ ' + t('notifications.bookingCancelled');
+          const body = t('notifications.bookingCancelledBody', { room: roomTitle, date: booking.date, time: booking.time });
           await sendLocalNotification(title, body,
-            { type: 'booking_confirmed', bookingId: booking._id },
+            { type: 'booking_cancelled', bookingId: id },
             'bookings',
           );
           if (userId) {
             await createNotification({
               userId: userId as Id<"users">,
-              type: 'booking',
+              type: 'cancelled',
               title,
               message: body,
-              data: { bookingId: booking._id },
+              data: { bookingId: id },
             });
-          }
-        }
-
-        // Detect cancellations by comparing statuses
-        const lastStatuses = await getLastBookingStatuses();
-        for (const booking of bookings) {
-          const id = (booking as any)._id;
-          const prevStatus = lastStatuses[id];
-          if (prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
-            const roomTitle = (booking as any).room?.title || 'escape room';
-            const title = '❌ ' + t('notifications.bookingCancelled');
-            const body = t('notifications.bookingCancelledBody', { room: roomTitle, date: booking.date, time: booking.time });
-            await sendLocalNotification(title, body,
-              { type: 'booking_cancelled', bookingId: id },
-              'bookings',
-            );
-            if (userId) {
-              await createNotification({
-                userId: userId as Id<"users">,
-                type: 'cancelled',
-                title,
-                message: body,
-                data: { bookingId: id },
-              });
-            }
           }
         }
       }
@@ -172,42 +183,47 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
       const lastIds = await getLastCompanyBookingIds();
       const currentIds = companyBookings.map((b: any) => b._id);
 
-      if (lastIds.length === 0) {
-        // First run – record baseline
+      if (lastIds.length === 0 && !companyBookingsInitialised.current) {
+        // First ever run – record baseline
         await setLastCompanyBookingIds(currentIds);
+        const statusMap: Record<string, string> = {};
+        for (const b of companyBookings) statusMap[(b as any)._id] = (b as any).status;
+        await setLastCompanyBookingStatuses(statusMap);
         companyBookingsInitialised.current = true;
         return;
       }
 
-      if (companyBookingsInitialised.current) {
-        const newBookings = companyBookings.filter(
-          (b: any) => !lastIds.includes(b._id),
-        );
+      if (!companyBookingsInitialised.current) {
+        companyBookingsInitialised.current = true;
+      }
 
-        for (const booking of newBookings) {
+      const newBookings = companyBookings.filter(
+        (b: any) => !lastIds.includes(b._id),
+      );
+
+      for (const booking of newBookings) {
+        const roomTitle = (booking as any).roomTitle || 'room';
+        await sendLocalNotification(
+          '📋 ' + t('notifications.companyNewBooking'),
+          t('notifications.companyNewBookingBody', { room: roomTitle, date: booking.date, time: booking.time, players: booking.players }),
+          { type: 'company_booking', bookingId: booking._id },
+          'bookings',
+        );
+      }
+
+      // Detect cancellations
+      const lastStatuses = await getLastCompanyBookingStatuses();
+      for (const booking of companyBookings) {
+        const id = (booking as any)._id;
+        const prevStatus = lastStatuses[id];
+        if (prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
           const roomTitle = (booking as any).roomTitle || 'room';
           await sendLocalNotification(
-            '📋 ' + t('notifications.companyNewBooking'),
-            t('notifications.companyNewBookingBody', { room: roomTitle, date: booking.date, time: booking.time, players: booking.players }),
-            { type: 'company_booking', bookingId: booking._id },
+            '❌ ' + t('notifications.companyCancelled'),
+            t('notifications.companyCancelledBody', { room: roomTitle, date: booking.date, time: booking.time }),
+            { type: 'company_booking_cancelled', bookingId: id },
             'bookings',
           );
-        }
-
-        // Detect cancellations
-        const lastStatuses = await getLastCompanyBookingStatuses();
-        for (const booking of companyBookings) {
-          const id = (booking as any)._id;
-          const prevStatus = lastStatuses[id];
-          if (prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
-            const roomTitle = (booking as any).roomTitle || 'room';
-            await sendLocalNotification(
-              '❌ ' + t('notifications.companyCancelled'),
-              t('notifications.companyCancelledBody', { room: roomTitle, date: booking.date, time: booking.time }),
-              { type: 'company_booking_cancelled', bookingId: id },
-              'bookings',
-            );
-          }
         }
       }
 

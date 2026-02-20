@@ -815,7 +815,7 @@ export const translations: Record<Language, Record<string, string>> = {
     players: 'παίκτες',
     player: 'παίκτης',
     perPerson: '/άτομο',
-    min: 'λεπ',
+    min: 'λεπτά',
     booked: 'Κρατημένο',
 
     /* ── SplashScreen ── */

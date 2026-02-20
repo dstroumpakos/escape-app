@@ -271,4 +271,23 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"]),
+
+  // ─── Guest Slot Alerts (widget users without accounts) ───
+  guestSlotAlerts: defineTable({
+    roomId: v.id("rooms"),
+    date: v.string(),
+    time: v.string(),
+    contact: v.string(), // email or phone
+    createdAt: v.number(),
+    notified: v.boolean(),
+  })
+    .index("by_slot", ["roomId", "date", "time"])
+    .index("by_contact", ["contact"]),
+
+  // ─── Widget Bundle (serves JS from Convex site) ───
+  widgetBundle: defineTable({
+    content: v.string(),
+    version: v.string(),
+    updatedAt: v.number(),
+  }),
 });

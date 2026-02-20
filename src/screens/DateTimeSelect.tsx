@@ -208,7 +208,11 @@ export default function DateTimeSelect() {
 
           <View style={styles.calGrid}>
             {calendarDays.map((day, i) => {
-              const isPast = day !== null && day < 11;
+              const isPast = day !== null && (
+                currentYear < today.getFullYear() ||
+                (currentYear === today.getFullYear() && currentMonth < today.getMonth()) ||
+                (currentYear === today.getFullYear() && currentMonth === today.getMonth() && day < today.getDate())
+              );
               const isSelected = day === selectedDate;
               return (
                 <TouchableOpacity
@@ -339,7 +343,7 @@ export default function DateTimeSelect() {
       <View style={styles.footer}>
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t('dateTime.total')}</Text>
-          <Text style={styles.totalVal}>${total}</Text>
+          <Text style={styles.totalVal}>€{total}</Text>
         </View>
         <TouchableOpacity
           style={[styles.continueBtn, !selectedTime && styles.continueBtnDisabled]}

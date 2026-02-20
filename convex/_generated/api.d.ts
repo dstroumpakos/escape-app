@@ -10,6 +10,7 @@
 
 import type * as bookings from "../bookings.js";
 import type * as companies from "../companies.js";
+import type * as http from "../http.js";
 import type * as notifications from "../notifications.js";
 import type * as passwordUtils from "../passwordUtils.js";
 import type * as posts from "../posts.js";
@@ -19,6 +20,7 @@ import type * as slotAlerts from "../slotAlerts.js";
 import type * as timeSlots from "../timeSlots.js";
 import type * as users from "../users.js";
 import type * as validation from "../validation.js";
+import type * as widget from "../widget.js";
 
 import type {
   ApiFromModules,
@@ -29,6 +31,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   bookings: typeof bookings;
   companies: typeof companies;
+  http: typeof http;
   notifications: typeof notifications;
   passwordUtils: typeof passwordUtils;
   posts: typeof posts;
@@ -38,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   timeSlots: typeof timeSlots;
   users: typeof users;
   validation: typeof validation;
+  widget: typeof widget;
 }>;
 
 /**
