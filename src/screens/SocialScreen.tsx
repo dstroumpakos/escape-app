@@ -12,6 +12,8 @@ import {
   Dimensions,
   RefreshControl,
   ScrollView,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,9 +61,11 @@ interface PostCardProps {
   userId: string | null;
   onToggleLike: (postId: Id<'posts'>) => void;
   onComment: (postId: Id<'posts'>) => void;
+  onReport: (postId: Id<'posts'>) => void;
+  onBlockUser: (authorUserId: string | undefined) => void;
 }
 
-function PostCard({ post, isLiked, userId, onToggleLike, onComment }: PostCardProps) {
+function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, onBlockUser }: PostCardProps) {
   const { t } = useTranslation();
   const initials = post.authorName
     .split(' ')
@@ -97,6 +101,40 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment }: PostCardPr
             <Text style={styles.timeText}>{timeAgo(post.createdAt, t)}</Text>
           </View>
         </View>
+
+        {/* Report / Block menu (Apple Guideline 1.2) */}
+        {userId && post.authorUserId !== userId && (
+          <TouchableOpacity
+            style={styles.moreBtn}
+            onPress={() => {
+              if (Platform.OS === 'ios') {
+                ActionSheetIOS.showActionSheetWithOptions(
+                  {
+                    options: [t('cancel'), t('social.reportPost'), t('social.blockUser')],
+                    destructiveButtonIndex: 2,
+                    cancelButtonIndex: 0,
+                  },
+                  (buttonIndex) => {
+                    if (buttonIndex === 1) onReport(post._id);
+                    if (buttonIndex === 2) onBlockUser(post.authorUserId);
+                  }
+                );
+              } else {
+                Alert.alert(
+                  t('social.postOptions'),
+                  undefined,
+                  [
+                    { text: t('cancel'), style: 'cancel' },
+                    { text: t('social.reportPost'), onPress: () => onReport(post._id) },
+                    { text: t('social.blockUser'), style: 'destructive', onPress: () => onBlockUser(post.authorUserId) },
+                  ]
+                );
+              }
+            }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Room tag */}
@@ -285,7 +323,13 @@ export default function SocialScreen() {
     api.posts.getUserLikes,
     userId ? { userId: userId as Id<'users'> } : 'skip'
   );
+  const blockedUserIds = useQuery(
+    api.moderation.getBlockedUserIds,
+    userId ? { userId: userId as Id<'users'> } : 'skip'
+  );
   const toggleLike = useMutation(api.posts.toggleLike);
+  const reportPostMutation = useMutation(api.moderation.reportPost);
+  const blockUserMutation = useMutation(api.moderation.blockUser);
   const { t } = useTranslation();
 
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -293,6 +337,12 @@ export default function SocialScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const likedPostIds = new Set(userLikes || []);
+  const blockedSet = new Set(blockedUserIds || []);
+
+  // Filter out posts from blocked users
+  const filteredFeed = (feed || []).filter(
+    (post: any) => !post.authorUserId || !blockedSet.has(post.authorUserId)
+  );
 
   const handleToggleLike = async (postId: Id<'posts'>) => {
     if (!userId) return;
@@ -308,6 +358,90 @@ export default function SocialScreen() {
     // Convex queries auto-refresh; just show the spinner briefly
     setTimeout(() => setRefreshing(false), 800);
   }, []);
+
+  const handleReportPost = (postId: Id<'posts'>) => {
+    if (!userId) return;
+    const reasons: Array<{ label: string; value: 'spam' | 'harassment' | 'hate_speech' | 'inappropriate' | 'other' }> = [
+      { label: t('social.reportSpam'), value: 'spam' },
+      { label: t('social.reportHarassment'), value: 'harassment' },
+      { label: t('social.reportHateSpeech'), value: 'hate_speech' },
+      { label: t('social.reportInappropriate'), value: 'inappropriate' },
+      { label: t('social.reportOther'), value: 'other' },
+    ];
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: t('social.reportReasonTitle'),
+          options: [t('cancel'), ...reasons.map(r => r.label)],
+          cancelButtonIndex: 0,
+        },
+        async (buttonIndex) => {
+          if (buttonIndex > 0) {
+            try {
+              await reportPostMutation({
+                postId,
+                reporterId: userId as Id<'users'>,
+                reason: reasons[buttonIndex - 1].value,
+              });
+              Alert.alert(t('social.reportSubmitted'), t('social.reportSubmittedMessage'));
+            } catch (e: any) {
+              Alert.alert(t('error'), e.message);
+            }
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        t('social.reportReasonTitle'),
+        undefined,
+        [
+          { text: t('cancel'), style: 'cancel' },
+          ...reasons.map(r => ({
+            text: r.label,
+            onPress: async () => {
+              try {
+                await reportPostMutation({
+                  postId,
+                  reporterId: userId as Id<'users'>,
+                  reason: r.value,
+                });
+                Alert.alert(t('social.reportSubmitted'), t('social.reportSubmittedMessage'));
+              } catch (e: any) {
+                Alert.alert(t('error'), e.message);
+              }
+            },
+          })),
+        ]
+      );
+    }
+  };
+
+  const handleBlockUser = (authorUserId: string | undefined) => {
+    if (!userId || !authorUserId) return;
+    Alert.alert(
+      t('social.blockUserTitle'),
+      t('social.blockUserMessage'),
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: t('social.blockConfirm'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await blockUserMutation({
+                blockerId: userId as Id<'users'>,
+                blockedUserId: authorUserId as Id<'users'>,
+              });
+              Alert.alert(t('social.userBlocked'), t('social.userBlockedMessage'));
+            } catch (e: any) {
+              Alert.alert(t('error'), e.message);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (feed === undefined) {
     return (
@@ -332,7 +466,7 @@ export default function SocialScreen() {
 
       {/* Feed */}
       <FlatList
-        data={feed}
+        data={filteredFeed}
         keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 16 }}
@@ -350,6 +484,8 @@ export default function SocialScreen() {
             userId={userId}
             onToggleLike={handleToggleLike}
             onComment={(id) => setCommentPostId(id)}
+            onReport={handleReportPost}
+            onBlockUser={handleBlockUser}
           />
         )}
         ListEmptyComponent={
@@ -435,6 +571,11 @@ const styles = StyleSheet.create({
   },
   cardHeader: { padding: 14, paddingBottom: 8 },
   authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  moreBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center',
+    marginLeft: 'auto',
+  },
   authorAvatar: { width: 40, height: 40, borderRadius: 20 },
   authorAvatarFallback: {
     width: 40,

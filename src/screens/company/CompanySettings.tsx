@@ -9,6 +9,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
+import CompanyPlanModal from './CompanyPlanModal';
 
 interface Props {
   companyId: string;
@@ -28,6 +29,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
   const [vatNumber, setVatNumber] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  const [planModalVisible, setPlanModalVisible] = useState(false);
 
   useEffect(() => {
     if (company) {
@@ -165,6 +167,23 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
           <Text style={styles.saveBtnText}>{saving ? t('saving') : t('settings.saveChanges')}</Text>
         </TouchableOpacity>
 
+        {/* Subscription Plan */}
+        <Text style={styles.sectionTitle}>{t('settings.subscriptionPlan')}</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => setPlanModalVisible(true)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="diamond-outline" size={20} color={theme.colors.redPrimary} />
+              <Text style={styles.menuLabel}>{t('settings.managePlan')}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 14, textTransform: 'capitalize' }}>
+                {company?.platformPlan || 'Starter'}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Menu */}
         <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
         <View style={styles.card}>
@@ -208,6 +227,13 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer 
           <Text style={styles.logoutText}>{t('settings.signOut')}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <CompanyPlanModal
+        visible={planModalVisible}
+        onClose={() => setPlanModalVisible(false)}
+        companyId={companyId}
+        currentPlan={company?.platformPlan || 'starter'}
+      />
     </View>
   );
 }

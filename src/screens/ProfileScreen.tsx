@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
@@ -26,11 +26,17 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
   const { userId, onLogout } = useUser();
   const { t, language, setLanguage } = useTranslation();
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const user = useQuery(
     api.users.getById,
     userId ? { userId: userId as Id<"users"> } : "skip"
   );
+  const premiumStatus = useQuery(
+    api.premium.getStatus,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  );
   const convexRooms = useQuery(api.rooms.list);
+  const deleteAccountMutation = useMutation(api.users.deleteAccount);
   const rooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const wishlist = rooms.filter((r: any) => r.tags?.includes('Featured') || r.tags?.includes('New'));
 
@@ -94,7 +100,15 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
                 <Ionicons name="pencil" size={12} color="#fff" />
               </View>
             </TouchableOpacity>
-            <Text style={styles.userName}>{user.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={styles.userName}>{user.name}</Text>
+              {premiumStatus?.isPremium && (
+                <View style={styles.premiumBadge}>
+                  <Ionicons name="diamond" size={12} color="#FFD700" />
+                  <Text style={styles.premiumBadgeText}>PRO</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.userEmail}>{user.email}</Text>
             <View style={styles.titleBadge}>
               <Ionicons name="trophy" size={12} color={theme.colors.redPrimary} />
@@ -167,25 +181,78 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
         {/* Menu */}
         <View style={styles.section}>
           {[
+            { icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true },
             { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
-            { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => Alert.alert(t('profile.notifications'), t('profile.notifMessage')) },
+            { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => navigation.navigate('NotificationPrefs' as any) },
             { icon: 'card-outline' as const, label: t('profile.paymentMethods'), action: () => Alert.alert(t('profile.paymentMethods'), t('profile.paymentMessage')) },
-            { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Alert.alert(t('profile.helpSupport'), t('profile.helpMessage')) },
+            { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Linking.openURL('mailto:support@unlocked.app?subject=Support%20Request') },
+            { icon: 'shield-checkmark-outline' as const, label: t('profile.privacyPolicy'), action: () => navigation.navigate('PrivacyPolicy' as any) },
+            { icon: 'document-text-outline' as const, label: t('profile.termsOfService'), action: () => navigation.navigate('TermsOfService' as any) },
             { icon: 'language-outline' as const, label: language === 'en' ? t('profile.switchToGreek') : t('profile.switchToEnglish'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
             { icon: 'log-out-outline' as const, label: t('profile.signOut'), action: () => Alert.alert(t('profile.signOutConfirmTitle'), t('profile.signOutConfirmMessage'), [
               { text: t('cancel'), style: 'cancel' },
               { text: t('profile.signOut'), style: 'destructive', onPress: () => onLogout() },
             ]) },
-          ].map((item, i) => (
+            { icon: 'trash-outline' as const, label: t('profile.deleteAccount'), action: () => Alert.alert(
+              t('profile.deleteAccountTitle'),
+              t('profile.deleteAccountMessage'),
+              [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                  text: t('profile.deleteAccountConfirm'),
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      setDeletingAccount(true);
+                      await deleteAccountMutation({ userId: userId as Id<"users"> });
+                      await AsyncStorage.clear();
+                      onLogout();
+                    } catch (e: any) {
+                      Alert.alert(t('error'), e.message || 'Failed to delete account');
+                    } finally {
+                      setDeletingAccount(false);
+                    }
+                  },
+                },
+              ]
+            ), danger: true },
+          ].map((item: any, i: number) => (
             <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
               <View style={styles.menuLeft}>
-                <Ionicons name={item.icon} size={20} color={item.label === t('profile.editProfile') ? theme.colors.redPrimary : theme.colors.textSecondary} />
-                <Text style={[styles.menuLabel, item.label === t('profile.editProfile') && { color: theme.colors.redPrimary }]}>{item.label}</Text>
+                <Ionicons name={item.icon} size={20} color={item.highlight ? '#FFD700' : item.danger ? '#FF4444' : item.label === t('profile.editProfile') ? theme.colors.redPrimary : theme.colors.textSecondary} />
+                <Text style={[styles.menuLabel, item.highlight && { color: '#FFD700' }, item.danger && { color: '#FF4444' }, item.label === t('profile.editProfile') && { color: theme.colors.redPrimary }]}>{item.label}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+              <Ionicons name="chevron-forward" size={18} color={item.highlight ? '#FFD700' : theme.colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
+
+        {/* Premium Upsell Banner */}
+        {premiumStatus && !premiumStatus.isPremium && (
+          <TouchableOpacity
+            style={styles.premiumBanner}
+            onPress={() => navigation.navigate('Premium')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#2D1B4E', '#1A0D2E']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.premiumBannerGradient}
+            >
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <Ionicons name="diamond" size={16} color="#FFD700" />
+                  <Text style={{ color: '#FFD700', fontSize: 14, fontWeight: '800' }}>UNLOCKED Premium</Text>
+                </View>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12 }}>Get early access to new rooms</Text>
+              </View>
+              <View style={styles.premiumBannerBtn}>
+                <Text style={{ color: '#1A0D2E', fontSize: 12, fontWeight: '800' }}>Try Now</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Switch to Business */}
         <TouchableOpacity
@@ -332,6 +399,25 @@ const styles = StyleSheet.create({
   },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   menuLabel: { fontSize: 15, fontWeight: '500', color: '#fff' },
+
+  // Premium
+  premiumBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 3, paddingHorizontal: 8,
+    borderRadius: 10, backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    borderWidth: 1, borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  premiumBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFD700' },
+  premiumBanner: { marginHorizontal: 20, marginBottom: 16, borderRadius: theme.radius.lg, overflow: 'hidden' },
+  premiumBannerGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: 16, borderRadius: theme.radius.lg,
+    borderWidth: 1, borderColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  premiumBannerBtn: {
+    paddingVertical: 8, paddingHorizontal: 16,
+    borderRadius: 20, backgroundColor: '#FFD700',
+  },
 
   switchBusinessBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,

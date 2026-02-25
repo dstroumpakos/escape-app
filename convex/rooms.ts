@@ -1,10 +1,16 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
+const EARLY_ACCESS_DAYS = 3;
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("rooms").collect();
+    const allRooms = await ctx.db.query("rooms").collect();
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    // Default list: only show publicly released rooms (no releaseDate or already released)
+    return allRooms.filter((r) => !r.releaseDate || r.releaseDate <= todayStr);
   },
 });
 

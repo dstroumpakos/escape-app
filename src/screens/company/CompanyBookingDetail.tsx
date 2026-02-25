@@ -33,6 +33,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   });
 
   const cancelBooking = useMutation(api.companies.adminCancelBooking);
+  const completeBooking = useMutation(api.companies.adminCompleteBooking);
   const rescheduleBooking = useMutation(api.companies.adminRescheduleBooking);
   const updateNotes = useMutation(api.companies.updateBookingNotes);
 
@@ -85,6 +86,30 @@ export default function CompanyBookingDetail({ companyId }: Props) {
               Alert.alert(t('done'), t('bookingDetail.bookingCancelled'));
             } catch (e: any) {
               Alert.alert(t('error'), e.message || t('bookingDetail.cancelFailed'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleComplete = () => {
+    Alert.alert(
+      'Mark as Completed',
+      'This booking will be marked as completed.',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+              await completeBooking({
+                companyId: companyId as Id<"companies">,
+                bookingId: bookingId as Id<"bookings">,
+              });
+              Alert.alert(t('done'), 'Booking marked as completed.');
+            } catch (e: any) {
+              Alert.alert(t('error'), e.message || 'Failed to complete booking.');
             }
           },
         },
@@ -191,6 +216,12 @@ export default function CompanyBookingDetail({ companyId }: Props) {
             <View style={styles.infoRow}>
               <Ionicons name="mail-outline" size={16} color={theme.colors.textSecondary} />
               <Text style={styles.infoText}>{booking.playerContact}</Text>
+            </View>
+          ) : null}
+          {booking.playerPhone ? (
+            <View style={styles.infoRow}>
+              <Ionicons name="call-outline" size={16} color={theme.colors.textSecondary} />
+              <Text style={styles.infoText}>{booking.playerPhone}</Text>
             </View>
           ) : null}
           <View style={styles.infoRow}>
@@ -306,8 +337,22 @@ export default function CompanyBookingDetail({ companyId }: Props) {
         )}
       </ScrollView>
 
-      {/* Cancel button */}
-      {!isCancelled && (
+      {/* Footer action buttons */}
+      {!isCancelled && booking.status !== 'completed' && (
+        <View style={styles.footer}>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={styles.completeBtn} onPress={handleComplete}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
+              <Text style={styles.completeText}>Complete</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+              <Ionicons name="close-circle-outline" size={18} color="#F44336" />
+              <Text style={styles.cancelText}>{t('bookingDetail.cancelBookingBtn')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      {!isCancelled && booking.status === 'completed' && (
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
             <Ionicons name="close-circle-outline" size={18} color="#F44336" />
@@ -414,9 +459,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: theme.colors.border,
   },
   cancelBtn: {
+    flex: 1,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 16, borderRadius: theme.radius.full,
     borderWidth: 1, borderColor: '#F44336',
   },
   cancelText: { fontSize: 16, fontWeight: '700', color: '#F44336' },
+  completeBtn: {
+    flex: 1,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, borderRadius: theme.radius.full,
+    borderWidth: 1, borderColor: '#4CAF50',
+  },
+  completeText: { fontSize: 16, fontWeight: '700', color: '#4CAF50' },
 });

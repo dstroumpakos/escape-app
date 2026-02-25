@@ -38,6 +38,12 @@ import MapViewScreen from './src/screens/MapView';
 import ScanScreen from './src/screens/ScanScreen';
 import SocialScreen from './src/screens/SocialScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import PremiumScreen from './src/screens/PremiumScreen';
+
+// Legal & Settings Screens (Apple Guidelines compliance)
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
+import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen';
 
 // Company Screens
 import CompanyAuth from './src/screens/company/CompanyAuth';
@@ -447,6 +453,10 @@ export default function App() {
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />
                   <Stack.Screen name="MapView" component={MapViewScreen} />
+                  <Stack.Screen name="Premium" component={PremiumScreen} />
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                  <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+                  <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth

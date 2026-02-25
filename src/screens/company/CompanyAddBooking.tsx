@@ -42,7 +42,8 @@ export default function CompanyAddBooking() {
   const [date, setDate] = useState(preselectedDate || new Date().toISOString().split('T')[0]);
   const [time, setTime] = useState(preselectedTime || '');
   const [playerName, setPlayerName] = useState('');
-  const [playerContact, setPlayerContact] = useState('');
+  const [playerEmail, setPlayerEmail] = useState('');
+  const [playerPhone, setPlayerPhone] = useState('');
   const [players, setPlayers] = useState('2');
   const [total, setTotal] = useState('');
   const [notes, setNotes] = useState('');
@@ -71,7 +72,7 @@ export default function CompanyAddBooking() {
   const createAdminBooking = useMutation(api.companies.createAdminBooking);
   const createExternalBlock = useMutation(api.companies.createExternalBlock);
 
-  // Filter to available slots (not already booked)
+  // Filter to available slots (not already booked), sort midnight to end
   const availableSlots = useMemo(() => {
     if (!slots) return [];
     const bookedTimes = new Set(
@@ -79,12 +80,20 @@ export default function CompanyAddBooking() {
         .filter((b: any) => String(b.roomId) === selectedRoom && b.status !== 'cancelled')
         .map((b: any) => b.time)
     );
+    const isMidnight = (t: string) => t.startsWith('00:') || t.startsWith('00.');
     return slots
       .filter((s: any) => s.available)
       .map((s: any) => ({
         ...s,
         isBooked: bookedTimes.has(s.time),
-      }));
+      }))
+      .sort((a: any, b: any) => {
+        const aMid = isMidnight(a.time);
+        const bMid = isMidnight(b.time);
+        if (aMid && !bMid) return 1;
+        if (!aMid && bMid) return -1;
+        return 0;
+      });
   }, [slots, existingBookings, selectedRoom]);
 
   const activeRooms = useMemo(
@@ -99,6 +108,12 @@ export default function CompanyAddBooking() {
     if (bookingType === 'unlocked' && !playerName.trim()) {
       Alert.alert(t('error'), t('addBooking.enterName')); return;
     }
+    if (bookingType === 'unlocked' && !playerEmail.trim()) {
+      Alert.alert(t('error'), t('addBooking.enterEmail')); return;
+    }
+    if (bookingType === 'unlocked' && !playerPhone.trim()) {
+      Alert.alert(t('error'), t('addBooking.enterPhone')); return;
+    }
 
     setSaving(true);
     try {
@@ -110,7 +125,8 @@ export default function CompanyAddBooking() {
           time: time.trim(),
           players: parseInt(players) || 2,
           playerName: playerName.trim(),
-          playerContact: playerContact.trim() || undefined,
+          playerContact: playerEmail.trim() || undefined,
+          playerPhone: playerPhone.trim() || undefined,
           notes: notes.trim() || undefined,
           total: parseFloat(total) || 0,
         });
@@ -285,14 +301,24 @@ export default function CompanyAddBooking() {
 
         {bookingType === 'unlocked' && (
           <>
-            <Text style={styles.label}>{t('addBooking.contact')}</Text>
+            <Text style={styles.label}>{t('addBooking.email')}</Text>
             <TextInput
               style={styles.input}
-              value={playerContact}
-              onChangeText={setPlayerContact}
-              placeholder={t('addBooking.contactPlaceholder')}
+              value={playerEmail}
+              onChangeText={setPlayerEmail}
+              placeholder={t('addBooking.emailPlaceholder')}
               placeholderTextColor={theme.colors.textMuted}
               autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <Text style={styles.label}>{t('addBooking.phone')}</Text>
+            <TextInput
+              style={styles.input}
+              value={playerPhone}
+              onChangeText={setPlayerPhone}
+              placeholder={t('addBooking.phonePlaceholder')}
+              placeholderTextColor={theme.colors.textMuted}
+              keyboardType="phone-pad"
             />
           </>
         )}

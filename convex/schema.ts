@@ -15,8 +15,8 @@ export default defineSchema({
     password: v.string(), // hashed in production
     verified: v.boolean(),
     createdAt: v.number(),
-    // Subscription offering (to players)
-    subscriptionEnabled: v.boolean(),
+    // Legacy subscription fields (kept for schema validation of existing docs)
+    subscriptionEnabled: v.optional(v.boolean()),
     subscriptionMonthlyPrice: v.optional(v.number()),
     subscriptionYearlyPrice: v.optional(v.number()),
     subscriptionPerks: v.optional(v.array(v.string())),
@@ -98,6 +98,8 @@ export default defineSchema({
       pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))),
       days: v.array(v.number()), // 0=Sun,1=Mon,...6=Sat — which days overflow is active
     })),
+    // Early Access: date the room goes public (YYYY-MM-DD). Premium players see it 3 days before.
+    releaseDate: v.optional(v.string()),
   })
     .index("by_theme", ["theme"])
     .index("by_featured", ["isFeatured"])
@@ -131,6 +133,10 @@ export default defineSchema({
     longitude: v.optional(v.number()),
     city: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
+    // UNLOCKED Premium
+    isPremium: v.optional(v.boolean()),
+    premiumSince: v.optional(v.number()),
+    premiumExpiresAt: v.optional(v.number()),
   }).index("by_email", ["email"])
     .index("by_apple_id", ["appleId"]),
 
@@ -170,6 +176,7 @@ export default defineSchema({
     externalSource: v.optional(v.string()), // "EscapeAll", "Phone", "Walk-in", "Private Event"
     playerName: v.optional(v.string()),
     playerContact: v.optional(v.string()),
+    playerPhone: v.optional(v.string()),
     notes: v.optional(v.string()),
     paymentStatus: v.optional(v.union(
       v.literal("paid"),
@@ -184,18 +191,17 @@ export default defineSchema({
     .index("by_company", ["companyId"])
     .index("by_room_date", ["roomId", "date"]),
 
-  // ─── Player Subscriptions ───
-  playerSubscriptions: defineTable({
+  // ─── UNLOCKED Premium Subscriptions (platform-wide) ───
+  premiumSubscriptions: defineTable({
     userId: v.id("users"),
-    companyId: v.id("companies"),
     plan: v.union(v.literal("monthly"), v.literal("yearly")),
     price: v.number(),
-    startDate: v.string(),
-    endDate: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
     isActive: v.boolean(),
+    cancelledAt: v.optional(v.number()),
   })
-    .index("by_user", ["userId"])
-    .index("by_company", ["companyId"]),
+    .index("by_user", ["userId"]),
 
   // ─── Social Posts ───
   posts: defineTable({
@@ -283,6 +289,40 @@ export default defineSchema({
   })
     .index("by_slot", ["roomId", "date", "time"])
     .index("by_contact", ["contact"]),
+
+  // ─── Content Reports (Guideline 1.2 — UGC moderation) ───
+  reports: defineTable({
+    postId: v.optional(v.id("posts")),
+    commentId: v.optional(v.id("postComments")),
+    reporterId: v.id("users"),
+    reason: v.union(
+      v.literal("spam"),
+      v.literal("harassment"),
+      v.literal("hate_speech"),
+      v.literal("inappropriate"),
+      v.literal("other")
+    ),
+    details: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("dismissed"),
+      v.literal("removed")
+    ),
+    createdAt: v.number(),
+  })
+    .index("by_post", ["postId"])
+    .index("by_reporter_post", ["reporterId", "postId"])
+    .index("by_reporter_comment", ["reporterId", "commentId"])
+    .index("by_status", ["status"]),
+
+  // ─── Blocked Users (Guideline 1.2 — ability to block abusive users) ───
+  blockedUsers: defineTable({
+    blockerId: v.id("users"),
+    blockedUserId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_blocker", ["blockerId"])
+    .index("by_blocker_blocked", ["blockerId", "blockedUserId"]),
 
   // ─── Widget Bundle (serves JS from Convex site) ───
   widgetBundle: defineTable({

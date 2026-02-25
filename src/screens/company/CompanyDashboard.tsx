@@ -3,7 +3,7 @@
 // Shows quick stats and a timeline of today's bookings across all rooms.
 
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from 'convex/react';
 import { useNavigation } from '@react-navigation/native';
@@ -13,11 +13,19 @@ import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
+import Svg, { Circle } from 'react-native-svg';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const PLAN_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
+  starter: { bg: 'rgba(76,175,80,0.15)', text: '#4CAF50', icon: 'rocket' },
+  pro: { bg: 'rgba(244,67,54,0.15)', text: '#F44336', icon: 'diamond' },
+  enterprise: { bg: 'rgba(156,39,176,0.2)', text: '#CE93D8', icon: 'trophy' },
+};
+const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
 
 interface Props {
   companyId: string;
@@ -55,11 +63,31 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
     return { bg: 'rgba(76,175,80,0.15)', text: '#4CAF50', icon: 'lock-closed' as const };
   };
 
+  // Plan info
+  const plan = overallStats?.plan ?? 'starter';
+  const planStyle = PLAN_COLORS[plan] || PLAN_COLORS.starter;
+  const roomCount = overallStats?.totalRooms ?? 0;
+  const roomLimit = overallStats?.roomLimit ?? 1;
+  const advanced = overallStats?.advanced;
+  const fullAnalytics = overallStats?.fullAnalytics;
+
+  // Time-aware greeting
+  const hour = today.getHours();
+  const greetingText = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
+  // SVG donut for room capacity
+  const DONUT_SIZE = 90;
+  const STROKE = 8;
+  const RADIUS = (DONUT_SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const roomPct = roomLimit === Infinity ? 0 : Math.min(roomCount / roomLimit, 1);
+  const dashOffset = CIRCUMFERENCE * (1 - roomPct);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>{t('dashboard.welcome')}</Text>
+          <Text style={styles.greeting}>{greetingText}</Text>
           <Text style={styles.companyName}>{company?.name ?? t('loading')}</Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -87,30 +115,52 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Date Banner */}
+        {/* Date Banner with Plan Badge */}
         <View style={styles.dateBanner}>
-          <Ionicons name="calendar" size={18} color={theme.colors.redPrimary} />
-          <Text style={styles.dateText}>
-            {DAYS[today.getDay()]}, {MONTHS[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+            <Ionicons name="calendar" size={18} color={theme.colors.redPrimary} />
+            <Text style={styles.dateText}>
+              {DAYS[today.getDay()]}, {MONTHS[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
+            </Text>
+          </View>
+          <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
+            <Ionicons name={planStyle.icon as any} size={10} color={planStyle.text} />
+            <Text style={[styles.planBadgeText, { color: planStyle.text }]}>{PLAN_LABELS[plan] || 'Starter'}</Text>
+          </View>
         </View>
 
-        {/* Overall Stats */}
+        {/* Overview + Room Capacity Row */}
         <Text style={styles.sectionTitle}>{t('dashboard.overview')}</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statVal}>{overallStats?.totalBookings ?? 0}</Text>
-            <Text style={styles.statLabel}>{t('dashboard.totalBookings')}</Text>
+        <View style={styles.overviewRow}>
+          {/* Overview Card */}
+          <View style={[styles.overviewCard, { flex: 1 }]}>
+            <OverviewLine label={t('dashboard.totalBookings')} value={overallStats?.totalBookings ?? 0} max={Math.max(overallStats?.totalBookings ?? 1, 1)} color="#42A5F5" />
+            <OverviewLine label={t('dashboard.upcoming')} value={overallStats?.upcomingBookings ?? 0} max={Math.max(overallStats?.totalBookings ?? 1, 1)} color={theme.colors.success} />
+            <OverviewLine label={t('dashboard.totalRevenue')} value={`€${overallStats?.totalRevenue ?? 0}`} max={1} color="#FFA726" noBar />
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statVal}>{overallStats?.upcomingBookings ?? 0}</Text>
-            <Text style={styles.statLabel}>{t('dashboard.upcoming')}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: theme.colors.success }]}>
-              €{overallStats?.totalRevenue ?? 0}
-            </Text>
-            <Text style={styles.statLabel}>{t('dashboard.totalRevenue')}</Text>
+          {/* Room Capacity Donut */}
+          <View style={styles.donutCard}>
+            <Svg width={DONUT_SIZE} height={DONUT_SIZE}>
+              <Circle
+                cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={RADIUS}
+                stroke="rgba(255,255,255,0.06)" strokeWidth={STROKE} fill="none"
+              />
+              <Circle
+                cx={DONUT_SIZE / 2} cy={DONUT_SIZE / 2} r={RADIUS}
+                stroke={roomPct >= 1 ? '#F44336' : roomPct >= 0.75 ? '#FFA726' : theme.colors.success}
+                strokeWidth={STROKE} fill="none"
+                strokeDasharray={`${CIRCUMFERENCE}`}
+                strokeDashoffset={dashOffset}
+                strokeLinecap="round"
+                rotation="-90"
+                origin={`${DONUT_SIZE / 2}, ${DONUT_SIZE / 2}`}
+              />
+            </Svg>
+            <View style={styles.donutCenter}>
+              <Text style={styles.donutVal}>{roomCount}</Text>
+              <Text style={styles.donutMax}>/ {roomLimit === Infinity ? '∞' : roomLimit}</Text>
+            </View>
+            <Text style={styles.donutLabel}>Rooms</Text>
           </View>
         </View>
 
@@ -148,6 +198,34 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             <Text style={styles.sourceLabel}>{t('dashboard.activeRooms', { n: stats?.activeRooms ?? 0 })}</Text>
           </View>
         </View>
+
+        {/* Advanced Analytics — Pro & Enterprise */}
+        {advanced && (
+          <>
+            <Text style={styles.sectionTitle}>Analytics</Text>
+            <View style={styles.analyticsGrid}>
+              <MiniStat icon="checkmark-circle" color="#4CAF50" label="Completed" value={advanced.completedBookings} />
+              <MiniStat icon="close-circle" color="#F44336" label="Cancelled" value={advanced.cancelledBookings} />
+              <MiniStat icon="star" color="#FFD700" label="Avg Rating" value={advanced.avgRating} />
+              <MiniStat icon="trending-up" color="#42A5F5" label="Conversion" value={`${advanced.conversionRate}%`} />
+              <MiniStat icon="cash" color="#4CAF50" label="Avg €/Booking" value={`€${advanced.avgRevenuePerBooking}`} />
+            </View>
+          </>
+        )}
+
+        {/* Starter Upsell */}
+        {plan === 'starter' && (
+          <TouchableOpacity 
+            style={styles.upsellBanner}
+            onPress={() => navigation.navigate('Settings' as any)}
+          >
+            <Ionicons name="rocket-outline" size={20} color="#FFA726" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.upsellTitle}>Upgrade to Pro</Text>
+              <Text style={styles.upsellText}>Unlock advanced analytics, up to 2 rooms, and featured listings.</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Today's Timeline */}
         <Text style={styles.sectionTitle}>{t('dashboard.todaySchedule')}</Text>
@@ -219,6 +297,38 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
   );
 }
 
+// ─── Helper Components ───
+function OverviewLine({ label, value, max, color, noBar }: { label: string; value: any; max: number; color: string; noBar?: boolean }) {
+  const pct = noBar ? 0 : (typeof value === 'number' ? Math.min(value / max, 1) * 100 : 0);
+  return (
+    <View style={{ marginBottom: 10 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
+        <Text style={{ fontSize: 11, color: theme.colors.textMuted }}>{label}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{value}</Text>
+      </View>
+      {!noBar && (
+        <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.06)' }}>
+          <View style={{ height: '100%', borderRadius: 2, backgroundColor: color, width: `${pct}%` } as any} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function MiniStat({ icon, color, label, value }: { icon: string; color: string; label: string; value: any }) {
+  return (
+    <View style={{
+      flex: 1, minWidth: '30%' as any, alignItems: 'center', paddingVertical: 14,
+      borderRadius: theme.radius.lg, backgroundColor: theme.colors.bgCardSolid,
+      borderWidth: 1, borderColor: theme.colors.glassBorder,
+    }}>
+      <Ionicons name={icon as any} size={18} color={color} />
+      <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 4 }}>{value}</Text>
+      <Text style={{ fontSize: 9, color: theme.colors.textMuted, marginTop: 2 }}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
   header: {
@@ -241,7 +351,62 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  dateText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  dateText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  planBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10,
+  },
+  planBadgeText: { fontSize: 10, fontWeight: '700' },
+
+  overviewRow: {
+    flexDirection: 'row', gap: 10,
+    paddingHorizontal: 20, marginBottom: 16,
+  },
+  overviewCard: {
+    padding: 14, borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  donutCard: {
+    width: 120, alignItems: 'center', justifyContent: 'center',
+    padding: 14, borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  donutCenter: {
+    position: 'absolute', top: 14, left: 0, right: 0,
+    height: 90, alignItems: 'center', justifyContent: 'center',
+  },
+  donutVal: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  donutMax: { fontSize: 10, color: theme.colors.textMuted },
+  donutLabel: { fontSize: 10, color: theme.colors.textMuted, marginTop: 6 },
+
+  analyticsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10,
+    paddingHorizontal: 20, marginBottom: 16,
+  },
+  insightCard: {
+    marginHorizontal: 20, marginBottom: 16, padding: 14,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  insightRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.glassBorder,
+  },
+  insightLabel: { fontSize: 13, color: theme.colors.textMuted },
+  insightVal: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  upsellBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginBottom: 20, padding: 16,
+    borderRadius: theme.radius.lg,
+    backgroundColor: 'rgba(255,167,38,0.08)',
+    borderWidth: 1, borderColor: 'rgba(255,167,38,0.2)',
+  },
+  upsellTitle: { fontSize: 14, fontWeight: '700', color: '#FFA726' },
+  upsellText: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },
 
   statsRow: {
     flexDirection: 'row', gap: 10,

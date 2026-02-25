@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform,
+  TextInput, Alert, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useMutation, useQuery } from 'convex/react';
 import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 import * as ExpoLocation from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -74,7 +75,15 @@ export default function CompanyRoomEditor({ companyId }: Props) {
 
   const createRoom = useMutation(api.companies.createRoom);
   const updateRoom = useMutation(api.companies.updateRoom);
+  const generateUploadUrl = useMutation(api.companies.generateUploadUrl);
+  const getUrl = useMutation(api.companies.getUrlMutation);
+  const dashStats = useQuery(api.companies.getDashboardStats, {
+    companyId: companyId as Id<"companies">,
+  });
   const { t } = useTranslation();
+
+  const plan = dashStats?.plan ?? 'starter';
+  const canFeature = plan === 'pro' || plan === 'enterprise';
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -92,6 +101,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [paymentTerms, setPaymentTerms] = useState<Array<'full' | 'deposit_20' | 'pay_on_arrival'>>(['full']);
   const [termsOfUse, setTermsOfUse] = useState('');
   const [isSubOnly, setIsSubOnly] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [releaseDate, setReleaseDate] = useState('');
   const [bookingMode, setBookingMode] = useState<'unlocked_primary' | 'external_primary'>('unlocked_primary');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -177,6 +188,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       );
       setTermsOfUse(existingRoom.termsOfUse || '');
       setIsSubOnly(existingRoom.isSubscriptionOnly || false);
+      setIsFeatured((existingRoom as any).isFeatured || false);
+      setReleaseDate((existingRoom as any).releaseDate || '');
       setBookingMode((existingRoom as any).bookingMode || 'unlocked_primary');
       if ((existingRoom as any).latitude) setLatitude((existingRoom as any).latitude);
       if ((existingRoom as any).longitude) setLongitude((existingRoom as any).longitude);
@@ -264,7 +277,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           paymentTerms,
           termsOfUse: termsOfUse.trim(),
           isSubscriptionOnly: isSubOnly,
+          isFeatured: canFeature ? isFeatured : undefined,
           bookingMode,
+          releaseDate: releaseDate.trim() || undefined,
           ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
           ...(groupPricing.length > 0 ? { pricePerGroup: groupPricing } : {}),
           operatingDays,
@@ -295,6 +310,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           termsOfUse: termsOfUse.trim(),
           isSubscriptionOnly: isSubOnly,
           bookingMode,
+          releaseDate: releaseDate.trim() || undefined,
           ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
           ...(groupPricing.length > 0 ? { pricePerGroup: groupPricing } : {}),
           operatingDays,
@@ -399,14 +415,64 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           )}
 
           <Text style={styles.label}>{t('roomEditor.coverImage')}</Text>
-          <TextInput
-            style={styles.input}
-            value={image}
-            onChangeText={setImage}
-            placeholder={t('roomEditor.coverPlaceholder')}
-            placeholderTextColor={theme.colors.textMuted}
-            autoCapitalize="none"
-          />
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              value={image}
+              onChangeText={setImage}
+              placeholder={t('roomEditor.coverPlaceholder')}
+              placeholderTextColor={theme.colors.textMuted}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={{
+                backgroundColor: theme.colors.glass,
+                padding: 12,
+                borderRadius: theme.radius.md,
+                borderWidth: 1,
+                borderColor: theme.colors.glassBorder,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={async () => {
+                try {
+                  const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    allowsEditing: true,
+                    aspect: [16, 9],
+                    quality: 0.8,
+                  });
+
+                  if (!result.canceled && result.assets[0]) {
+                    setLoading(true);
+                    const uploadUrl = await generateUploadUrl();
+                    const response = await fetch(result.assets[0].uri);
+                    const blob = await response.blob();
+
+                    const uploadResult = await fetch(uploadUrl, {
+                      method: 'POST',
+                      headers: { 'Content-Type': result.assets[0].mimeType || 'image/jpeg' },
+                      body: blob,
+                    });
+
+                    const { storageId } = await uploadResult.json();
+                    const url = await getUrl({ storageId });
+                    if (url) setImage(url);
+                  }
+                } catch (error) {
+                  Alert.alert(t('error'), 'Failed to upload image');
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              <Ionicons name="cloud-upload-outline" size={24} color={theme.colors.redPrimary} />
+            </TouchableOpacity>
+          </View>
+          {image ? (
+            <Image source={{ uri: image }} style={{ width: '100%', height: 150, borderRadius: theme.radius.md, marginTop: 12, backgroundColor: theme.colors.glass }} />
+          ) : null}
+          <View style={{ marginBottom: 16 }} />
 
           <Text style={styles.label}>{t('roomEditor.description')}</Text>
           <TextInput
@@ -923,6 +989,76 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             <View style={[styles.switch, isSubOnly && styles.switchOn]}>
               <View style={[styles.switchThumb, isSubOnly && styles.switchThumbOn]} />
             </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Release Date */}
+        <Text style={styles.sectionTitle}>Release Date</Text>
+        <View style={styles.card}>
+          <View style={{ backgroundColor: 'rgba(139,92,246,0.08)', borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
+            <Ionicons name="diamond-outline" size={16} color="#a78bfa" style={{ marginTop: 2 }} />
+            <Text style={{ fontSize: 12, color: '#c4b5fd', flex: 1, lineHeight: 18 }}>
+              Set a future release date to create buzz. UNLOCKED Premium subscribers get early access 3 days before the public launch.
+            </Text>
+          </View>
+          <Text style={styles.fieldLabel}>Release Date (YYYY-MM-DD)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. 2025-02-14"
+            placeholderTextColor={theme.colors.textMuted}
+            value={releaseDate}
+            onChangeText={setReleaseDate}
+            keyboardType="numbers-and-punctuation"
+          />
+          {releaseDate.trim() !== '' && (() => {
+            const d = new Date(releaseDate + 'T00:00:00');
+            if (!isNaN(d.getTime())) {
+              const early = new Date(d);
+              early.setDate(early.getDate() - 3);
+              return (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                  <Text style={{ fontSize: 12, color: theme.colors.textMuted }}>
+                    Early access starts:{' '}
+                    <Text style={{ color: '#a78bfa', fontWeight: '600' }}>
+                      {early.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                  </Text>
+                  <TouchableOpacity onPress={() => setReleaseDate('')}>
+                    <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: '600' }}>Clear</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+            return null;
+          })()}
+        </View>
+
+        {/* Featured Listing (Pro+ only) */}
+        <Text style={styles.sectionTitle}>Visibility</Text>
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.toggleRow}
+            onPress={() => { if (canFeature) setIsFeatured(!isFeatured); }}
+            disabled={!canFeature}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.payTitle}>Featured Listing</Text>
+              <Text style={styles.payDesc}>
+                {canFeature
+                  ? 'Highlight this room in search results and the homepage.'
+                  : 'Upgrade to Pro to feature your rooms.'}
+              </Text>
+            </View>
+            {canFeature ? (
+              <View style={[styles.switch, isFeatured && styles.switchOn]}>
+                <View style={[styles.switchThumb, isFeatured && styles.switchThumbOn]} />
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10 }}>
+                <Ionicons name="lock-closed" size={12} color={theme.colors.textMuted} />
+                <Text style={{ fontSize: 10, fontWeight: '600', color: theme.colors.textMuted }}>Pro</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>

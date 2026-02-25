@@ -23,16 +23,16 @@ const PLANS = [
     color: '#4CAF50',
     priceMonth: '€29',
     priceYear: '€290',
-    features: ['onboarding.plan1f1', 'onboarding.plan1f2', 'onboarding.plan1f3', 'onboarding.plan1f4'],
+    features: ['onboarding.plan1f1', 'onboarding.plan1f2', 'onboarding.plan1f3'],
   },
   {
     id: 'pro' as const,
     icon: 'diamond-outline' as const,
     color: theme.colors.redPrimary,
-    priceMonth: '€59',
-    priceYear: '€590',
+    priceMonth: '€49',
+    priceYear: '€490',
     popular: true,
-    features: ['onboarding.plan2f1', 'onboarding.plan2f2', 'onboarding.plan2f3', 'onboarding.plan2f4', 'onboarding.plan2f5'],
+    features: ['onboarding.plan2f1', 'onboarding.plan2f2', 'onboarding.plan2f3', 'onboarding.plan2f4'],
   },
   {
     id: 'enterprise' as const,
@@ -40,7 +40,7 @@ const PLANS = [
     color: '#7C4DFF',
     priceMonth: '€99',
     priceYear: '€990',
-    features: ['onboarding.plan3f1', 'onboarding.plan3f2', 'onboarding.plan3f3', 'onboarding.plan3f4', 'onboarding.plan3f5', 'onboarding.plan3f6'],
+    features: ['onboarding.plan3f1', 'onboarding.plan3f2', 'onboarding.plan3f3', 'onboarding.plan3f4'],
   },
 ];
 
@@ -196,8 +196,13 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
                 <Ionicons name={plan.icon} size={28} color={plan.color} />
               </View>
               <Text style={styles.planName}>{t(`onboarding.plan_${plan.id}`)}</Text>
-              <Text style={styles.planPrice}>{plan.priceMonth}<Text style={styles.planPricePer}>/{t('onboarding.month')}</Text></Text>
-              <Text style={styles.planYearly}>{plan.priceYear}/{t('onboarding.year')}</Text>
+              <Text style={styles.planPrice}>
+                {plan.priceMonth}
+                <Text style={styles.planPricePer}>/{t('onboarding.month')}</Text>
+              </Text>
+              <Text style={styles.planYearly}>
+                {plan.priceYear}/{t('onboarding.year')}
+              </Text>
               <View style={styles.planDivider} />
               {plan.features.map((fKey, i) => (
                 <View key={i} style={styles.featureRow}>

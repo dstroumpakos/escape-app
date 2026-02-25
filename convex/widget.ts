@@ -9,6 +9,7 @@
 
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
 // ─── Get Widget Configuration ─────────────────────────────────
 // Returns company info + its active rooms for the widget to render
@@ -170,7 +171,8 @@ export const createGuestBooking = mutation({
     time: v.string(),
     players: v.number(),
     playerName: v.string(),
-    playerContact: v.string(), // email or phone
+    playerContact: v.string(), // email
+    playerPhone: v.string(),   // phone number (mandatory)
     notes: v.optional(v.string()),
     paymentTerms: v.optional(
       v.union(
@@ -183,7 +185,8 @@ export const createGuestBooking = mutation({
   handler: async (ctx, args) => {
     // Validate player name & contact
     if (!args.playerName.trim()) throw new Error("Name is required");
-    if (!args.playerContact.trim()) throw new Error("Contact info is required");
+    if (!args.playerContact.trim()) throw new Error("Email is required");
+    if (!args.playerPhone.trim()) throw new Error("Phone number is required");
 
     // Get room & validate
     const room = await ctx.db.get(args.roomId);
@@ -249,10 +252,31 @@ export const createGuestBooking = mutation({
       companyId: room.companyId,
       playerName: args.playerName.trim(),
       playerContact: args.playerContact.trim(),
+      playerPhone: args.playerPhone.trim(),
       notes: args.notes,
       paymentStatus,
       paymentTerms,
       depositPaid,
+    });
+
+    // Send confirmation emails (async — won't block the response)
+    const company = room.companyId ? await ctx.db.get(room.companyId) : null;
+    await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {
+      bookingCode,
+      playerName: args.playerName.trim(),
+      playerContact: args.playerContact.trim(),
+      playerPhone: args.playerPhone.trim(),
+      roomTitle: room.title,
+      date: args.date,
+      time: args.time,
+      players: args.players,
+      total,
+      paymentStatus,
+      depositPaid,
+      notes: args.notes,
+      companyName: company?.name ?? "Escape Room",
+      companyPhone: company?.phone ?? "",
+      companyEmail: company?.email ?? "",
     });
 
     return {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -24,6 +24,22 @@ export default function RoomDetails() {
   const room = allRooms.find((r: any) => r.id === roomId) || allRooms[0];
 
   const [liked, setLiked] = useState(false);
+
+  // Compute release countdown
+  const releaseCountdown = (() => {
+    if (!room) return null;
+    const rd = (room as any).releaseDate;
+    if (!rd) return null;
+    const releaseDate = new Date(rd + 'T00:00:00');
+    const now = new Date();
+    const diffMs = releaseDate.getTime() - now.getTime();
+    if (diffMs <= 0) return null;
+    const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    return {
+      days,
+      releaseDateStr: releaseDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    };
+  })();
 
   if (!room) {
     return (
@@ -75,6 +91,42 @@ export default function RoomDetails() {
             <Text style={styles.ratingVal}>{room.rating}</Text>
             <Text style={styles.reviewsText}>{t('roomDetails.reviews', { count: room.reviews })}</Text>
           </View>
+
+          {/* Release Countdown */}
+          {releaseCountdown && (
+            <View style={{
+              marginTop: 14,
+              backgroundColor: 'rgba(139,92,246,0.1)',
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: 'rgba(139,92,246,0.2)',
+              padding: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <View style={{
+                width: 44, height: 44, borderRadius: 12,
+                backgroundColor: 'rgba(139,92,246,0.15)',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Ionicons name="calendar-outline" size={22} color="#a78bfa" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <Ionicons name="diamond-outline" size={13} color="#facc15" />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#facc15' }}>Early Access</Text>
+                </View>
+                <Text style={{ fontSize: 12, color: '#c4b5fd', lineHeight: 17 }}>
+                  Launches <Text style={{ fontWeight: '700', color: '#fff' }}>{releaseCountdown.releaseDateStr}</Text>
+                </Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff' }}>{releaseCountdown.days}</Text>
+                <Text style={{ fontSize: 10, color: '#a78bfa', fontWeight: '600' }}>days left</Text>
+              </View>
+            </View>
+          )}
 
           {/* Info Cards */}
           <View style={styles.infoCards}>

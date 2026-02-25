@@ -18,14 +18,26 @@ interface Props {
   companyId: string;
 }
 
+const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+
 export default function CompanyRoomsList({ companyId }: Props) {
   const navigation = useNavigation<Nav>();
   const rooms = useQuery(api.companies.getRooms, {
     companyId: companyId as Id<"companies">,
   });
+  const dashStats = useQuery(api.companies.getDashboardStats, {
+    companyId: companyId as Id<"companies">,
+  });
   const deleteRoom = useMutation(api.companies.deleteRoom);
   const updateRoom = useMutation(api.companies.updateRoom);
   const { t } = useTranslation();
+
+  const roomCount = dashStats?.totalRooms ?? 0;
+  const roomLimit = dashStats?.roomLimit ?? 1;
+  const plan = dashStats?.plan ?? 'starter';
+  const atLimit = roomLimit !== Infinity && roomCount >= roomLimit;
+  const limitPct = roomLimit === Infinity ? 0 : Math.min((roomCount / roomLimit) * 100, 100);
+  const limitColor = limitPct >= 100 ? '#F44336' : limitPct >= 75 ? '#FFA726' : theme.colors.success;
 
   const handleDelete = (roomId: string, title: string) => {
     Alert.alert(t('roomsList.deleteTitle'), t('roomsList.deleteMessage', { title }), [
@@ -50,12 +62,45 @@ export default function CompanyRoomsList({ companyId }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{t('roomsList.title')}</Text>
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => navigation.navigate('CompanyRoomEditor', {})}
-        >
-          <Ionicons name="add" size={22} color="#fff" />
-        </TouchableOpacity>
+        {atLimit ? (
+          <View style={[styles.addBtn, { backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder }]}>
+            <Ionicons name="lock-closed" size={18} color={theme.colors.textMuted} />
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => navigation.navigate('CompanyRoomEditor', {})}
+          >
+            <Ionicons name="add" size={22} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Room Limit Bar */}
+      <View style={styles.limitBar}>
+        <View style={styles.limitHeader}>
+          <Text style={styles.limitLabel}>
+            {roomCount} / {roomLimit === Infinity ? '∞' : roomLimit} Rooms
+          </Text>
+          <View style={[styles.planBadge, { backgroundColor: plan === 'enterprise' ? 'rgba(156,39,176,0.2)' : plan === 'pro' ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)' }]}>
+            <Ionicons
+              name={plan === 'enterprise' ? 'trophy' : plan === 'pro' ? 'diamond' : 'rocket'}
+              size={10}
+              color={plan === 'enterprise' ? '#CE93D8' : plan === 'pro' ? '#F44336' : '#4CAF50'}
+            />
+            <Text style={[styles.planBadgeText, { color: plan === 'enterprise' ? '#CE93D8' : plan === 'pro' ? '#F44336' : '#4CAF50' }]}>
+              {PLAN_LABELS[plan] || 'Starter'}
+            </Text>
+          </View>
+        </View>
+        {roomLimit !== Infinity && (
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressFill, { width: `${limitPct}%`, backgroundColor: limitColor }]} />
+          </View>
+        )}
+        {atLimit && (
+          <Text style={styles.limitWarning}>Room limit reached — upgrade your plan to add more</Text>
+        )}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
@@ -161,6 +206,32 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
     alignItems: 'center', justifyContent: 'center',
     ...theme.shadow.red,
+  },
+
+  limitBar: {
+    marginHorizontal: 20, marginBottom: 16, padding: 14,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  limitHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 8,
+  },
+  limitLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  planBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10,
+  },
+  planBadgeText: { fontSize: 10, fontWeight: '700' },
+  progressTrack: {
+    height: 6, borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden' as const,
+  },
+  progressFill: { height: '100%' as any, borderRadius: 3 },
+  limitWarning: {
+    fontSize: 11, color: '#FFA726', marginTop: 8, fontWeight: '600',
   },
 
   empty: { alignItems: 'center', paddingTop: 100, gap: 12 },

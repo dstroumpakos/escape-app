@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
@@ -52,6 +53,14 @@ export default function HomeScreen() {
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
   const allRooms = useQuery(api.rooms.list);
+  const premiumStatus = useQuery(
+    api.premium.getStatus,
+    userId ? { userId: userId as Id<"users"> } : 'skip',
+  );
+  const earlyAccessRooms = useQuery(
+    api.premium.getEarlyAccessRooms,
+    userId && premiumStatus?.isPremium ? { userId: userId as Id<"users"> } : 'skip',
+  );
 
   // Device location state
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -121,6 +130,84 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Early Access Rooms (Premium only) */}
+        {premiumStatus?.isPremium && earlyAccessRooms && earlyAccessRooms.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="diamond" size={18} color="#FFD700" />
+                <Text style={[styles.sectionTitle, { color: '#FFD700' }]}>Early Access</Text>
+              </View>
+              <TouchableOpacity style={styles.seeAll} onPress={() => navigation.navigate('Premium')}>
+                <Text style={[styles.seeAllText, { color: '#FFD700' }]}>View All</Text>
+                <Ionicons name="chevron-forward" size={14} color="#FFD700" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+              {earlyAccessRooms.map((room: any) => (
+                <TouchableOpacity
+                  key={room._id}
+                  style={[styles.featuredCard, { borderColor: 'rgba(255, 215, 0, 0.3)' }]}
+                  activeOpacity={0.8}
+                  onPress={() => navigation.navigate('RoomDetails', { id: room._id })}
+                >
+                  <View style={styles.featuredImgWrap}>
+                    <Image source={{ uri: room.image }} style={styles.featuredImg} />
+                    <View style={styles.featuredOverlay} />
+                    <View style={styles.earlyAccessTag}>
+                      <Ionicons name="diamond" size={10} color="#1A0D2E" />
+                      <Text style={styles.earlyAccessTagText}>
+                        {room.daysUntilRelease != null ? `${room.daysUntilRelease}d early` : 'Early Access'}
+                      </Text>
+                    </View>
+                    <View style={styles.ratingBadge}>
+                      <Ionicons name="star" size={12} color={theme.colors.gold} />
+                      <Text style={styles.ratingText}>{room.rating}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.featuredInfo}>
+                    <Text style={styles.featuredTitle} numberOfLines={1}>{room.title}</Text>
+                    <View style={styles.featuredMeta}>
+                      <View style={styles.metaItem}>
+                        <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
+                        <Text style={styles.metaText}>{room.duration}{t('min')}</Text>
+                      </View>
+                      <DifficultyDots filled={room.difficulty} total={room.maxDifficulty} />
+                      <View style={styles.metaItem}>
+                        <Ionicons name="people-outline" size={12} color={theme.colors.textSecondary} />
+                        <Text style={styles.metaText}>{room.players}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* Premium Upsell */}
+        {premiumStatus && !premiumStatus.isPremium && (
+          <TouchableOpacity
+            style={styles.premiumUpsell}
+            onPress={() => navigation.navigate('Premium')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#2D1B4E', '#1A0D2E']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.premiumUpsellGradient}
+            >
+              <Ionicons name="diamond" size={24} color="#FFD700" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ color: '#FFD700', fontSize: 14, fontWeight: '800' }}>UNLOCKED Premium</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>Book rooms before anyone else</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#FFD700" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
         {/* Featured */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('home.featured')}</Text>
@@ -349,4 +436,24 @@ const styles = StyleSheet.create({
   trendingTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 4 },
   trendingDesc: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 8, lineHeight: 17 },
   trendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  // Early Access
+  earlyAccessTag: {
+    position: 'absolute', top: 10, left: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 4, paddingHorizontal: 10,
+    borderRadius: theme.radius.full,
+    backgroundColor: '#FFD700',
+  },
+  earlyAccessTagText: { fontSize: 11, fontWeight: '700', color: '#1A0D2E' },
+
+  // Premium Upsell
+  premiumUpsell: {
+    marginHorizontal: 20, marginBottom: 20, borderRadius: theme.radius.lg, overflow: 'hidden',
+  },
+  premiumUpsellGradient: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: 16, borderRadius: theme.radius.lg,
+    borderWidth: 1, borderColor: 'rgba(255, 215, 0, 0.2)',
+  },
 });

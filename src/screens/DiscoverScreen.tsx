@@ -76,7 +76,10 @@ export default function DiscoverScreen() {
     userId ? { userId: userId as Id<'users'> } : 'skip'
   );
 
-  const convexRooms = useQuery(api.rooms.list);
+  const convexRooms = useQuery(
+    api.premium.getVisibleRooms,
+    userId ? { userId: userId as Id<'users'> } : {}
+  );
   const rooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
 
   const mapRef = useRef<MapView>(null);
@@ -236,7 +239,8 @@ export default function DiscoverScreen() {
                 tracksViewChanges={false}
               >
                 <View style={styles.markerWrap}>
-                  <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive]}>
+                  <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive, room.isEarlyAccess && styles.markerBubbleEarlyAccess]}>
+                    {room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? '#1A0D2E' : '#FFD700'} style={{ marginRight: 3 }} />}
                     <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
                       €{room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
                     </Text>
@@ -329,11 +333,17 @@ export default function DiscoverScreen() {
             {filtered.map((room) => (
               <TouchableOpacity
                 key={room.id}
-                style={styles.peekCard}
+                style={[styles.peekCard, room.isEarlyAccess && { borderColor: 'rgba(255, 215, 0, 0.3)' }]}
                 activeOpacity={0.85}
                 onPress={() => handleMarkerPress(room)}
               >
                 <Image source={{ uri: room.image }} style={styles.peekImg} />
+                {room.isEarlyAccess && (
+                  <View style={styles.peekEarlyBadge}>
+                    <Ionicons name="diamond" size={9} color="#1A0D2E" />
+                    <Text style={styles.peekEarlyText}>{room.daysUntilRelease}d early</Text>
+                  </View>
+                )}
                 <View style={styles.peekInfo}>
                   <Text style={styles.peekTitle} numberOfLines={1}>
                     {room.title}
@@ -369,9 +379,17 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
             <Text style={styles.cardTitle} numberOfLines={1}>
               {room.title}
             </Text>
-            <View style={styles.cardRatingBadge}>
-              <Ionicons name="star" size={12} color={theme.colors.gold} />
-              <Text style={styles.cardRatingText}>{room.rating}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              {room.isEarlyAccess && (
+                <View style={styles.earlyAccessCardBadge}>
+                  <Ionicons name="diamond" size={10} color="#1A0D2E" />
+                  <Text style={styles.earlyAccessCardText}>Early Access</Text>
+                </View>
+              )}
+              <View style={styles.cardRatingBadge}>
+                <Ionicons name="star" size={12} color={theme.colors.gold} />
+                <Text style={styles.cardRatingText}>{room.rating}</Text>
+              </View>
             </View>
           </View>
 
@@ -615,4 +633,20 @@ const styles = StyleSheet.create({
   peekMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   peekRating: { fontSize: 12, fontWeight: '600', color: '#fff' },
   peekPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.redPrimary, marginLeft: 6 },
+
+  // Early access styles
+  markerBubbleEarlyAccess: { borderColor: '#FFD700', borderWidth: 1.5 },
+  peekEarlyBadge: {
+    position: 'absolute', top: 6, left: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingVertical: 2, paddingHorizontal: 6,
+    borderRadius: 8, backgroundColor: '#FFD700',
+  },
+  peekEarlyText: { fontSize: 9, fontWeight: '700', color: '#1A0D2E' },
+  earlyAccessCardBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingVertical: 3, paddingHorizontal: 8,
+    borderRadius: 8, backgroundColor: '#FFD700',
+  },
+  earlyAccessCardText: { fontSize: 10, fontWeight: '700', color: '#1A0D2E' },
 });

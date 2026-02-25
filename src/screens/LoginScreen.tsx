@@ -204,6 +204,13 @@ export default function LoginScreen({ onLogin }: Props) {
               </View>
             )}
 
+            {/* Legal consent notice (Apple Guideline 5.1.1) */}
+            {isRegister && (
+              <Text style={styles.legalNotice}>
+                {t('login.legalConsent')}
+              </Text>
+            )}
+
             {/* Submit */}
             <TouchableOpacity
               style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
@@ -342,6 +349,15 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: {
     opacity: 0.6,
+  },
+  legalNotice: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 16,
+    marginBottom: 8,
+    marginTop: -4,
+    paddingHorizontal: 10,
   },
   submitGradient: {
     flexDirection: 'row',

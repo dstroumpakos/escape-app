@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: string
 
 const PLAN_LABELS: Record<string, string> = {
   starter: 'Starter — €29/mo',
-  pro: 'Pro — €59/mo',
+  pro: 'Pro — €49/mo',
   enterprise: 'Enterprise — €99/mo',
 };
 

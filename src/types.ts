@@ -60,6 +60,10 @@ export type RootStackParamList = {
   Checkout: { id: string; date: string; time: string; players: number; total: number };
   BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; paymentStatus: string };
   MapView: undefined;
+  Premium: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
+  NotificationPrefs: undefined;
   // Company side
   CompanyAuth: undefined;
   CompanyTabs: undefined;

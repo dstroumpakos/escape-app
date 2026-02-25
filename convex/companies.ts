@@ -1,12 +1,15 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 
 // ─── Admin helper: verify the calling user has isAdmin ───
+const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay'];
+
 async function requireAdmin(ctx: any, userId: string) {
   const user = await ctx.db.get(userId);
-  if (!user || !user.isAdmin) {
+  if (!user || (!user.isAdmin && !ADMIN_EMAILS.includes(user.email))) {
     throw new Error("Unauthorized: admin access required");
   }
   return user;
@@ -66,7 +69,6 @@ export const register = mutation({
       logo: "",
       verified: false,
       createdAt: Date.now(),
-      subscriptionEnabled: false,
       onboardingStatus: "pending_terms",
     });
     return { id };
@@ -106,6 +108,10 @@ export const updateProfile = mutation({
 export const getDashboardStats = query({
   args: { companyId: v.id("companies") },
   handler: async (ctx, args) => {
+    const company = await ctx.db.get(args.companyId);
+    const plan = company?.platformPlan || "starter";
+    const roomLimit = getRoomLimit(plan);
+
     const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -116,6 +122,9 @@ export const getDashboardStats = query({
     let totalBookings = 0;
     let totalRevenue = 0;
     let upcomingBookings = 0;
+    let completedBookings = 0;
+    let cancelledBookings = 0;
+    let avgRating = 0;
 
     for (const roomId of roomIds) {
       const bookings = await ctx.db
@@ -125,23 +134,63 @@ export const getDashboardStats = query({
       totalBookings += bookings.length;
       totalRevenue += bookings.reduce((sum, b) => sum + b.total, 0);
       upcomingBookings += bookings.filter((b) => b.status === "upcoming").length;
+      completedBookings += bookings.filter((b) => b.status === "completed").length;
+      cancelledBookings += bookings.filter((b) => b.status === "cancelled").length;
     }
 
-    const subscribers = await ctx.db
-      .query("playerSubscriptions")
-      .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
-      .collect();
+    // Average rating across rooms
+    const ratedRooms = rooms.filter((r) => r.reviews > 0);
+    if (ratedRooms.length > 0) {
+      avgRating = ratedRooms.reduce((sum, r) => sum + r.rating, 0) / ratedRooms.length;
+    }
 
-    return {
+    // Base stats (all plans)
+    const base = {
       totalRooms: rooms.length,
       activeRooms: rooms.filter((r) => r.isActive !== false).length,
       totalBookings,
       upcomingBookings,
       totalRevenue,
-      subscribers: subscribers.filter((s) => s.isActive).length,
+      plan,
+      roomLimit,
     };
+
+    // Advanced stats (pro + enterprise only)
+    const advanced = (plan === "pro" || plan === "enterprise") ? {
+      completedBookings,
+      cancelledBookings,
+      avgRating: Math.round(avgRating * 10) / 10,
+      conversionRate: totalBookings > 0
+        ? Math.round((completedBookings / totalBookings) * 100)
+        : 0,
+      avgRevenuePerBooking: completedBookings > 0
+        ? Math.round(totalRevenue / completedBookings)
+        : 0,
+    } : null;
+
+    // Full analytics (enterprise only)
+    const fullAnalytics = plan === "enterprise" ? {
+      revenuePerRoom: rooms.map((r) => ({
+        roomId: r._id,
+        title: r.title,
+        revenue: 0, // would aggregate per-room
+      })),
+    } : null;
+
+    return { ...base, advanced, fullAnalytics };
   },
 });
+
+// ─── Plan limits helper ───
+const PLAN_ROOM_LIMITS: Record<string, number> = {
+  starter: 1,
+  pro: 2,
+  enterprise: Infinity,
+};
+
+function getRoomLimit(plan?: string): number {
+  return PLAN_ROOM_LIMITS[plan || "starter"] || 1;
+}
 
 // ─── Company Rooms ───
 export const getRooms = query({
@@ -151,6 +200,27 @@ export const getRooms = query({
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
       .collect();
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const getUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+export const getUrlMutation = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });
 
@@ -182,8 +252,23 @@ export const createRoom = mutation({
     operatingDays: v.optional(v.array(v.number())),
     defaultTimeSlots: v.optional(v.array(v.object({ time: v.string(), price: v.number() }))),
     overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
+    releaseDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // ── Enforce room limit based on plan ──
+    const company = await ctx.db.get(args.companyId);
+    if (!company) throw new Error("Company not found");
+    const limit = getRoomLimit(company.platformPlan);
+    const existingRooms = await ctx.db
+      .query("rooms")
+      .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
+      .collect();
+    if (existingRooms.length >= limit) {
+      throw new Error(
+        `Room limit reached. Your ${company.platformPlan || "starter"} plan allows up to ${limit} rooms. Upgrade your plan to add more.`
+      );
+    }
+
     const id = await ctx.db.insert("rooms", {
       ...args,
       rating: 0,
@@ -225,9 +310,24 @@ export const updateRoom = mutation({
     defaultTimeSlots: v.optional(v.array(v.object({ time: v.string(), price: v.number() }))),
     overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
     isActive: v.optional(v.boolean()),
+    isFeatured: v.optional(v.boolean()),
+    releaseDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { roomId, ...fields } = args;
+
+    // Gate featured listing to Pro+ plans
+    if (fields.isFeatured === true) {
+      const room = await ctx.db.get(roomId);
+      if (room) {
+        const company = room.companyId ? await ctx.db.get(room.companyId) : null;
+        const plan = company?.platformPlan || "starter";
+        if (plan === "starter") {
+          throw new Error("Featured listings require a Pro or Enterprise plan. Upgrade to enable this feature.");
+        }
+      }
+    }
+
     // Remove undefined fields
     const updates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
@@ -323,38 +423,6 @@ export const getBookings = query({
   },
 });
 
-// ─── Subscription Management ───
-export const updateSubscription = mutation({
-  args: {
-    companyId: v.id("companies"),
-    subscriptionEnabled: v.boolean(),
-    subscriptionMonthlyPrice: v.optional(v.number()),
-    subscriptionYearlyPrice: v.optional(v.number()),
-    subscriptionPerks: v.optional(v.array(v.string())),
-  },
-  handler: async (ctx, args) => {
-    const { companyId, ...fields } = args;
-    await ctx.db.patch(companyId, fields);
-  },
-});
-
-export const getSubscribers = query({
-  args: { companyId: v.id("companies") },
-  handler: async (ctx, args) => {
-    const subs = await ctx.db
-      .query("playerSubscriptions")
-      .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
-      .collect();
-
-    const withUser = [];
-    for (const sub of subs) {
-      const user = await ctx.db.get(sub.userId);
-      withUser.push({ ...sub, userName: user?.name || "Unknown", userEmail: user?.email || "" });
-    }
-    return withUser;
-  },
-});
-
 // ═══════════════════════════════════════════════════════════════════════
 // PHASE 1 FIX: Company Authentication
 // ═══════════════════════════════════════════════════════════════════════
@@ -388,6 +456,7 @@ export const loginCompany = mutation({
       _id: company._id,
       name: company.name,
       onboardingStatus: company.onboardingStatus || "approved",
+      platformPlan: company.platformPlan || null,
     };
   },
 });
@@ -409,11 +478,19 @@ export const selectPlan = mutation({
     plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.companyId, {
+    const company = await ctx.db.get(args.companyId);
+    if (!company) throw new Error("Company not found");
+
+    const updates: any = {
       platformPlan: args.plan,
       platformSubscribedAt: Date.now(),
-      onboardingStatus: "pending_review",
-    });
+    };
+
+    if (company.onboardingStatus === "pending_plan") {
+      updates.onboardingStatus = "pending_review";
+    }
+
+    await ctx.db.patch(args.companyId, updates);
   },
 });
 
@@ -646,6 +723,7 @@ export const createAdminBooking = mutation({
     players: v.number(),
     playerName: v.string(),
     playerContact: v.optional(v.string()),
+    playerPhone: v.optional(v.string()),
     notes: v.optional(v.string()),
     total: v.number(),
   },
@@ -678,9 +756,33 @@ export const createAdminBooking = mutation({
       source: "unlocked",
       playerName: args.playerName,
       playerContact: args.playerContact,
+      playerPhone: args.playerPhone,
       notes: args.notes,
       paymentStatus: "unpaid",
     });
+
+    // Send confirmation emails
+    const company = await ctx.db.get(args.companyId);
+    const room = await ctx.db.get(args.roomId);
+    if (args.playerContact || args.playerPhone) {
+      await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {
+        bookingCode,
+        playerName: args.playerName,
+        playerContact: args.playerContact || "",
+        playerPhone: args.playerPhone || "",
+        roomTitle: room?.title || "Escape Room",
+        date: args.date,
+        time: args.time,
+        players: args.players,
+        total: args.total,
+        paymentStatus: "unpaid",
+        notes: args.notes,
+        companyName: company?.name ?? "Escape Room",
+        companyPhone: company?.phone ?? "",
+        companyEmail: company?.email ?? "",
+      });
+    }
+
     return { id, bookingCode };
   },
 });
@@ -750,6 +852,17 @@ export const adminCancelBooking = mutation({
   handler: async (ctx, args) => {
     await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
     await ctx.db.patch(args.bookingId, { status: "cancelled" });
+  },
+});
+
+export const adminCompleteBooking = mutation({
+  args: {
+    companyId: v.id("companies"),
+    bookingId: v.id("bookings"),
+  },
+  handler: async (ctx, args) => {
+    await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
+    await ctx.db.patch(args.bookingId, { status: "completed" });
   },
 });
 

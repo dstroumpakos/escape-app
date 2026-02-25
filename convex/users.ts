@@ -285,3 +285,114 @@ export const updateLocation = mutation({
     return args.userId;
   },
 });
+
+/* ═══════════════════════════════════════════════════════════
+   Account Deletion (Apple Guideline 5.1.1(v))
+   Users who create an account must be able to delete it.
+   This permanently removes the user and all associated data.
+   ═══════════════════════════════════════════════════════════ */
+export const deleteAccount = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // 1. Delete badges
+    const badges = await ctx.db
+      .query("badges")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const b of badges) await ctx.db.delete(b._id);
+
+    // 2. Delete bookings
+    const bookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const b of bookings) await ctx.db.delete(b._id);
+
+    // 3. Delete posts and their likes/comments
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_author_user", (q) => q.eq("authorUserId", args.userId))
+      .collect();
+    for (const p of posts) {
+      const pComments = await ctx.db
+        .query("postComments")
+        .withIndex("by_post", (q) => q.eq("postId", p._id))
+        .collect();
+      for (const c of pComments) await ctx.db.delete(c._id);
+      const pLikes = await ctx.db
+        .query("postLikes")
+        .withIndex("by_post", (q) => q.eq("postId", p._id))
+        .collect();
+      for (const l of pLikes) await ctx.db.delete(l._id);
+      await ctx.db.delete(p._id);
+    }
+
+    // 4. Delete user's own likes on other posts
+    const userLikes = await ctx.db
+      .query("postLikes")
+      .withIndex("by_user_post")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+    for (const l of userLikes) {
+      const post = await ctx.db.get(l.postId);
+      if (post) {
+        await ctx.db.patch(l.postId, { likes: Math.max(0, post.likes - 1) });
+      }
+      await ctx.db.delete(l._id);
+    }
+
+    // 5. Delete comments by user
+    const userComments = await ctx.db
+      .query("postComments")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+    for (const c of userComments) await ctx.db.delete(c._id);
+
+    // 6. Delete slot alerts
+    const slotAlerts = await ctx.db
+      .query("slotAlerts")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const a of slotAlerts) await ctx.db.delete(a._id);
+
+    // 7. Delete notifications
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const n of notifications) await ctx.db.delete(n._id);
+
+    // 8. Delete premium subscriptions
+    const premiumSubs = await ctx.db
+      .query("premiumSubscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const s of premiumSubs) await ctx.db.delete(s._id);
+
+    // 10. Delete blocked-users entries (as blocker or blocked)
+    const blocksAsBlocker = await ctx.db
+      .query("blockedUsers")
+      .withIndex("by_blocker", (q) => q.eq("blockerId", args.userId))
+      .collect();
+    for (const b of blocksAsBlocker) await ctx.db.delete(b._id);
+
+    const allBlocks = await ctx.db.query("blockedUsers").collect();
+    for (const b of allBlocks) {
+      if (b.blockedUserId === args.userId) await ctx.db.delete(b._id);
+    }
+
+    // 11. Delete reports made by user
+    const reports = await ctx.db.query("reports").collect();
+    for (const r of reports) {
+      if (r.reporterId === args.userId) await ctx.db.delete(r._id);
+    }
+
+    // 12. Delete the user record itself
+    await ctx.db.delete(args.userId);
+
+    return { success: true };
+  },
+});

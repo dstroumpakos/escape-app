@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { filterContent } from "./moderation";
 
 /* ── Feed Queries ── */
 
@@ -117,6 +118,12 @@ export const createPost = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Content filtering (Apple Guideline 1.2 — filter objectionable material)
+    const blockedWord = filterContent(args.text);
+    if (blockedWord) {
+      throw new Error("Your post contains inappropriate language. Please revise and try again.");
+    }
+
     // Resolve storage URLs
     const media = await Promise.all(
       args.mediaStorageIds.map(async (m) => {
@@ -184,6 +191,12 @@ export const addComment = mutation({
     text: v.string(),
   },
   handler: async (ctx, args) => {
+    // Content filtering (Apple Guideline 1.2)
+    const blockedWord = filterContent(args.text);
+    if (blockedWord) {
+      throw new Error("Your comment contains inappropriate language. Please revise and try again.");
+    }
+
     return await ctx.db.insert("postComments", {
       postId: args.postId,
       userId: args.userId,
