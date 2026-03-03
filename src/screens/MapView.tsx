@@ -175,7 +175,7 @@ export default function MapView() {
               </View>
               <Text style={styles.cardPrice}>
                 {selectedRoom.pricePerGroup?.length
-                  ? `From €${Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price))}`
+                  ? t('fromPrice', { amount: Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price)) })
                   : `€${selectedRoom.price}${t('perPerson')}`}
               </Text>
             </View>

@@ -1,8 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
+import { internal, api } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
+import { nt } from "./notificationTexts";
 
 // ─── Admin helper: verify the calling user has isAdmin ───
 const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay'];
@@ -71,6 +72,13 @@ export const register = mutation({
       createdAt: Date.now(),
       onboardingStatus: "pending_terms",
     });
+
+    // Send welcome email
+    await ctx.scheduler.runAfter(0, internal.email.sendCompanyWelcome, {
+      companyName: args.name,
+      companyEmail: args.email,
+    });
+
     return { id };
   },
 });
@@ -90,17 +98,25 @@ export const getById = query({
 export const updateProfile = mutation({
   args: {
     id: v.id("companies"),
-    name: v.string(),
-    phone: v.string(),
-    address: v.string(),
-    city: v.string(),
+    name: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    city: v.optional(v.string()),
     vatNumber: v.optional(v.string()),
-    description: v.string(),
+    description: v.optional(v.string()),
     logo: v.optional(v.string()),
+    subscriptionEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
-    await ctx.db.patch(id, fields);
+    // Strip undefined values so we only patch provided fields
+    const patch: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(fields)) {
+      if (val !== undefined) patch[k] = val;
+    }
+    if (Object.keys(patch).length > 0) {
+      await ctx.db.patch(id, patch);
+    }
   },
 });
 
@@ -278,6 +294,25 @@ export const createRoom = mutation({
       isTrending: false,
       isActive: true,
     });
+
+    // ── Notify premium users about the new room (EA Partner Benefit) ──
+    if (company.subscriptionEnabled) {
+      const allUsers = await ctx.db.query("users").collect();
+      const premiumUsers = allUsers.filter((u) => u.isPremium);
+      for (const premiumUser of premiumUsers) {
+        const lang = premiumUser.language;
+        await ctx.db.insert("notifications", {
+          userId: premiumUser._id,
+          type: "new_room" as any,
+          title: nt(lang, "new_room.title", { room: args.title }),
+          message: nt(lang, "new_room.message", { company: company.name }),
+          read: false,
+          createdAt: Date.now(),
+          data: { roomId: id },
+        });
+      }
+    }
+
     return id;
   },
 });
@@ -521,12 +556,22 @@ export const approveCompany = mutation({
   args: { companyId: v.id("companies"), userId: v.id("users") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx, args.userId);
+    const company = await ctx.db.get(args.companyId);
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "approved",
       verified: true,
       reviewedAt: Date.now(),
       adminNotes: undefined,
     });
+
+    // Send approved email with plan details
+    if (company) {
+      await ctx.scheduler.runAfter(0, internal.email.sendCompanyApproved, {
+        companyName: company.name,
+        companyEmail: company.email,
+        plan: company.platformPlan || "starter",
+      });
+    }
   },
 });
 
@@ -909,5 +954,147 @@ export const updateBookingNotes = mutation({
   handler: async (ctx, args) => {
     await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
     await ctx.db.patch(args.bookingId, { notes: args.notes });
+  },
+});
+
+// ─── Register with onboarding (plan selection during signup) ───
+export const registerWithOnboarding = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    address: v.string(),
+    city: v.string(),
+    vatNumber: v.optional(v.string()),
+    description: v.string(),
+    password: v.string(),
+    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+  },
+  handler: async (ctx, args) => {
+    requireNonEmpty(args.name, "Company name");
+    if (!validateEmail(args.email)) return { error: "Invalid email format" };
+    const pwError = validatePassword(args.password);
+    if (pwError) return { error: pwError };
+    requireNonEmpty(args.phone, "Phone");
+    requireNonEmpty(args.address, "Address");
+    requireNonEmpty(args.city, "City");
+
+    const existing = await ctx.db
+      .query("companies")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (existing) return { error: "Email already registered" };
+
+    const hashedPw = await hashPassword(args.password);
+
+    const { plan, ...rest } = args;
+    const id = await ctx.db.insert("companies", {
+      ...rest,
+      password: hashedPw,
+      logo: "",
+      verified: false,
+      createdAt: Date.now(),
+      onboardingStatus: "pending_review",
+      termsAcceptedAt: Date.now(),
+      platformPlan: plan,
+      platformSubscribedAt: Date.now(),
+    });
+
+    // Send welcome email with plan info
+    await ctx.scheduler.runAfter(0, internal.email.sendCompanyWelcome, {
+      companyName: args.name,
+      companyEmail: args.email,
+      plan,
+    });
+
+    return { id };
+  },
+});
+
+// ─── Stripe integration mutations ───
+
+export const updateStripeCustomer = mutation({
+  args: {
+    companyId: v.id("companies"),
+    stripeCustomerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.companyId, {
+      stripeCustomerId: args.stripeCustomerId,
+    });
+  },
+});
+
+export const updateStripePaymentStatus = mutation({
+  args: {
+    companyId: v.id("companies"),
+    status: v.union(v.literal("pending"), v.literal("active"), v.literal("cancelled"), v.literal("past_due")),
+    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise"))),
+    period: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+  },
+  handler: async (ctx, args) => {
+    const updates: any = { stripePaymentStatus: args.status };
+    if (args.plan) updates.platformPlan = args.plan;
+    if (args.period) updates.billingPeriod = args.period;
+    await ctx.db.patch(args.companyId, updates);
+  },
+});
+
+export const completeStripePayment = mutation({
+  args: {
+    companyId: v.id("companies"),
+    stripeSubscriptionId: v.string(),
+    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    period: v.union(v.literal("monthly"), v.literal("yearly")),
+  },
+  handler: async (ctx, args) => {
+    const company = await ctx.db.get(args.companyId);
+    if (!company) throw new Error("Company not found");
+
+    await ctx.db.patch(args.companyId, {
+      stripeSubscriptionId: args.stripeSubscriptionId,
+      stripePaymentStatus: "active",
+      platformPlan: args.plan,
+      billingPeriod: args.period,
+      platformSubscribedAt: Date.now(),
+      onboardingStatus: "pending_review",
+    });
+  },
+});
+
+export const findCompanyByStripeCustomer = query({
+  args: { stripeCustomerId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("companies")
+      .withIndex("by_stripeCustomerId", (q) => q.eq("stripeCustomerId", args.stripeCustomerId))
+      .first();
+  },
+});
+
+// Called by the customer.subscription.updated webhook
+export const handleSubscriptionUpdated = mutation({
+  args: {
+    companyId: v.id("companies"),
+    status: v.union(v.literal("pending"), v.literal("active"), v.literal("cancelled"), v.literal("past_due")),
+    cancelAtPeriodEnd: v.boolean(),
+    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise"))),
+    period: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+  },
+  handler: async (ctx, args) => {
+    const updates: any = {};
+
+    if (args.cancelAtPeriodEnd) {
+      updates.stripePaymentStatus = "cancelled";
+    } else if (args.status === "active") {
+      updates.stripePaymentStatus = "active";
+    } else if (args.status === "past_due") {
+      updates.stripePaymentStatus = "past_due";
+    }
+
+    if (args.plan) updates.platformPlan = args.plan;
+    if (args.period) updates.billingPeriod = args.period;
+
+    await ctx.db.patch(args.companyId, updates);
   },
 });

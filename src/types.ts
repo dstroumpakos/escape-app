@@ -55,10 +55,11 @@ export interface TimeSlot {
 export type RootStackParamList = {
   MainTabs: undefined;
   Notifications: undefined;
+  Friends: undefined;
   RoomDetails: { id: string };
   DateTimeSelect: { id: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };
-  BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; paymentStatus: string };
+  BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; bookingId: string; paymentStatus: string };
   MapView: undefined;
   Premium: undefined;
   PrivacyPolicy: undefined;
@@ -72,6 +73,8 @@ export type RootStackParamList = {
   CompanyBookingDetail: { bookingId: string };
   CompanyAddBooking: { companyId: string; roomId?: string; date?: string; time?: string };
   CompanyQRScanner: { companyId: string };
+  CompanyPhotos: { companyId: string };
+  CompanyBilling: { companyId: string };
 };
 
 export type MainTabParamList = {

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { translations, Language } from './translations';
 
 const LANGUAGE_KEY = '@unlocked_language';
+const CONVEX_URL = 'https://resilient-crocodile-943.convex.cloud';
 
 interface LanguageContextType {
   language: Language;
@@ -16,14 +17,32 @@ const LanguageContext = createContext<LanguageContextType>({
   t: (key) => key,
 });
 
+/** Fire-and-forget language sync to Convex DB */
+async function syncLanguageToDB(lang: Language) {
+  try {
+    const userId = await AsyncStorage.getItem('userId');
+    if (!userId) return;
+    await fetch(`${CONVEX_URL}/updateLanguage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, language: lang }),
+    });
+  } catch {
+    // silent – best-effort sync
+  }
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('el');
 
-  // Load saved language on mount
+  // Load saved language on mount and sync to DB
   React.useEffect(() => {
     AsyncStorage.getItem(LANGUAGE_KEY).then((saved) => {
       if (saved === 'en' || saved === 'el') {
         setLanguageState(saved);
+        syncLanguageToDB(saved);
+      } else {
+        syncLanguageToDB('el');
       }
     });
   }, []);
@@ -31,6 +50,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     AsyncStorage.setItem(LANGUAGE_KEY, lang);
+    syncLanguageToDB(lang);
   }, []);
 
   const t = useCallback(

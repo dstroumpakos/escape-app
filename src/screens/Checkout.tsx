@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert,
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
+import { openCheckout, buildDeepLink, isPaymentEnabled } from '../payments';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function formatDisplayDate(iso: string): string {
@@ -27,6 +28,7 @@ export default function Checkout() {
   const { t } = useTranslation();
   const { userId } = useUser();
   const createBooking = useMutation(api.bookings.create);
+  const createBookingCheckout = useAction(api.stripe.createBookingCheckout);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const convexRooms = useQuery(api.rooms.list);
@@ -207,25 +209,83 @@ export default function Checkout() {
             }
             setIsSubmitting(true);
             try {
-              const result = await createBooking({
-                userId: userId as any,
-                roomId: room.id as any,
-                date,
-                time,
-                players,
-                total: finalTotal,
-                paymentTerms: selectedTerm as any,
-                paymentMethod: isPayOnArrival ? 'pay_on_arrival' : paymentMethod,
-              });
-              navigation.navigate('BookingConfirmation', {
-                id: room.id,
-                date,
-                time,
-                players,
-                total: finalTotal,
-                bookingCode: result.bookingCode,
-                paymentStatus: isPayOnArrival ? 'unpaid' : selectedTerm === 'deposit_20' ? 'deposit' : 'paid',
-              });
+              if (isPayOnArrival) {
+                // Pay on arrival — create booking directly (no payment needed)
+                const result = await createBooking({
+                  userId: userId as any,
+                  roomId: room.id as any,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  paymentTerms: 'pay_on_arrival',
+                  paymentMethod: 'pay_on_arrival',
+                });
+                navigation.navigate('BookingConfirmation', {
+                  id: room.id,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  bookingCode: result.bookingCode,
+                  bookingId: result.id,
+                  paymentStatus: 'unpaid',
+                });
+              } else if (isPaymentEnabled()) {
+                // Online payment via Stripe Checkout
+                const successUrl = buildDeepLink('stripe-success', { session_id: '{CHECKOUT_SESSION_ID}' });
+                const cancelUrl = buildDeepLink('stripe-cancel');
+
+                const { url } = await createBookingCheckout({
+                  userId: userId as any,
+                  roomId: room.id as any,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  paymentTerms: selectedTerm as 'full' | 'deposit_20',
+                  successUrl,
+                  cancelUrl,
+                });
+
+                // Open Stripe Checkout in device browser
+                await openCheckout(url);
+                // After payment: Stripe webhook confirms server-side.
+                // The success deep link brings the user back to the app.
+                // For now, navigate to a "payment pending" confirmation state.
+                navigation.navigate('BookingConfirmation', {
+                  id: room.id,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  bookingCode: 'PROCESSING',
+                  bookingId: '',
+                  paymentStatus: 'pending',
+                });
+              } else {
+                // Stripe not configured — create booking directly (dev/testing mode)
+                const result = await createBooking({
+                  userId: userId as any,
+                  roomId: room.id as any,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  paymentTerms: selectedTerm as any,
+                  paymentMethod: paymentMethod,
+                });
+                navigation.navigate('BookingConfirmation', {
+                  id: room.id,
+                  date,
+                  time,
+                  players,
+                  total: finalTotal,
+                  bookingCode: result.bookingCode,
+                  bookingId: result.id,
+                  paymentStatus: selectedTerm === 'deposit_20' ? 'deposit' : 'paid',
+                });
+              }
             } catch (e: any) {
               Alert.alert(t('error'), e.message || t('checkout.bookingFailed'));
             } finally {

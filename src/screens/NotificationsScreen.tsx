@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery, useMutation } from 'convex/react';
@@ -9,7 +9,7 @@ import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 
-type NotifType = 'booking' | 'cancelled' | 'reminder' | 'promo' | 'system' | 'slot_available';
+type NotifType = 'booking' | 'cancelled' | 'reminder' | 'promo' | 'system' | 'slot_available' | 'new_room' | 'photos_ready' | 'friend_request' | 'friend_accepted' | 'booking_invite';
 
 const ICON_MAP: Record<NotifType, { name: keyof typeof Ionicons.glyphMap; color: string }> = {
   booking: { name: 'ticket', color: theme.colors.redPrimary },
@@ -18,6 +18,11 @@ const ICON_MAP: Record<NotifType, { name: keyof typeof Ionicons.glyphMap; color:
   reminder: { name: 'alarm', color: '#3B82F6' },
   system: { name: 'information-circle', color: '#8B5CF6' },
   slot_available: { name: 'notifications', color: '#4CAF50' },
+  new_room: { name: 'key', color: '#FFD700' },
+  photos_ready: { name: 'camera', color: '#E91E63' },
+  friend_request: { name: 'person-add', color: '#42A5F5' },
+  friend_accepted: { name: 'people', color: '#4CAF50' },
+  booking_invite: { name: 'mail', color: '#FF9800' },
 };
 
 function timeAgo(ts: number): string {
@@ -43,6 +48,9 @@ export default function NotificationsScreen() {
   );
   const markAsReadMut = useMutation(api.notifications.markAsRead);
   const markAllReadMut = useMutation(api.notifications.markAllRead);
+  const acceptFriend = useMutation(api.friends.acceptRequest);
+  const declineFriend = useMutation(api.friends.declineRequest);
+  const respondInvite = useMutation(api.friends.respondToBookingInvite);
 
   const unreadCount = notifications?.filter(n => !n.read).length ?? 0;
 
@@ -94,6 +102,9 @@ export default function NotificationsScreen() {
         ) : (
           notifications.map(notif => {
             const icon = ICON_MAP[notif.type as NotifType] || ICON_MAP.system;
+            const isFriendRequest = notif.type === 'friend_request' && notif.data?.friendshipId;
+            const isBookingInvite = notif.type === 'booking_invite' && notif.data?.bookingInviteId;
+            const showActions = (isFriendRequest || isBookingInvite) && !notif.read;
             return (
               <TouchableOpacity
                 key={notif._id}
@@ -113,6 +124,88 @@ export default function NotificationsScreen() {
                   </View>
                   <Text style={styles.notifMessage} numberOfLines={2}>{notif.message}</Text>
                   <Text style={styles.notifTime}>{timeAgo(notif.createdAt)}</Text>
+
+                  {/* Action buttons for friend requests */}
+                  {showActions && isFriendRequest && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={styles.actionAccept}
+                        onPress={async () => {
+                          try {
+                            await acceptFriend({
+                              friendshipId: notif.data.friendshipId,
+                              userId: userId as Id<'users'>,
+                            });
+                            handleMarkAsRead(notif._id);
+                          } catch (e: any) {
+                            Alert.alert(t('error'), e.message);
+                          }
+                        }}
+                      >
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Text style={styles.actionAcceptText}>{t('friends.accept')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionDecline}
+                        onPress={async () => {
+                          try {
+                            await declineFriend({
+                              friendshipId: notif.data.friendshipId,
+                              userId: userId as Id<'users'>,
+                            });
+                            handleMarkAsRead(notif._id);
+                          } catch (e: any) {
+                            Alert.alert(t('error'), e.message);
+                          }
+                        }}
+                      >
+                        <Ionicons name="close" size={14} color={theme.colors.textMuted} />
+                        <Text style={styles.actionDeclineText}>{t('friends.decline')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                  {/* Action buttons for booking invites */}
+                  {showActions && isBookingInvite && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={styles.actionAccept}
+                        onPress={async () => {
+                          try {
+                            await respondInvite({
+                              inviteId: notif.data.bookingInviteId,
+                              userId: userId as Id<'users'>,
+                              response: 'accepted',
+                            });
+                            handleMarkAsRead(notif._id);
+                          } catch (e: any) {
+                            Alert.alert(t('error'), e.message);
+                          }
+                        }}
+                      >
+                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Text style={styles.actionAcceptText}>{t('friends.accept')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.actionDecline}
+                        onPress={async () => {
+                          try {
+                            await respondInvite({
+                              inviteId: notif.data.bookingInviteId,
+                              userId: userId as Id<'users'>,
+                              response: 'declined',
+                            });
+                            handleMarkAsRead(notif._id);
+                          } catch (e: any) {
+                            Alert.alert(t('error'), e.message);
+                          }
+                        }}
+                      >
+                        <Ionicons name="close" size={14} color={theme.colors.textMuted} />
+                        <Text style={styles.actionDeclineText}>{t('friends.decline')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
               </TouchableOpacity>
             );
@@ -222,5 +315,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.textMuted,
     marginTop: 2,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  actionAccept: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: theme.colors.redPrimary,
+  },
+  actionAcceptText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  actionDecline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: theme.colors.glass,
+    borderWidth: 1,
+    borderColor: theme.colors.glassBorder,
+  },
+  actionDeclineText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textMuted,
   },
 });

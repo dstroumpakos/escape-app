@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,7 +51,9 @@ function getDiffColor(d: number) {
   return { bg: 'rgba(156,39,176,0.15)', text: '#CE93D8' };
 }
 
-const darkMapStyle = [
+// Custom dark map style – only applies on Android (Google Maps provider).
+// On iOS Apple Maps uses userInterfaceStyle="dark" instead.
+const darkMapStyle = Platform.OS === 'android' ? [
   { elementType: 'geometry', stylers: [{ color: '#1d1214' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#8a7070' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#1a0d0d' }] },
@@ -65,10 +68,11 @@ const darkMapStyle = [
   { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#251515' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1a2a' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3a5070' }] },
-];
+] : undefined;
 
 export default function DiscoverScreen() {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const { userId } = useUser();
   const { t } = useTranslation();
   const user = useQuery(
@@ -254,7 +258,7 @@ export default function DiscoverScreen() {
       </MapView>
 
       {/* Header overlay */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>{t('discover.title')}</Text>
@@ -295,7 +299,9 @@ export default function DiscoverScreen() {
         <View style={styles.countBadge}>
           <Ionicons name="key-outline" size={12} color={theme.colors.redPrimary} />
           <Text style={styles.countText}>
-            {t('discover.roomsNearby', { n: filtered.length })}
+            {filtered.length === 1
+              ? t('discover.roomNearby')
+              : t('discover.roomsNearby', { n: filtered.length })}
           </Text>
         </View>
       </View>
@@ -350,8 +356,8 @@ export default function DiscoverScreen() {
                   </Text>
                   <View style={styles.peekMeta}>
                     <Ionicons name="star" size={11} color={theme.colors.gold} />
-                    <Text style={styles.peekRating}>{room.rating}</Text>
-                    <Text style={styles.peekPrice}>{room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}</Text>
+                    <Text style={styles.peekRating}>{room.rating > 0 ? room.rating : t('discover.new')}</Text>
+                    <Text style={styles.peekPrice}>{room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -388,7 +394,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
               )}
               <View style={styles.cardRatingBadge}>
                 <Ionicons name="star" size={12} color={theme.colors.gold} />
-                <Text style={styles.cardRatingText}>{room.rating}</Text>
+                <Text style={styles.cardRatingText}>{room.rating > 0 ? room.rating : t('discover.new')}</Text>
               </View>
             </View>
           </View>
@@ -416,7 +422,7 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
 
           <View style={styles.cardBottom}>
             <Text style={styles.cardPrice}>
-              {room.pricePerGroup?.length ? `From €${Math.min(...room.pricePerGroup.map((g: any) => g.price))}` : `€${room.price}`}
+              {room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}
               {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>{t('perPerson')}</Text>}
             </Text>
             <TouchableOpacity
@@ -450,7 +456,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    paddingTop: 54,
+    paddingTop: 12, // actual top padding set dynamically via insets
     paddingBottom: 12,
     backgroundColor: 'rgba(26, 13, 13, 0.85)',
     borderBottomLeftRadius: 20,
@@ -584,7 +590,7 @@ const styles = StyleSheet.create({
       android: { elevation: 10 },
     }),
   },
-  cardImg: { width: 110, height: '100%', minHeight: 150 },
+  cardImg: { width: 110, height: '100%', minHeight: 150, resizeMode: 'cover' },
   cardContent: { flex: 1, padding: 14, justifyContent: 'space-between', gap: 4 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   cardTitle: { fontSize: 15, fontWeight: '700', color: '#fff', flex: 1 },
@@ -627,7 +633,7 @@ const styles = StyleSheet.create({
       android: { elevation: 6 },
     }),
   },
-  peekImg: { width: 80, height: 80 },
+  peekImg: { width: 80, height: 80, resizeMode: 'cover' },
   peekInfo: { flex: 1, padding: 10, justifyContent: 'center', gap: 4 },
   peekTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
   peekMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },

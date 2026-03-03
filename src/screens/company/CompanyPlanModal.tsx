@@ -3,10 +3,11 @@ import {
   View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMutation } from 'convex/react';
+import { useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
+import { openCheckout, buildDeepLink, isPaymentEnabled } from '../../payments';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 interface Props {
@@ -47,7 +48,9 @@ const PLANS = [
 export default function CompanyPlanModal({ visible, onClose, companyId, currentPlan }: Props) {
   const { t } = useTranslation();
   const selectPlan = useMutation(api.companies.selectPlan);
+  const createCheckoutSession = useAction(api.stripe.createCheckoutSession);
   const [loading, setLoading] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
   const handleSelectPlan = async (planId: 'starter' | 'pro' | 'enterprise') => {
     if (planId === currentPlan) {
@@ -57,14 +60,32 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
 
     setLoading(true);
     try {
-      await selectPlan({
-        companyId: companyId as Id<"companies">,
-        plan: planId,
-      });
-      Alert.alert(t('success'), t('settings.planUpdated'));
-      onClose();
-    } catch (error) {
-      Alert.alert(t('error'), t('settings.updateFailed'));
+      if (isPaymentEnabled()) {
+        // Create Stripe Checkout session for the subscription
+        const successUrl = buildDeepLink('subscription-success');
+        const cancelUrl = buildDeepLink('subscription-cancel');
+
+        const url = await createCheckoutSession({
+          companyId: companyId as Id<"companies">,
+          plan: planId,
+          period: billingPeriod,
+          successUrl,
+          cancelUrl,
+        });
+
+        await openCheckout(url);
+        onClose();
+      } else {
+        // Stripe not configured — just update plan in DB (dev/testing mode)
+        await selectPlan({
+          companyId: companyId as Id<"companies">,
+          plan: planId,
+        });
+        Alert.alert(t('success'), t('settings.planUpdated'));
+        onClose();
+      }
+    } catch (error: any) {
+      Alert.alert(t('error'), error.message || t('settings.updateFailed'));
     } finally {
       setLoading(false);
     }
@@ -82,6 +103,26 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.subtitle}>{t('onboarding.planSubtitle')}</Text>
+
+          {/* Billing Period Toggle */}
+          <View style={styles.periodToggle}>
+            <TouchableOpacity
+              style={[styles.periodBtn, billingPeriod === 'monthly' && styles.periodBtnActive]}
+              onPress={() => setBillingPeriod('monthly')}
+            >
+              <Text style={[styles.periodText, billingPeriod === 'monthly' && styles.periodTextActive]}>
+                {t('onboarding.monthly') || 'Monthly'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.periodBtn, billingPeriod === 'yearly' && styles.periodBtnActive]}
+              onPress={() => setBillingPeriod('yearly')}
+            >
+              <Text style={[styles.periodText, billingPeriod === 'yearly' && styles.periodTextActive]}>
+                {t('onboarding.yearly') || 'Yearly'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {PLANS.map((plan) => {
             const isCurrent = plan.id === currentPlan;
@@ -109,7 +150,8 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
                   <View style={{ flex: 1 }}>
                     <Text style={styles.planName}>{t(`onboarding.plan${plan.id.charAt(0).toUpperCase() + plan.id.slice(1)}`)}</Text>
                     <Text style={styles.planPrice}>
-                      {plan.priceMonth}<Text style={styles.planPeriod}>/mo</Text>
+                      {billingPeriod === 'monthly' ? plan.priceMonth : plan.priceYear}
+                      <Text style={styles.planPeriod}>{billingPeriod === 'monthly' ? '/mo' : '/yr'}</Text>
                     </Text>
                   </View>
                   {isCurrent && (
@@ -159,6 +201,21 @@ const styles = StyleSheet.create({
   closeBtn: { padding: 4 },
   scrollContent: { padding: 20, paddingBottom: 40 },
   subtitle: { fontSize: 16, color: theme.colors.textSecondary, marginBottom: 24, textAlign: 'center' },
+
+  periodToggle: {
+    flexDirection: 'row', alignSelf: 'center', marginBottom: 24,
+    backgroundColor: theme.colors.glass, borderRadius: theme.radius.md,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+    padding: 3,
+  },
+  periodBtn: {
+    paddingVertical: 10, paddingHorizontal: 24, borderRadius: theme.radius.md - 2,
+  },
+  periodBtnActive: {
+    backgroundColor: theme.colors.redPrimary,
+  },
+  periodText: { fontSize: 14, fontWeight: '600', color: theme.colors.textMuted },
+  periodTextActive: { color: '#fff' },
 
   planCard: {
     backgroundColor: theme.colors.bgCardSolid,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { ConvexProvider } from 'convex/react';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,7 @@ import ScanScreen from './src/screens/ScanScreen';
 import SocialScreen from './src/screens/SocialScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import PremiumScreen from './src/screens/PremiumScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 
 // Legal & Settings Screens (Apple Guidelines compliance)
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
@@ -57,6 +58,8 @@ import CompanyBookingDetail from './src/screens/company/CompanyBookingDetail';
 import CompanyAddBooking from './src/screens/company/CompanyAddBooking';
 import CompanyQRScanner from './src/screens/company/CompanyQRScanner';
 import CompanyOnboarding from './src/screens/company/CompanyOnboarding';
+import CompanyPhotos from './src/screens/company/CompanyPhotos';
+import CompanyBilling from './src/screens/company/CompanyBilling';
 import AdminReview from './src/screens/AdminReview';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -330,6 +333,7 @@ export default function App() {
 
   /* ── Company Tabs Navigator ── */
   function CompanyTabs() {
+    const companyNav = useNavigation<any>();
     return (
       <CompanyTab.Navigator
         screenOptions={{
@@ -381,6 +385,8 @@ export default function App() {
           {() => (
             <CompanySettings
               companyId={companyId!}
+              onNavigateBilling={() => companyNav.navigate('CompanyBilling', { companyId: companyId! })}
+              onNavigatePhotos={() => companyNav.navigate('CompanyPhotos', { companyId: companyId! })}
               onSwitchToPlayer={async () => {
                 setCompanyId(null);
                 const storedUserId = await AsyncStorage.getItem('userId');
@@ -441,6 +447,12 @@ export default function App() {
                   <Stack.Screen name="CompanyQRScanner">
                     {(props) => <CompanyQRScanner companyId={companyId} onClose={() => (props as any).navigation.goBack()} />}
                   </Stack.Screen>
+                  <Stack.Screen name="CompanyPhotos">
+                    {() => <CompanyPhotos companyId={companyId} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyBilling">
+                    {(props) => <CompanyBilling companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
                 </>
               ) : (
                 <>
@@ -448,6 +460,7 @@ export default function App() {
                     {() => <MainTabs onSwitchToCompany={handleSwitchToCompany} onAdminReview={() => setAppState('adminReview')} />}
                   </Stack.Screen>
                   <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                  <Stack.Screen name="Friends" component={FriendsScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />

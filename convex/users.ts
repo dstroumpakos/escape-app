@@ -1,7 +1,19 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
+
+// ── Rank thresholds based on completed rooms ──
+function getPlayerRank(completed: number): string {
+  if (completed >= 100) return "rank_legend";
+  if (completed >= 50) return "rank_master";
+  if (completed >= 25) return "rank_expert";
+  if (completed >= 10) return "rank_veteran";
+  if (completed >= 5) return "rank_adventurer";
+  if (completed >= 1) return "rank_explorer";
+  return "rank_rookie";
+}
 
 export const getByEmail = query({
   args: { email: v.string() },
@@ -24,8 +36,29 @@ export const getByEmail = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
+    // Compute real stats from bookings
+    const allBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const played = allBookings.filter((b) => b.status === "completed").length;
+    const uniqueRooms = new Set(
+      allBookings.filter((b) => b.status === "completed").map((b) => b.roomId)
+    ).size;
+
+    const rank = getPlayerRank(played);
+
     const { password: _pw, ...safeUser } = user;
-    return { ...safeUser, avatar, badges };
+    return {
+      ...safeUser,
+      avatar,
+      badges,
+      played,
+      escaped: uniqueRooms,
+      awards: badges.filter((b) => b.earned).length,
+      title: rank,
+    };
   },
 });
 
@@ -47,8 +80,36 @@ export const getById = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
+    // Compute real stats from bookings
+    const allBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+
+    const played = allBookings.filter(
+      (b) => b.status === "completed"
+    ).length;
+    const upcoming = allBookings.filter(
+      (b) => b.status === "upcoming"
+    ).length;
+    // Count unique rooms completed
+    const uniqueRooms = new Set(
+      allBookings.filter((b) => b.status === "completed").map((b) => b.roomId)
+    ).size;
+
+    const rank = getPlayerRank(played);
+
     const { password: _pw, ...safeUser } = user;
-    return { ...safeUser, avatar, badges };
+    return {
+      ...safeUser,
+      avatar,
+      badges,
+      played,
+      escaped: uniqueRooms,
+      awards: badges.filter((b) => b.earned).length,
+      title: rank,
+      upcoming,
+    };
   },
 });
 
@@ -91,6 +152,12 @@ export const register = mutation({
       escaped: 0,
       awards: 0,
       wishlist: [],
+    });
+
+    // Send welcome email
+    await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
+      playerName: name,
+      playerEmail: args.email.toLowerCase(),
     });
 
     return userId;
@@ -178,6 +245,15 @@ export const loginWithApple = mutation({
       wishlist: [],
     });
 
+    // Send welcome email (only if real email)
+    const userEmail = args.email || "";
+    if (userEmail && !userEmail.includes("@private.relay")) {
+      await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
+        playerName: args.fullName || "Escape Fan",
+        playerEmail: userEmail,
+      });
+    }
+
     return userId;
   },
 });
@@ -224,6 +300,19 @@ export const updateProfile = mutation({
 
     await ctx.db.patch(args.userId, updates);
     return args.userId;
+  },
+});
+
+// ─── Update language preference ───
+export const updateLanguage = mutation({
+  args: {
+    userId: v.id("users"),
+    language: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(args.userId, { language: args.language });
   },
 });
 
@@ -372,6 +461,25 @@ export const deleteAccount = mutation({
       .collect();
     for (const s of premiumSubs) await ctx.db.delete(s._id);
 
+    // 9. Delete friendships
+    const friendsAsSender = await ctx.db
+      .query("friendships")
+      .withIndex("by_requester", (q) => q.eq("requesterId", args.userId))
+      .collect();
+    for (const f of friendsAsSender) await ctx.db.delete(f._id);
+    const friendsAsReceiver = await ctx.db
+      .query("friendships")
+      .withIndex("by_receiver", (q) => q.eq("receiverId", args.userId))
+      .collect();
+    for (const f of friendsAsReceiver) await ctx.db.delete(f._id);
+
+    // 9b. Delete booking invites
+    const invitesAsInvitee = await ctx.db
+      .query("bookingInvites")
+      .withIndex("by_invitee", (q) => q.eq("inviteeId", args.userId))
+      .collect();
+    for (const inv of invitesAsInvitee) await ctx.db.delete(inv._id);
+
     // 10. Delete blocked-users entries (as blocker or blocked)
     const blocksAsBlocker = await ctx.db
       .query("blockedUsers")
@@ -394,5 +502,149 @@ export const deleteAccount = mutation({
     await ctx.db.delete(args.userId);
 
     return { success: true };
+  },
+});
+
+// ── Leaderboard ──
+
+export const leaderboard = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const max = args.limit ?? 20;
+
+    // Fetch all users and all bookings
+    const allUsers = await ctx.db.query("users").collect();
+    const allBookings = await ctx.db.query("bookings").collect();
+
+    // Compute dynamic stats per user
+    const userStats = allUsers.map((user) => {
+      const userBookings = allBookings.filter(
+        (b) => b.userId === user._id && b.status === "completed"
+      );
+      const played = userBookings.length;
+      const escaped = new Set(userBookings.map((b) => b.roomId)).size;
+      return { ...user, played, escaped };
+    });
+
+    // Sort by escaped count descending, then by played ascending (fewer games = better rate)
+    const sorted = userStats
+      .filter((u) => u.played > 0)
+      .sort((a, b) => {
+        if (b.escaped !== a.escaped) return b.escaped - a.escaped;
+        return a.played - b.played;
+      });
+
+    const topUsers = sorted.slice(0, max);
+
+    // Fetch badges for each top user
+    const players = await Promise.all(
+      topUsers.map(async (user, i) => {
+        const badges = await ctx.db
+          .query("badges")
+          .withIndex("by_user", (q) => q.eq("userId", user._id))
+          .collect();
+
+        // Resolve avatar
+        let avatar = user.avatar;
+        if (user.avatarStorageId) {
+          const freshUrl = await ctx.storage.getUrl(user.avatarStorageId);
+          if (freshUrl) avatar = freshUrl;
+        }
+
+        const rate = user.played > 0 ? Math.round((user.escaped / user.played) * 100) : 0;
+        const initials = user.name
+          .split(" ")
+          .map((w: string) => w[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+
+        return {
+          rank: i + 1,
+          id: user._id,
+          name: user.name,
+          avatar,
+          initials,
+          played: user.played,
+          escaped: user.escaped,
+          rate,
+          badges: badges.length,
+          isPremium: user.isPremium ?? false,
+        };
+      })
+    );
+
+    // Aggregate stats across ALL users (dynamic)
+    const totalEscapes = userStats.reduce((sum, u) => sum + u.escaped, 0);
+    const totalPlayed = userStats.reduce((sum, u) => sum + u.played, 0);
+    const successRate = totalPlayed > 0 ? Math.round((totalEscapes / totalPlayed) * 100) : 0;
+
+    // Total badges
+    const allBadges = await ctx.db.query("badges").collect();
+    const totalBadges = allBadges.length;
+
+    // ── Per-room escape stats (computed from bookings) ──
+    const allRooms = await ctx.db.query("rooms").collect();
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const roomStats: Record<string, { completed: number; total: number }> = {};
+    for (const booking of allBookings) {
+      if (booking.status === "cancelled") continue;
+      const rid = booking.roomId as string;
+      if (!roomStats[rid]) roomStats[rid] = { completed: 0, total: 0 };
+      // Only count past bookings (date <= today) for escape rate
+      if (booking.date <= today) {
+        roomStats[rid].total += 1;
+        if (booking.status === "completed") {
+          roomStats[rid].completed += 1;
+        }
+      }
+    }
+
+    const topRooms = allRooms
+      .filter((r) => r.isActive !== false)
+      .map((r) => {
+        const stats = roomStats[r._id as string] ?? { completed: 0, total: 0 };
+        const escapeRate = stats.total > 0
+          ? Math.round((stats.completed / stats.total) * 100)
+          : 0;
+        return {
+          id: r._id,
+          title: r.title,
+          location: r.location,
+          rating: r.rating,
+          reviews: r.reviews,
+          theme: r.theme,
+          escapeRate,
+          gamesPlayed: stats.completed,
+          companyId: r.companyId,
+        };
+      })
+      .filter((r) => r.rating > 0 || r.gamesPlayed > 0)
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+      .slice(0, 10);
+
+    // Enrich top rooms with company name
+    const topRoomsEnriched = await Promise.all(
+      topRooms.map(async (r) => {
+        let companyName = "";
+        if (r.companyId) {
+          const company = await ctx.db.get(r.companyId);
+          if (company) companyName = company.name;
+        }
+        return { ...r, companyName };
+      })
+    );
+
+    return {
+      players,
+      topRooms: topRoomsEnriched,
+      stats: {
+        totalEscapes,
+        totalPlayed,
+        successRate,
+        totalBadges,
+      },
+    };
   },
 });

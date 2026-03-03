@@ -37,8 +37,20 @@ export default defineSchema({
     platformSubscribedAt: v.optional(v.number()),
     adminNotes: v.optional(v.string()),
     reviewedAt: v.optional(v.number()),
+    // ── Stripe ──
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+    billingPeriod: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
+    stripePaymentStatus: v.optional(v.union(
+      v.literal("pending"),
+      v.literal("active"),
+      v.literal("cancelled"),
+      v.literal("past_due"),
+    )),
   })
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_stripeCustomerId", ["stripeCustomerId"]),
 
   rooms: defineTable({
     title: v.string(),
@@ -134,6 +146,9 @@ export default defineSchema({
     city: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
     // UNLOCKED Premium
+    // Language preference for notifications
+    language: v.optional(v.string()), // "en" | "el"
+    // UNLOCKED Premium
     isPremium: v.optional(v.boolean()),
     premiumSince: v.optional(v.number()),
     premiumExpiresAt: v.optional(v.number()),
@@ -184,6 +199,9 @@ export default defineSchema({
       v.literal("unpaid"),
       v.literal("na")
     )),
+    // Stripe session for player-side payments
+    stripeSessionId: v.optional(v.string()),
+    stripePaymentIntentId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
@@ -267,7 +285,12 @@ export default defineSchema({
       v.literal("reminder"),
       v.literal("promo"),
       v.literal("system"),
-      v.literal("slot_available")
+      v.literal("slot_available"),
+      v.literal("new_room"),
+      v.literal("photos_ready"),
+      v.literal("friend_request"),
+      v.literal("friend_accepted"),
+      v.literal("booking_invite")
     ),
     title: v.string(),
     message: v.string(),
@@ -289,6 +312,20 @@ export default defineSchema({
   })
     .index("by_slot", ["roomId", "date", "time"])
     .index("by_contact", ["contact"]),
+
+  // ─── Room Reviews ───
+  reviews: defineTable({
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    bookingId: v.id("bookings"),
+    rating: v.number(), // 1-5 stars
+    text: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_user", ["userId"])
+    .index("by_booking", ["bookingId"])
+    .index("by_room_created", ["roomId", "createdAt"]),
 
   // ─── Content Reports (Guideline 1.2 — UGC moderation) ───
   reports: defineTable({
@@ -324,10 +361,91 @@ export default defineSchema({
     .index("by_blocker", ["blockerId"])
     .index("by_blocker_blocked", ["blockerId", "blockedUserId"]),
 
+  // ─── Friendships ───
+  friendships: defineTable({
+    requesterId: v.id("users"),     // user who sent the request
+    receiverId: v.id("users"),      // user who received the request
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined")
+    ),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_requester", ["requesterId"])
+    .index("by_receiver", ["receiverId"])
+    .index("by_pair", ["requesterId", "receiverId"])
+    .index("by_receiver_status", ["receiverId", "status"]),
+
+  // ─── Booking Invites (invite friends to a booking) ───
+  bookingInvites: defineTable({
+    bookingId: v.id("bookings"),
+    inviterId: v.id("users"),       // user who created the booking / sent invite
+    inviteeId: v.id("users"),       // friend being invited
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined")
+    ),
+    createdAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_booking", ["bookingId"])
+    .index("by_invitee", ["inviteeId"])
+    .index("by_invitee_status", ["inviteeId", "status"]),
+
   // ─── Widget Bundle (serves JS from Convex site) ───
   widgetBundle: defineTable({
     content: v.string(),
     version: v.string(),
     updatedAt: v.number(),
   }),
+
+  // ─── Company Photo Presets (branding template for booking photos) ───
+  companyPhotoPresets: defineTable({
+    companyId: v.id("companies"),
+    logoUrl: v.optional(v.string()),
+    logoStorageId: v.optional(v.id("_storage")),
+    logoPosition: v.union(
+      v.literal("top-left"),
+      v.literal("top-right"),
+      v.literal("bottom-left"),
+      v.literal("bottom-right"),
+      v.literal("bottom-center")
+    ),
+    brandColor: v.string(), // hex e.g. "#FF1E1E"
+    watermarkOpacity: v.number(), // 0.0 – 1.0
+    textTemplate: v.optional(v.string()), // e.g. "You escaped in {{time}}"
+    overlayUrl: v.optional(v.string()), // full-frame transparent PNG overlay
+    overlayStorageId: v.optional(v.id("_storage")),
+    useOverlay: v.optional(v.boolean()), // true = use overlay instead of logo
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"]),
+
+  // ─── Booking Photos (company-uploaded, auto-branded) ───
+  bookingPhotos: defineTable({
+    bookingId: v.id("bookings"),
+    companyId: v.id("companies"),
+    // Storage references
+    originalStorageId: v.id("_storage"),
+    originalUrl: v.string(),
+    processedStorageId: v.optional(v.id("_storage")),
+    processedUrl: v.optional(v.string()),
+    // Processing status
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("ready"),
+      v.literal("failed")
+    ),
+    // Metadata
+    order: v.number(), // display order
+    uploadedAt: v.number(),
+    processedAt: v.optional(v.number()),
+  })
+    .index("by_booking", ["bookingId"])
+    .index("by_company", ["companyId"])
+    .index("by_status", ["status"]),
 });

@@ -183,6 +183,7 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
           {[
             { icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true },
             { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
+            { icon: 'people-outline' as const, label: t('friends.title'), action: () => navigation.navigate('Friends' as any) },
             { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => navigation.navigate('NotificationPrefs' as any) },
             { icon: 'card-outline' as const, label: t('profile.paymentMethods'), action: () => Alert.alert(t('profile.paymentMethods'), t('profile.paymentMessage')) },
             { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Linking.openURL('mailto:support@unlocked.app?subject=Support%20Request') },
