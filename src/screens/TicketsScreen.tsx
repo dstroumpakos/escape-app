@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Linking, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,13 +29,20 @@ export default function TicketsScreen() {
   const cancelBooking = useMutation(api.bookings.cancel);
 
   const upcomingBookings = (bookings || []).filter((b: any) => b.status === 'upcoming');
-  const pastBookings = (bookings || []).filter((b: any) => b.status !== 'upcoming');
+  const pastBookings = (bookings || []).filter((b: any) => b.status === 'completed');
 
   const currentBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
   const isLoading = userId && bookings === undefined;
 
   // QR modal state
   const [qrBooking, setQrBooking] = useState<any>(null);
+
+  // Countdown timer tick
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleCancel = (booking: any) => {
     const roomTitle = booking.room?.title || t('tickets.escapeRoom');
@@ -65,6 +72,32 @@ export default function TicketsScreen() {
     if (status === 'deposit') return { label: t('tickets.deposit'), color: '#FFA726', bg: 'rgba(255,167,38,0.15)' };
     if (status === 'unpaid') return { label: t('tickets.payOnArrival'), color: '#42A5F5', bg: 'rgba(66,165,245,0.15)' };
     return null;
+  };
+
+  const getCountdown = (dateStr: string, timeStr: string): string | null => {
+    try {
+      // Parse "YYYY-MM-DD" + "10:00 AM" style
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!match) return null;
+      let hours = parseInt(match[1]);
+      const mins = parseInt(match[2]);
+      const ampm = match[3].toUpperCase();
+      if (ampm === 'PM' && hours !== 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      const target = new Date(y, m - 1, d, hours, mins).getTime();
+      const diff = target - now;
+      if (diff <= 0) return null;
+      const totalMins = Math.floor(diff / 60000);
+      const days = Math.floor(totalMins / 1440);
+      const hrs = Math.floor((totalMins % 1440) / 60);
+      const remainMins = totalMins % 60;
+      if (days > 0) return `${days}d ${hrs}h`;
+      if (hrs > 0) return `${hrs}h ${remainMins}m`;
+      return `${remainMins}m`;
+    } catch {
+      return null;
+    }
   };
 
   return (
@@ -189,6 +222,18 @@ export default function TicketsScreen() {
                       <Text style={[styles.paymentBadgeText, { color: payment.color }]}>{payment.label}</Text>
                     </View>
                   )}
+
+                  {/* Countdown Timer */}
+                  {booking.status === 'upcoming' && (() => {
+                    const cd = getCountdown(booking.date, booking.time);
+                    if (!cd) return null;
+                    return (
+                      <View style={styles.countdownRow}>
+                        <Ionicons name="timer-outline" size={14} color={theme.colors.redPrimary} />
+                        <Text style={styles.countdownText}>{t('tickets.startsIn')} {cd}</Text>
+                      </View>
+                    );
+                  })()}
 
                   {booking.status === 'upcoming' && (
                     <View style={styles.ticketActions}>
@@ -352,6 +397,17 @@ const styles = StyleSheet.create({
     borderRadius: 12, marginTop: 10,
   },
   paymentBadgeText: { fontSize: 11, fontWeight: '700' },
+
+  // Countdown
+  countdownRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    marginTop: 10, paddingVertical: 6, paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    backgroundColor: 'rgba(244,67,54,0.1)',
+    borderWidth: 1, borderColor: 'rgba(244,67,54,0.2)',
+  },
+  countdownText: { fontSize: 12, fontWeight: '700', color: theme.colors.redPrimary },
 
   // Actions
   ticketActions: {

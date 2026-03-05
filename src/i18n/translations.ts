@@ -141,6 +141,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'tickets.statusCancelled': 'Cancelled',
     'tickets.escapeRoom': 'Escape Room',
     'tickets.loginRequired': 'Sign in to view your bookings',
+    'tickets.startsIn': 'Starts in',
     'tickets.write_review': 'Write Review',
     'tickets.reviewed': 'Reviewed',
 
@@ -625,6 +626,8 @@ export const translations: Record<Language, Record<string, string>> = {
     'roomEditor.saveFailed': 'Failed to save room. Please try again.',
     'roomEditor.updateRoom': 'Update Room',
     'roomEditor.createRoom': 'Create Room',
+    'roomEditor.photoBranding': 'Photo Branding',
+    'roomEditor.photoBrandingDesc': 'Configure how your branded photos will look when sent to players after their game.',
 
     /* ── CompanyBookings ── */
     'companyBookings.title': 'Calendar',
@@ -1303,6 +1306,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'tickets.statusCancelled': 'Ακυρωμένο',
     'tickets.escapeRoom': 'Escape Room',
     'tickets.loginRequired': 'Συνδέσου για να δεις τις κρατήσεις σου',
+    'tickets.startsIn': 'Ξεκινάει σε',
     'tickets.write_review': 'Γράψε Κριτική',
     'tickets.reviewed': 'Αξιολογήθηκε',
 
@@ -1787,6 +1791,8 @@ export const translations: Record<Language, Record<string, string>> = {
     'roomEditor.saveFailed': 'Αποτυχία αποθήκευσης δωματίου. Δοκιμάστε ξανά.',
     'roomEditor.updateRoom': 'Ενημέρωση Δωματίου',
     'roomEditor.createRoom': 'Δημιουργία Δωματίου',
+    'roomEditor.photoBranding': 'Branding Φωτογραφιών',
+    'roomEditor.photoBrandingDesc': 'Ρυθμίστε πώς θα φαίνονται οι φωτογραφίες που στέλνονται στους παίκτες μετά το παιχνίδι.',
 
     /* ── CompanyBookings ── */
     'companyBookings.title': 'Ημερολόγιο',

@@ -82,6 +82,7 @@ export const create = mutation({
         companyName: company?.name ?? "Escape Room",
         companyPhone: company?.phone ?? "",
         companyEmail: company?.email ?? "",
+        lang: (user as any).language || "en",
       });
     }
 
@@ -284,6 +285,7 @@ export const confirmBookingPayment = mutation({
         companyName: company?.name ?? "Escape Room",
         companyPhone: (company as any)?.phone ?? "",
         companyEmail: company?.email ?? "",
+        lang: (user as any).language || "en",
       });
     }
   },

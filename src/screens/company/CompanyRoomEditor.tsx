@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform, Image
+  TextInput, Alert, KeyboardAvoidingView, Platform, Image, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -125,6 +125,111 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [overflowDays, setOverflowDays] = useState<number[]>([1, 2, 3, 4, 5, 6]); // Mon-Sat default
   const [loading, setLoading] = useState(false);
   const mapRef = useRef<MapView>(null);
+
+  // ── Photo Branding Preset (company-level) ──
+  const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
+  const savePreset = useMutation(api.bookingPhotos.savePreset);
+  const generateUploadUrl2 = useMutation(api.companies.generateUploadUrl);
+  const getUrlMutation2 = useMutation(api.companies.getUrlMutation);
+  const [photoBrandingOpen, setPhotoBrandingOpen] = useState(false);
+  const [presetForm, setPresetForm] = useState({
+    logoPosition: 'bottom-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom-center',
+    brandColor: '#FF1E1E',
+    watermarkOpacity: 0.3,
+    textTemplate: '',
+  });
+  const [presetLogoUrl, setPresetLogoUrl] = useState('');
+  const [presetLogoStorageId, setPresetLogoStorageId] = useState<any>(null);
+  const [presetLogoUploading, setPresetLogoUploading] = useState(false);
+  const [useOverlay, setUseOverlay] = useState(false);
+  const [overlayUrl, setOverlayUrl] = useState('');
+  const [overlayStorageId, setOverlayStorageId] = useState<any>(null);
+  const [overlayUploading, setOverlayUploading] = useState(false);
+  const [presetSaving, setPresetSaving] = useState(false);
+  const [presetMsg, setPresetMsg] = useState('');
+  const [presetLoaded, setPresetLoaded] = useState(false);
+
+  useEffect(() => {
+    if (photoPreset && !presetLoaded) {
+      setPresetForm({
+        logoPosition: photoPreset.logoPosition || 'bottom-right',
+        brandColor: photoPreset.brandColor || '#FF1E1E',
+        watermarkOpacity: photoPreset.watermarkOpacity ?? 0.3,
+        textTemplate: photoPreset.textTemplate || '',
+      });
+      if (photoPreset.logoUrl) setPresetLogoUrl(photoPreset.logoUrl);
+      if (photoPreset.logoStorageId) setPresetLogoStorageId(photoPreset.logoStorageId);
+      if ((photoPreset as any).overlayUrl) setOverlayUrl((photoPreset as any).overlayUrl);
+      if ((photoPreset as any).overlayStorageId) setOverlayStorageId((photoPreset as any).overlayStorageId);
+      if ((photoPreset as any).useOverlay) setUseOverlay(true);
+      setPresetLoaded(true);
+    }
+  }, [photoPreset, presetLoaded]);
+
+  const handleUploadLogo = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
+    if (result.canceled) return;
+    setPresetLogoUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl2();
+      const resp = await fetch(result.assets[0].uri);
+      const blob = await resp.blob();
+      const res = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': result.assets[0].mimeType || 'image/jpeg' }, body: blob });
+      const { storageId } = await res.json();
+      const url = await getUrlMutation2({ storageId });
+      if (url) { setPresetLogoUrl(url); setPresetLogoStorageId(storageId); }
+    } catch { Alert.alert(t('error'), t('settings.photoUploadFailed')); }
+    setPresetLogoUploading(false);
+  };
+
+  const handleUploadOverlay = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9 });
+    if (result.canceled) return;
+    setOverlayUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl2();
+      const resp = await fetch(result.assets[0].uri);
+      const blob = await resp.blob();
+      const res = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': result.assets[0].mimeType || 'image/png' }, body: blob });
+      const { storageId } = await res.json();
+      const url = await getUrlMutation2({ storageId });
+      if (url) { setOverlayUrl(url); setOverlayStorageId(storageId); }
+    } catch { Alert.alert(t('error'), t('settings.photoUploadFailed')); }
+    setOverlayUploading(false);
+  };
+
+  const handleSavePreset = async () => {
+    setPresetSaving(true); setPresetMsg('');
+    try {
+      await savePreset({
+        companyId: companyId as Id<"companies">,
+        logoUrl: presetLogoUrl || undefined,
+        logoStorageId: presetLogoStorageId || undefined,
+        logoPosition: presetForm.logoPosition,
+        brandColor: presetForm.brandColor,
+        watermarkOpacity: presetForm.watermarkOpacity,
+        textTemplate: presetForm.textTemplate || undefined,
+        overlayUrl: overlayUrl || undefined,
+        overlayStorageId: overlayStorageId || undefined,
+        useOverlay,
+      });
+      setPresetMsg('✓');
+      setTimeout(() => setPresetMsg(''), 3000);
+    } catch { setPresetMsg(t('settings.photosSaveError')); }
+    setPresetSaving(false);
+  };
+
+  const LOGO_POSITIONS: { key: typeof presetForm.logoPosition; label: string }[] = [
+    { key: 'top-left', label: t('settings.posTopLeft') },
+    { key: 'top-right', label: t('settings.posTopRight') },
+    { key: 'bottom-left', label: t('settings.posBottomLeft') },
+    { key: 'bottom-right', label: t('settings.posBottomRight') },
+    { key: 'bottom-center', label: t('settings.posBottomCenter') },
+  ];
 
   // Get user's current location as default map center
   useEffect(() => {
@@ -1033,6 +1138,162 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           })()}
         </View>
 
+        {/* ═══════ Photo Branding ═══════ */}
+        <TouchableOpacity
+          style={[styles.sectionToggle, { marginHorizontal: 20, marginTop: 8, marginBottom: photoBrandingOpen ? 0 : 16 }]}
+          onPress={() => setPhotoBrandingOpen(!photoBrandingOpen)}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="camera-outline" size={18} color={theme.colors.redPrimary} />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{t('roomEditor.photoBranding')}</Text>
+          </View>
+          <Ionicons name={photoBrandingOpen ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+
+        {photoBrandingOpen && (
+          <View style={styles.card}>
+            <Text style={{ fontSize: 12, color: theme.colors.textMuted, marginBottom: 12 }}>{t('roomEditor.photoBrandingDesc')}</Text>
+
+            {presetMsg ? (
+              <View style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 10, backgroundColor: presetMsg === '✓' ? 'rgba(76,175,80,0.15)' : 'rgba(244,67,54,0.15)' }}>
+                <Text style={{ color: presetMsg === '✓' ? '#4CAF50' : '#F44336', fontSize: 13 }}>{presetMsg === '✓' ? t('settings.photosSaved') : presetMsg}</Text>
+              </View>
+            ) : null}
+
+            {/* Mode toggle */}
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              <TouchableOpacity
+                style={[styles.photoModeBtn, !useOverlay && styles.photoModeBtnActive]}
+                onPress={() => setUseOverlay(false)}
+              >
+                <Ionicons name="cloud-upload-outline" size={16} color={!useOverlay ? '#fff' : theme.colors.textMuted} />
+                <Text style={[styles.photoModeText, !useOverlay && { color: '#fff' }]}>{t('settings.photoModeLogo')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.photoModeBtn, useOverlay && styles.photoModeBtnActive]}
+                onPress={() => setUseOverlay(true)}
+              >
+                <Ionicons name="layers-outline" size={16} color={useOverlay ? '#fff' : theme.colors.textMuted} />
+                <Text style={[styles.photoModeText, useOverlay && { color: '#fff' }]}>{t('settings.photoModeOverlay')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* OVERLAY MODE */}
+            {useOverlay && (
+              <>
+                <Text style={styles.label}>{t('settings.overlayImage')}</Text>
+                <TouchableOpacity style={styles.photoUploadArea} onPress={handleUploadOverlay}>
+                  {overlayUploading ? (
+                    <ActivityIndicator size="large" color={theme.colors.redPrimary} />
+                  ) : overlayUrl ? (
+                    <Image source={{ uri: overlayUrl }} style={{ width: '100%', height: 120, borderRadius: 8 }} resizeMode="contain" />
+                  ) : (
+                    <>
+                      <Ionicons name="layers-outline" size={32} color={theme.colors.textMuted} />
+                      <Text style={{ fontSize: 12, color: theme.colors.textMuted, marginTop: 4 }}>{t('settings.uploadOverlay')}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <Text style={styles.label}>{t('settings.overlayOpacity')} ({Math.round(presetForm.watermarkOpacity * 100)}%)</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {[10, 20, 30, 50, 70, 100].map((v) => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[styles.opacBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacBtnActive]}
+                      onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
+                    >
+                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* LOGO MODE */}
+            {!useOverlay && (
+              <>
+                <Text style={styles.label}>{t('settings.logoUpload')}</Text>
+                <TouchableOpacity style={styles.photoUploadArea} onPress={handleUploadLogo}>
+                  {presetLogoUploading ? (
+                    <ActivityIndicator size="large" color={theme.colors.redPrimary} />
+                  ) : presetLogoUrl ? (
+                    <Image source={{ uri: presetLogoUrl }} style={{ width: 80, height: 80, borderRadius: 8 }} resizeMode="contain" />
+                  ) : (
+                    <>
+                      <Ionicons name="cloud-upload-outline" size={32} color={theme.colors.textMuted} />
+                      <Text style={{ fontSize: 12, color: theme.colors.textMuted, marginTop: 4 }}>{t('settings.uploadLogo')}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <Text style={styles.label}>{t('settings.logoPosition')}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {LOGO_POSITIONS.map((pos) => (
+                    <TouchableOpacity
+                      key={pos.key}
+                      style={[styles.opacBtn, presetForm.logoPosition === pos.key && styles.opacBtnActive]}
+                      onPress={() => setPresetForm({ ...presetForm, logoPosition: pos.key })}
+                    >
+                      <Text style={[styles.opacBtnText, presetForm.logoPosition === pos.key && { color: '#fff' }]}>{pos.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>{t('settings.brandColor')}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: presetForm.brandColor, borderWidth: 1, borderColor: theme.colors.glassBorder }} />
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    value={presetForm.brandColor}
+                    onChangeText={(v) => setPresetForm({ ...presetForm, brandColor: v })}
+                    placeholder="#FF1E1E"
+                    placeholderTextColor={theme.colors.textMuted}
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <Text style={styles.label}>{t('settings.logoOpacity')} ({Math.round(presetForm.watermarkOpacity * 100)}%)</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {[10, 20, 30, 50, 70, 100].map((v) => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[styles.opacBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacBtnActive]}
+                      onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
+                    >
+                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>{t('settings.textTemplate')}</Text>
+                <TextInput
+                  style={styles.input}
+                  value={presetForm.textTemplate}
+                  onChangeText={(v) => setPresetForm({ ...presetForm, textTemplate: v })}
+                  placeholder={t('settings.textTemplatePlaceholder')}
+                  placeholderTextColor={theme.colors.textMuted}
+                />
+              </>
+            )}
+
+            {/* Save Preset */}
+            <TouchableOpacity
+              style={[styles.saveBtn, { marginTop: 14 }, presetSaving && { opacity: 0.6 }]}
+              disabled={presetSaving}
+              onPress={handleSavePreset}
+              activeOpacity={0.8}
+            >
+              {presetSaving ? (
+                <ActivityIndicator size={16} color="#fff" />
+              ) : (
+                <Text style={styles.saveBtnText}>{t('settings.savePhotoPreset')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Featured Listing (Pro+ only) */}
         <Text style={styles.sectionTitle}>Visibility</Text>
         <View style={styles.card}>
@@ -1340,6 +1601,41 @@ const styles = StyleSheet.create({
   tplChipText: {
     fontSize: 13, fontWeight: '600', color: theme.colors.redPrimary,
   },
+
+  // Photo branding
+  sectionToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 14, paddingHorizontal: 16,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  photoModeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 10, borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.glass,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  photoModeBtnActive: {
+    backgroundColor: theme.colors.redPrimary, borderColor: theme.colors.redPrimary,
+  },
+  photoModeText: { fontSize: 12, fontWeight: '600', color: theme.colors.textMuted },
+  photoUploadArea: {
+    height: 120, borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.glass,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+    borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 4,
+  },
+  opacBtn: {
+    paddingVertical: 8, paddingHorizontal: 14,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.glass,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  opacBtnActive: { backgroundColor: theme.colors.redPrimary, borderColor: theme.colors.redPrimary },
+  opacBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.textMuted },
 });
 
 const darkMapStyle = [

@@ -118,6 +118,7 @@ export const register = mutation({
     name: v.string(),
     email: v.string(),
     password: v.string(),
+    lang: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Validate inputs
@@ -158,6 +159,7 @@ export const register = mutation({
     await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
       playerName: name,
       playerEmail: args.email.toLowerCase(),
+      lang: args.lang || "en",
     });
 
     return userId;
@@ -203,6 +205,7 @@ export const loginWithApple = mutation({
     appleId: v.string(),
     email: v.optional(v.string()),
     fullName: v.optional(v.string()),
+    lang: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Check if user already exists with this Apple ID
@@ -251,6 +254,7 @@ export const loginWithApple = mutation({
       await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
         playerName: args.fullName || "Escape Fan",
         playerEmail: userEmail,
+        lang: args.lang || "en",
       });
     }
 

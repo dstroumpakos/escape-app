@@ -44,10 +44,10 @@ function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function fmtDate(dateStr: string): string {
+function fmtDate(dateStr: string, lang = "en"): string {
   try {
     const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString(lang === "el" ? "el-GR" : "en-US", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -58,7 +58,15 @@ function fmtDate(dateStr: string): string {
   }
 }
 
-function paymentLabel(status: string): string {
+function paymentLabel(status: string, lang = "en"): string {
+  if (lang === "el") {
+    switch (status) {
+      case "paid": return "Εξοφλημένο";
+      case "deposit": return "Προκαταβολή";
+      case "unpaid": return "Πληρωμή στον χώρο";
+      default: return status;
+    }
+  }
   switch (status) {
     case "paid": return "Paid in Full";
     case "deposit": return "Deposit Paid";
@@ -74,6 +82,159 @@ function planLabel(plan: string): string {
     case "enterprise": return "Enterprise";
     default: return plan;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Email i18n — EN / EL translations for player-facing emails
+// ══════════════════════════════════════════════════════════════
+
+type Lang = "en" | "el";
+
+const emailI18n: Record<Lang, Record<string, string>> = {
+  en: {
+    // Booking
+    "booking.title": "Booking Confirmed!",
+    "booking.subtitle": "Your escape room adventure awaits",
+    "booking.greeting": "Hi",
+    "booking.thankYou": "Thank you for your booking! Your escape room experience is locked in. Here are your details:",
+    "booking.room": "Room",
+    "booking.date": "Date",
+    "booking.time": "Time",
+    "booking.players": "Players",
+    "booking.total": "Total",
+    "booking.payment": "Payment",
+    "booking.deposit": "Deposit",
+    "booking.notes": "Notes",
+    "booking.keepCode": "Keep your booking code",
+    "booking.keepCodeSuffix": "handy — you'll need it when you arrive.",
+    "booking.needChanges": "Need changes? Call",
+    "booking.viewTickets": "View My Tickets",
+    "booking.footer": "Booked via UNLOCKED",
+    // Booking company
+    "booking.companyTitle": "New Booking Received",
+    "booking.companyBody": "A new booking has been placed on your room.",
+    "booking.customerDetails": "Customer Details",
+    "booking.name": "Name",
+    "booking.email": "Email",
+    "booking.phone": "Phone",
+    "booking.viewDashboard": "View in Dashboard",
+    "booking.companyFooter": "UNLOCKED Platform",
+    // Welcome
+    "welcome.title": "Welcome to UNLOCKED!",
+    "welcome.subtitle": "Your escape room journey starts here",
+    "welcome.greeting": "Hi",
+    "welcome.body": "Welcome to <strong style=\"color:#FF1E1E;\">UNLOCKED</strong> — Greece's escape room platform! You're now part of a community of escape room enthusiasts.",
+    "welcome.whatYouCanDo": "Here's what you can do:",
+    "welcome.discover": "<strong style=\"color:#FFFFFF;\">Discover</strong> — Browse escape rooms near you",
+    "welcome.book": "<strong style=\"color:#FFFFFF;\">Book</strong> — Reserve your spot in seconds",
+    "welcome.connect": "<strong style=\"color:#FFFFFF;\">Connect</strong> — Add friends and invite them to play",
+    "welcome.compete": "<strong style=\"color:#FFFFFF;\">Compete</strong> — Climb the leaderboard and earn badges",
+    "welcome.share": "<strong style=\"color:#FFFFFF;\">Share</strong> — Save and share your escape room photos",
+    "welcome.startExploring": "Start Exploring",
+    "welcome.rank": "Your rank:",
+    "welcome.rankName": "Escape Rookie",
+    "welcome.rankSuffix": "— Play more rooms to level up!",
+    "welcome.footer": "UNLOCKED — Escape Room Platform",
+    "welcome.subject": "Welcome to UNLOCKED! Your escape room adventure starts now",
+    // Stripe receipt
+    "receipt.title": "Payment Receipt",
+    "receipt.subtitle": "Transaction for booking",
+    "receipt.greeting": "Hi",
+    "receipt.body": "Your payment has been processed successfully. Here is your receipt:",
+    "receipt.bookingTotal": "Booking Total",
+    "receipt.paymentType": "Payment Type",
+    "receipt.amountCharged": "Amount Charged",
+    "receipt.fullPayment": "Full Payment",
+    "receipt.depositPayment": "20% Deposit + Service Fee",
+    "receipt.payment": "Payment",
+    "receipt.notice": "This is an automated payment receipt from UNLOCKED. The charge will appear on your statement as \"UNLOCKED\" or",
+    "receipt.questions": "If you have questions about this charge, please contact us.",
+    "receipt.footer": "UNLOCKED — Payment Receipt",
+    // Slot alert
+    "slot.title": "A Slot Just Opened Up!",
+    "slot.subtitle": "at",
+    "slot.greeting": "Hi",
+    "slot.body": "Great news! A time slot you were watching just became available:",
+    "slot.hurry": "This slot won't last long — book it now before someone else grabs it!",
+    "slot.bookBtn": "Book This Slot",
+    "slot.notice": "You received this email because you subscribed to notifications for this time slot on UNLOCKED.",
+    "slot.footer": "UNLOCKED — Slot Alert",
+    "slot.subject": "Slot Available:",
+  },
+  el: {
+    // Booking
+    "booking.title": "Η Κράτηση Επιβεβαιώθηκε!",
+    "booking.subtitle": "Η escape room περιπέτειά σας σας περιμένει",
+    "booking.greeting": "Γεια σου",
+    "booking.thankYou": "Ευχαριστούμε για την κράτησή σου! Η εμπειρία escape room είναι κλεισμένη. Δες τις λεπτομέρειες:",
+    "booking.room": "Δωμάτιο",
+    "booking.date": "Ημερομηνία",
+    "booking.time": "Ώρα",
+    "booking.players": "Παίκτες",
+    "booking.total": "Σύνολο",
+    "booking.payment": "Πληρωμή",
+    "booking.deposit": "Προκαταβολή",
+    "booking.notes": "Σημειώσεις",
+    "booking.keepCode": "Κράτα τον κωδικό κράτησης",
+    "booking.keepCodeSuffix": "— θα τον χρειαστείς κατά την άφιξή σου.",
+    "booking.needChanges": "Χρειάζεσαι αλλαγές; Κάλεσε στο",
+    "booking.viewTickets": "Τα Εισιτήριά μου",
+    "booking.footer": "Κράτηση μέσω UNLOCKED",
+    // Booking company (stays EN for B2B but keys exist)
+    "booking.companyTitle": "New Booking Received",
+    "booking.companyBody": "A new booking has been placed on your room.",
+    "booking.customerDetails": "Customer Details",
+    "booking.name": "Name",
+    "booking.email": "Email",
+    "booking.phone": "Phone",
+    "booking.viewDashboard": "View in Dashboard",
+    "booking.companyFooter": "UNLOCKED Platform",
+    // Welcome
+    "welcome.title": "Καλώς ήρθες στο UNLOCKED!",
+    "welcome.subtitle": "Η escape room περιπέτειά σου ξεκινά εδώ",
+    "welcome.greeting": "Γεια σου",
+    "welcome.body": "Καλώς ήρθες στο <strong style=\"color:#FF1E1E;\">UNLOCKED</strong> — την πλατφόρμα escape room της Ελλάδας! Είσαι πλέον μέλος μιας κοινότητας escape room λάτρεων.",
+    "welcome.whatYouCanDo": "Τι μπορείς να κάνεις:",
+    "welcome.discover": "<strong style=\"color:#FFFFFF;\">Ανακάλυψε</strong> — Βρες escape rooms κοντά σου",
+    "welcome.book": "<strong style=\"color:#FFFFFF;\">Κράτησε</strong> — Κλείσε τη θέση σου σε δευτερόλεπτα",
+    "welcome.connect": "<strong style=\"color:#FFFFFF;\">Σύνδεσου</strong> — Πρόσθεσε φίλους και κάλεσέ τους να παίξουν",
+    "welcome.compete": "<strong style=\"color:#FFFFFF;\">Ανταγωνίσου</strong> — Ανέβα στο leaderboard και κέρδισε badges",
+    "welcome.share": "<strong style=\"color:#FFFFFF;\">Μοιράσου</strong> — Αποθήκευσε και μοιράσου τις φωτογραφίες σου",
+    "welcome.startExploring": "Ξεκίνα την Εξερεύνηση",
+    "welcome.rank": "Η κατάταξή σου:",
+    "welcome.rankName": "Escape Αρχάριος",
+    "welcome.rankSuffix": "— Παίξε σε περισσότερα δωμάτια για να ανεβείς!",
+    "welcome.footer": "UNLOCKED — Πλατφόρμα Escape Room",
+    "welcome.subject": "Καλώς ήρθες στο UNLOCKED! Η escape room περιπέτειά σου ξεκινά τώρα",
+    // Stripe receipt
+    "receipt.title": "Απόδειξη Πληρωμής",
+    "receipt.subtitle": "Συναλλαγή για κράτηση",
+    "receipt.greeting": "Γεια σου",
+    "receipt.body": "Η πληρωμή σου ολοκληρώθηκε επιτυχώς. Δες την απόδειξή σου:",
+    "receipt.bookingTotal": "Σύνολο Κράτησης",
+    "receipt.paymentType": "Τύπος Πληρωμής",
+    "receipt.amountCharged": "Ποσό Χρέωσης",
+    "receipt.fullPayment": "Πλήρης Πληρωμή",
+    "receipt.depositPayment": "Προκαταβολή 20% + Χρέωση Υπηρεσίας",
+    "receipt.payment": "Πληρωμή",
+    "receipt.notice": "Αυτή είναι αυτόματη απόδειξη πληρωμής από το UNLOCKED. Η χρέωση θα εμφανιστεί στο statement σου ως \"UNLOCKED\" ή",
+    "receipt.questions": "Αν έχεις ερωτήσεις σχετικά με τη χρέωση, επικοινώνησε μαζί μας.",
+    "receipt.footer": "UNLOCKED — Απόδειξη Πληρωμής",
+    // Slot alert
+    "slot.title": "Ένα Slot Μόλις Άνοιξε!",
+    "slot.subtitle": "στις",
+    "slot.greeting": "Γεια σου",
+    "slot.body": "Καλά νέα! Μια ώρα που παρακολουθούσες μόλις έγινε διαθέσιμη:",
+    "slot.hurry": "Αυτό το slot δεν θα κρατήσει πολύ — κλείσ' το τώρα πριν το αρπάξει κάποιος άλλος!",
+    "slot.bookBtn": "Κλείσε αυτό το Slot",
+    "slot.notice": "Λαμβάνεις αυτό το email επειδή εγγράφηκες σε ειδοποιήσεις για αυτή τη χρονοθυρίδα στο UNLOCKED.",
+    "slot.footer": "UNLOCKED — Ειδοποίηση Slot",
+    "slot.subject": "Διαθέσιμο Slot:",
+  },
+};
+
+function et(lang: Lang, key: string): string {
+  return emailI18n[lang]?.[key] ?? emailI18n.en[key] ?? key;
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -239,59 +400,61 @@ export const sendBookingEmails = internalAction({
     companyName: v.string(),
     companyPhone: v.string(),
     companyEmail: v.string(),
+    lang: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const resend = getResend();
     if (!resend) return;
 
     const d = args;
-    const fDate = fmtDate(d.date);
+    const lang = (d.lang === "el" ? "el" : "en") as Lang;
+    const fDate = fmtDate(d.date, lang);
     const playerEmail = isEmail(d.playerContact) ? d.playerContact : null;
     const promises: Promise<any>[] = [];
 
     // ── Player confirmation ──
     if (playerEmail) {
       const playerHtml = shell(
-        "Booking Confirmed!",
-        "Your escape room adventure awaits",
-        `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+        et(lang, "booking.title"),
+        et(lang, "booking.subtitle"),
+        `<p style="${S.greeting}">${et(lang, "booking.greeting")} <strong>${d.playerName}</strong>,</p>
 <p style="${S.bodyText}">
-  Thank you for your booking! Your escape room experience is locked in. Here are your details:
+  ${et(lang, "booking.thankYou")}
 </p>
 <div style="text-align:center;margin:0 0 28px;"><span style="${S.badge}">${d.bookingCode}</span></div>
 ${TABLE(`
-  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
-  <tr>${TH("Date")}${TD(fDate)}</tr>
-  <tr>${TH("Time")}${TD(d.time)}</tr>
-  <tr>${TH("Players")}${TD(String(d.players))}</tr>
-  <tr>${TH("Total")}${TD(`<strong>€${d.total.toFixed(2)}</strong>`)}</tr>
-  <tr>${TH("Payment")}${TD(`<span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus)}</span>`)}</tr>
-  ${d.depositPaid ? `<tr>${TH("Deposit")}${TD(`€${d.depositPaid.toFixed(2)}`)}</tr>` : ""}
-  ${d.notes ? `<tr>${TH("Notes")}${TD(d.notes)}</tr>` : ""}
+  <tr>${TH(et(lang, "booking.room"))}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.date"))}${TD(fDate)}</tr>
+  <tr>${TH(et(lang, "booking.time"))}${TD(d.time)}</tr>
+  <tr>${TH(et(lang, "booking.players"))}${TD(String(d.players))}</tr>
+  <tr>${TH(et(lang, "booking.total"))}${TD(`<strong>€${d.total.toFixed(2)}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.payment"))}${TD(`<span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus, lang)}</span>`)}</tr>
+  ${d.depositPaid ? `<tr>${TH(et(lang, "booking.deposit"))}${TD(`€${d.depositPaid.toFixed(2)}`)}</tr>` : ""}
+  ${d.notes ? `<tr>${TH(et(lang, "booking.notes"))}${TD(d.notes)}</tr>` : ""}
 `)}
 <div style="${S.divider}"></div>
 <p style="${S.bodyText}">
-  Keep your booking code <strong style="color:${C.red};">${d.bookingCode}</strong> handy — you'll need it when you arrive.
-  ${d.companyPhone ? `Need changes? Call <strong>${d.companyPhone}</strong>.` : ""}
+  ${et(lang, "booking.keepCode")} <strong style="color:${C.red};">${d.bookingCode}</strong> ${et(lang, "booking.keepCodeSuffix")}
+  ${d.companyPhone ? `${et(lang, "booking.needChanges")} <strong>${d.companyPhone}</strong>.` : ""}
 </p>
 <div style="text-align:center;margin:24px 0;">
-  <a href="https://unlocked.gr/tickets" style="${S.btn}">View My Tickets</a>
+  <a href="https://unlocked.gr/tickets" style="${S.btn}">${et(lang, "booking.viewTickets")}</a>
 </div>`,
-        `${d.companyName} · Booked via UNLOCKED`
+        `${d.companyName} · ${et(lang, "booking.footer")}`
       );
 
       promises.push(
         resend.emails.send({
           from: fromAddr(d.companyName),
           to: playerEmail,
-          subject: `Booking Confirmation — ${d.bookingCode}`,
+          subject: `${lang === "el" ? "Επιβεβαίωση Κράτησης" : "Booking Confirmation"} — ${d.bookingCode}`,
           html: playerHtml,
         }).then(r => console.log("[Email] Player booking confirm sent:", r))
           .catch(e => console.error("[Email] Player booking email failed:", e))
       );
     }
 
-    // ── Company notification ──
+    // ── Company notification (always EN for B2B) ──
     if (d.companyEmail) {
       const companyHtml = shell(
         "New Booking Received",
@@ -300,7 +463,7 @@ ${TABLE(`
 ${TABLE(`
   <tr>${TH("Booking Code")}${TD(`<strong style="color:${C.red};">${d.bookingCode}</strong>`)}</tr>
   <tr>${TH("Room")}${TD(`<strong>${d.roomTitle}</strong>`)}</tr>
-  <tr>${TH("Date")}${TD(fDate)}</tr>
+  <tr>${TH("Date")}${TD(fmtDate(d.date))}</tr>
   <tr>${TH("Time")}${TD(d.time)}</tr>
   <tr>${TH("Players")}${TD(String(d.players))}</tr>
   <tr>${TH("Total")}${TD(`<strong>€${d.total.toFixed(2)}</strong>`)}</tr>
@@ -343,41 +506,43 @@ export const sendPlayerWelcome = internalAction({
   args: {
     playerName: v.string(),
     playerEmail: v.string(),
+    lang: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const resend = getResend();
     if (!resend) return;
 
+    const lang = (args.lang === "el" ? "el" : "en") as Lang;
+
     const html = shell(
-      "Welcome to UNLOCKED!",
-      "Your escape room journey starts here",
-      `<p style="${S.greeting}">Hi <strong>${args.playerName}</strong>,</p>
+      et(lang, "welcome.title"),
+      et(lang, "welcome.subtitle"),
+      `<p style="${S.greeting}">${et(lang, "welcome.greeting")} <strong>${args.playerName}</strong>,</p>
 <p style="${S.bodyText}">
-  Welcome to <strong style="color:${C.red};">UNLOCKED</strong> — Greece's escape room platform!
-  You're now part of a community of escape room enthusiasts.
+  ${et(lang, "welcome.body")}
 </p>
-<p style="${S.bodyText}">Here's what you can do:</p>
+<p style="${S.bodyText}">${et(lang, "welcome.whatYouCanDo")}</p>
 ${TABLE(`
-  ${FR(`<strong style="color:${C.white};">Discover</strong> — Browse escape rooms near you`)}
-  ${FR(`<strong style="color:${C.white};">Book</strong> — Reserve your spot in seconds`)}
-  ${FR(`<strong style="color:${C.white};">Connect</strong> — Add friends and invite them to play`)}
-  ${FR(`<strong style="color:${C.white};">Compete</strong> — Climb the leaderboard and earn badges`)}
-  ${FR(`<strong style="color:${C.white};">Share</strong> — Save and share your escape room photos`)}
+  ${FR(et(lang, "welcome.discover"))}
+  ${FR(et(lang, "welcome.book"))}
+  ${FR(et(lang, "welcome.connect"))}
+  ${FR(et(lang, "welcome.compete"))}
+  ${FR(et(lang, "welcome.share"))}
 `)}
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlocked.gr/discover" style="${S.btn}">Start Exploring</a>
+  <a href="https://unlocked.gr/discover" style="${S.btn}">${et(lang, "welcome.startExploring")}</a>
 </div>
 <div style="${S.divider}"></div>
 <p style="font-size:13px;color:${C.textMuted};text-align:center;margin:0;">
-  Your rank: <strong style="color:${C.gold};">Escape Rookie</strong> — Play more rooms to level up!
+  ${et(lang, "welcome.rank")} <strong style="color:${C.gold};">${et(lang, "welcome.rankName")}</strong> ${et(lang, "welcome.rankSuffix")}
 </p>`,
-      "UNLOCKED — Escape Room Platform"
+      et(lang, "welcome.footer")
     );
 
     await resend.emails.send({
       from: fromAddr(),
       to: args.playerEmail,
-      subject: "Welcome to UNLOCKED! Your escape room adventure starts now",
+      subject: et(lang, "welcome.subject"),
       html,
     }).then(r => console.log("[Email] Player welcome sent:", r))
       .catch(e => console.error("[Email] Player welcome failed:", e));
@@ -528,50 +693,52 @@ export const sendStripeReceipt = internalAction({
     amountCharged: v.number(),
     paymentTerms: v.string(),
     companyName: v.string(),
+    lang: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const resend = getResend();
     if (!resend) return;
 
     const d = args;
-    const fDate = fmtDate(d.date);
+    const lang = (d.lang === "el" ? "el" : "en") as Lang;
+    const fDate = fmtDate(d.date, lang);
     const termsLabel = d.paymentTerms === "full"
-      ? "Full Payment"
+      ? et(lang, "receipt.fullPayment")
       : d.paymentTerms === "deposit_20"
-        ? "20% Deposit + Service Fee"
-        : "Payment";
+        ? et(lang, "receipt.depositPayment")
+        : et(lang, "receipt.payment");
 
     const html = shell(
-      "Payment Receipt",
-      `Transaction for booking ${d.bookingCode}`,
-      `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+      et(lang, "receipt.title"),
+      `${et(lang, "receipt.subtitle")} ${d.bookingCode}`,
+      `<p style="${S.greeting}">${et(lang, "receipt.greeting")} <strong>${d.playerName}</strong>,</p>
 <p style="${S.bodyText}">
-  Your payment has been processed successfully. Here is your receipt:
+  ${et(lang, "receipt.body")}
 </p>
 <div style="text-align:center;margin:0 0 28px;">
   <span style="${S.badge}">${d.bookingCode}</span>
 </div>
 ${TABLE(`
-  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
-  <tr>${TH("Date")}${TD(fDate)}</tr>
-  <tr>${TH("Time")}${TD(d.time)}</tr>
-  <tr>${TH("Players")}${TD(String(d.players))}</tr>
-  <tr>${TH("Booking Total")}${TD(`€${d.total.toFixed(2)}`)}</tr>
-  <tr>${TH("Payment Type")}${TD(termsLabel)}</tr>
-  <tr>${TH("Amount Charged")}${TD(`<strong style="color:#22c55e;">€${d.amountCharged.toFixed(2)}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.room"))}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.date"))}${TD(fDate)}</tr>
+  <tr>${TH(et(lang, "booking.time"))}${TD(d.time)}</tr>
+  <tr>${TH(et(lang, "booking.players"))}${TD(String(d.players))}</tr>
+  <tr>${TH(et(lang, "receipt.bookingTotal"))}${TD(`€${d.total.toFixed(2)}`)}</tr>
+  <tr>${TH(et(lang, "receipt.paymentType"))}${TD(termsLabel)}</tr>
+  <tr>${TH(et(lang, "receipt.amountCharged"))}${TD(`<strong style="color:#22c55e;">€${d.amountCharged.toFixed(2)}</strong>`)}</tr>
 `)}
 <div style="${S.divider}"></div>
 <p style="${S.smallText}">
-  This is an automated payment receipt from UNLOCKED. The charge will appear on your statement as "UNLOCKED" or "${d.companyName}".
-  If you have questions about this charge, please contact us.
+  ${et(lang, "receipt.notice")} "${d.companyName}".
+  ${et(lang, "receipt.questions")}
 </p>`,
-      "UNLOCKED — Payment Receipt"
+      et(lang, "receipt.footer")
     );
 
     await resend.emails.send({
       from: fromAddr(),
       to: d.playerEmail,
-      subject: `Payment Receipt — €${d.amountCharged.toFixed(2)} | ${d.bookingCode}`,
+      subject: `${lang === "el" ? "Απόδειξη Πληρωμής" : "Payment Receipt"} — €${d.amountCharged.toFixed(2)} | ${d.bookingCode}`,
       html,
     }).then(r => console.log("[Email] Stripe receipt sent:", r))
       .catch(e => console.error("[Email] Stripe receipt failed:", e));
@@ -648,44 +815,46 @@ export const sendSlotAvailableEmail = internalAction({
     date: v.string(),
     time: v.string(),
     roomId: v.string(),
+    lang: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const resend = getResend();
     if (!resend) return;
 
     const d = args;
+    const lang = (d.lang === "el" ? "el" : "en") as Lang;
 
     const bookUrl = `https://unlocked.gr/rooms/${d.roomId}/book`;
 
     const html = shell(
-      "A Slot Just Opened Up! 🔔",
-      `${d.roomTitle} — ${fmtDate(d.date)} at ${d.time}`,
-      `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+      `${et(lang, "slot.title")} 🔔`,
+      `${d.roomTitle} — ${fmtDate(d.date, lang)} ${et(lang, "slot.subtitle")} ${d.time}`,
+      `<p style="${S.greeting}">${et(lang, "slot.greeting")} <strong>${d.playerName}</strong>,</p>
 <p style="${S.bodyText}">
-  Great news! A time slot you were watching just became available:
+  ${et(lang, "slot.body")}
 </p>
 ${TABLE(`
-  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
-  <tr>${TH("Date")}${TD(fmtDate(d.date))}</tr>
-  <tr>${TH("Time")}${TD(`<strong>${d.time}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.room"))}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH(et(lang, "booking.date"))}${TD(fmtDate(d.date, lang))}</tr>
+  <tr>${TH(et(lang, "booking.time"))}${TD(`<strong>${d.time}</strong>`)}</tr>
 `)}
 <p style="${S.bodyText}">
-  This slot won't last long — book it now before someone else grabs it!
+  ${et(lang, "slot.hurry")}
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="${bookUrl}" style="${S.btnGreen}">Book This Slot</a>
+  <a href="${bookUrl}" style="${S.btnGreen}">${et(lang, "slot.bookBtn")}</a>
 </div>
 <div style="${S.divider}"></div>
 <p style="${S.smallText}">
-  You received this email because you subscribed to notifications for this time slot on UNLOCKED.
+  ${et(lang, "slot.notice")}
 </p>`,
-      "UNLOCKED — Slot Alert"
+      et(lang, "slot.footer")
     );
 
     await resend.emails.send({
       from: fromAddr(),
       to: d.playerEmail,
-      subject: `🔔 Slot Available: ${d.roomTitle} — ${fmtDate(d.date)} at ${d.time}`,
+      subject: `🔔 ${et(lang, "slot.subject")} ${d.roomTitle} — ${fmtDate(d.date, lang)} ${et(lang, "slot.subtitle")} ${d.time}`,
       html,
     }).then(r => console.log("[Email] Slot available email sent:", r))
       .catch(e => console.error("[Email] Slot available email failed:", e));

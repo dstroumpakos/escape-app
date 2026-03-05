@@ -100,6 +100,7 @@ const stripeWebhook = httpAction(async (ctx, request) => {
                 amountCharged,
                 paymentTerms: paymentTerms || "full",
                 companyName: room.companyName || "Escape Room",
+                lang: (user as any).language || "en",
               });
             }
           } catch (e) {

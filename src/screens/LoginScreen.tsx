@@ -32,7 +32,7 @@ export default function LoginScreen({ onLogin }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const loginMutation = useMutation(api.users.login);
   const registerMutation = useMutation(api.users.register);
@@ -62,6 +62,7 @@ export default function LoginScreen({ onLogin }: Props) {
         appleId: credential.user,
         email: credential.email || undefined,
         fullName: fullName || undefined,
+        lang: language,
       });
       onLogin(userId);
     } catch (err: any) {
@@ -101,6 +102,7 @@ export default function LoginScreen({ onLogin }: Props) {
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
+          lang: language,
         });
         onLogin(userId);
       } else {
