@@ -26,10 +26,12 @@ interface Props {
   userId: string;
   currentName: string;
   currentAvatar: string;
+  currentPhone?: string;
 }
 
-export default function EditProfileModal({ visible, onClose, userId, currentName, currentAvatar }: Props) {
+export default function EditProfileModal({ visible, onClose, userId, currentName, currentAvatar, currentPhone }: Props) {
   const [name, setName] = useState(currentName);
+  const [phone, setPhone] = useState(currentPhone || '');
   const [avatarUri, setAvatarUri] = useState(currentAvatar);
   const [newImageSelected, setNewImageSelected] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -114,12 +116,14 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
         await updateProfile({
           userId: userId as Id<"users">,
           name: name.trim(),
+          phone: phone.trim() || undefined,
           avatarStorageId: storageId as Id<"_storage">,
         });
       } else {
         await updateProfile({
           userId: userId as Id<"users">,
           name: name.trim(),
+          phone: phone.trim() || undefined,
           ...(newImageSelected ? { avatar: '' } : {}),
         });
       }
@@ -139,7 +143,7 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
     .join('')
     .toUpperCase();
 
-  const hasChanges = name.trim() !== currentName || newImageSelected;
+  const hasChanges = name.trim() !== currentName || newImageSelected || phone.trim() !== (currentPhone || '');
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
@@ -192,10 +196,32 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
                 placeholder={t('editProfile.namePlaceholder')}
                 placeholderTextColor={theme.colors.textMuted}
                 autoCapitalize="words"
-                returnKeyType="done"
+                returnKeyType="next"
               />
               {name !== currentName && (
                 <TouchableOpacity onPress={() => setName(currentName)}>
+                  <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Phone Input */}
+          <View style={[styles.fieldSection, { marginTop: 20 }]}>
+            <Text style={styles.fieldLabel}>{t('editProfile.phone')}</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="call-outline" size={18} color={theme.colors.textMuted} />
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('editProfile.phonePlaceholder')}
+                placeholderTextColor={theme.colors.textMuted}
+                keyboardType="phone-pad"
+                returnKeyType="done"
+              />
+              {phone !== (currentPhone || '') && (
+                <TouchableOpacity onPress={() => setPhone(currentPhone || '')}>
                   <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
                 </TouchableOpacity>
               )}

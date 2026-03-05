@@ -29,7 +29,14 @@ export default function Checkout() {
   const { userId } = useUser();
   const createBooking = useMutation(api.bookings.create);
   const createBookingCheckout = useAction(api.stripe.createBookingCheckout);
+  const updateProfile = useMutation(api.users.updateProfile);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  // Fetch user to check phone
+  const convexUser = useQuery(api.users.getById, userId ? { userId: userId as any } : "skip");
+  const userHasPhone = !!(convexUser as any)?.phone;
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
@@ -119,6 +126,47 @@ export default function Checkout() {
           </View>
         </View>
 
+        {/* Phone Number (required) */}
+        {!userHasPhone && (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('checkout.phoneRequired')}</Text>
+            <Text style={{ fontSize: 13, color: theme.colors.textSecondary, marginBottom: 12 }}>
+              {t('checkout.phoneRequiredDesc')}
+            </Text>
+            <View style={styles.promoRow}>
+              <TextInput
+                style={styles.promoInput}
+                placeholder={t('checkout.phonePlaceholder')}
+                placeholderTextColor={theme.colors.textMuted}
+                value={phoneInput}
+                onChangeText={setPhoneInput}
+                keyboardType="phone-pad"
+              />
+              <TouchableOpacity
+                style={[styles.promoBtn, savingPhone && { opacity: 0.6 }]}
+                disabled={savingPhone || !phoneInput.trim()}
+                onPress={async () => {
+                  if (!phoneInput.trim()) return;
+                  setSavingPhone(true);
+                  try {
+                    await updateProfile({ userId: userId as any, phone: phoneInput.trim() });
+                  } catch (e: any) {
+                    Alert.alert(t('error'), e.message);
+                  } finally {
+                    setSavingPhone(false);
+                  }
+                }}
+              >
+                {savingPhone ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.promoBtnText}>{t('save')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Payment Term Selection */}
         {availableTerms.length > 1 && (
           <View style={styles.card}>
@@ -199,9 +247,9 @@ export default function Checkout() {
       {/* Bottom CTA */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.confirmBtn, isSubmitting && { opacity: 0.6 }]}
+          style={[styles.confirmBtn, (isSubmitting || !userHasPhone) && { opacity: 0.6 }]}
           activeOpacity={0.8}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !userHasPhone}
           onPress={async () => {
             if (!userId) {
               Alert.alert(t('error'), t('checkout.loginRequired'));

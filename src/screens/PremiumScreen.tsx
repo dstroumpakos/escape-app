@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Linking,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,19 @@ import { theme } from '../theme';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
+import type { ProductSubscription, Purchase } from 'react-native-iap';
+import {
+  initIAP,
+  disconnectIAP,
+  fetchSubscriptionProducts,
+  purchaseSubscription,
+  restorePurchases,
+  acknowledgePurchase,
+  extractReceiptData,
+  onPurchaseUpdated,
+  onPurchaseError,
+  IAP_PRODUCT_IDS,
+} from '../iap';
 
 export default function PremiumScreen() {
   const { t } = useTranslation();
@@ -27,33 +40,129 @@ export default function PremiumScreen() {
   const { userId } = useUser();
   const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'monthly'>('yearly');
   const [subscribing, setSubscribing] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [products, setProducts] = useState<ProductSubscription[]>([]);
 
   const premiumStatus = useQuery(
     api.premium.getStatus,
     userId ? { userId: userId as Id<"users"> } : 'skip'
   );
-  const subscribe = useMutation(api.premium.subscribe);
+  const subscribeWithIAP = useMutation(api.premium.subscribeWithIAP);
+  const restoreWithIAP = useMutation(api.premium.restoreWithIAP);
   const cancelPremium = useMutation(api.premium.cancel);
 
   const isPremium = premiumStatus?.isPremium ?? false;
 
+  // Keep a ref to userId so purchase listener always has the latest value
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+
+  // ─── Initialize IAP & purchase listeners ───
+  useEffect(() => {
+    let purchaseSub: { remove: () => void } | null = null;
+    let errorSub: { remove: () => void } | null = null;
+
+    const setup = async () => {
+      await initIAP();
+      const subs = await fetchSubscriptionProducts();
+      setProducts(subs);
+
+      // Listen for successful purchases
+      purchaseSub = onPurchaseUpdated(async (purchase) => {
+        const currentUserId = userIdRef.current;
+        if (!currentUserId) return;
+
+        const receipt = extractReceiptData(purchase);
+        const plan = purchase.productId === IAP_PRODUCT_IDS.yearly ? 'yearly' : 'monthly';
+
+        try {
+          await subscribeWithIAP({
+            userId: currentUserId as Id<"users">,
+            plan,
+            productId: receipt.productId,
+            transactionId: receipt.transactionId,
+            transactionReceipt: receipt.transactionReceipt,
+            platform: receipt.platform,
+            purchaseToken: receipt.purchaseToken,
+          });
+
+          // Acknowledge the purchase with the store
+          await acknowledgePurchase(purchase);
+
+          Alert.alert(
+            t('premium.welcomeTitle'),
+            t('premium.welcomeMessage'),
+            [{ text: t('premium.welcomeBtn'), onPress: () => navigation.goBack() }]
+          );
+        } catch (e: any) {
+          Alert.alert(t('premium.error'), e.message || t('premium.errorMessage'));
+        }
+        setSubscribing(false);
+      });
+
+      // Listen for purchase errors
+      errorSub = onPurchaseError((error) => {
+        if (error.code !== 'user-cancelled') {
+          Alert.alert(t('premium.error'), error.message || t('premium.errorMessage'));
+        }
+        setSubscribing(false);
+      });
+    };
+
+    setup();
+
+    return () => {
+      purchaseSub?.remove();
+      errorSub?.remove();
+      disconnectIAP();
+    };
+  }, []);
+
+  // ─── Handle subscribe via native IAP ───
   const handleSubscribe = async () => {
     if (!userId) return;
     setSubscribing(true);
     try {
-      await subscribe({
-        userId: userId as Id<"users">,
-        plan: selectedPlan,
-      });
-      Alert.alert(
-        t('premium.welcomeTitle'),
-        t('premium.welcomeMessage'),
-        [{ text: t('premium.welcomeBtn'), onPress: () => navigation.goBack() }]
-      );
+      await purchaseSubscription(selectedPlan);
+      // The purchaseUpdatedListener will handle the rest
     } catch (e: any) {
-      Alert.alert(t('premium.error'), e.message || t('premium.errorMessage'));
+      // User cancelled or store error — listener already handles errors
+      setSubscribing(false);
     }
-    setSubscribing(false);
+  };
+
+  // ─── Handle restore purchases ───
+  const handleRestore = async () => {
+    if (!userId) return;
+    setRestoring(true);
+    try {
+      const purchases = await restorePurchases();
+
+      // Find the most recent premium subscription purchase
+      const premiumPurchase = purchases.find(
+        (p) => p.productId === IAP_PRODUCT_IDS.monthly || p.productId === IAP_PRODUCT_IDS.yearly
+      );
+
+      if (!premiumPurchase) {
+        Alert.alert(t('premium.restoreTitle'), t('premium.restoreNoneFound'));
+        setRestoring(false);
+        return;
+      }
+
+      const receipt = extractReceiptData(premiumPurchase);
+      await restoreWithIAP({
+        userId: userId as Id<"users">,
+        productId: receipt.productId,
+        transactionId: receipt.transactionId,
+        platform: receipt.platform,
+        purchaseToken: receipt.purchaseToken,
+      });
+
+      Alert.alert(t('premium.restoreTitle'), t('premium.restoreSuccess'));
+    } catch (e: any) {
+      Alert.alert(t('premium.error'), e.message || t('premium.restoreError'));
+    }
+    setRestoring(false);
   };
 
   const handleCancel = () => {
@@ -168,7 +277,9 @@ export default function PremiumScreen() {
                 <View style={styles.saveBadge}>
                   <Text style={styles.saveText}>{t('premium.save50')}</Text>
                 </View>
-                <Text style={[styles.planPrice, selectedPlan === 'yearly' && styles.planPriceActive]}>€29.99</Text>
+                <Text style={[styles.planPrice, selectedPlan === 'yearly' && styles.planPriceActive]}>
+                  {products.find(p => p.productId === IAP_PRODUCT_IDS.yearly)?.localizedPrice ?? '€29.99'}
+                </Text>
                 <Text style={styles.planPeriod}>{t('premium.perYear')}</Text>
                 <Text style={styles.planPerMonth}>{t('premium.monthlyRate')}</Text>
                 <View style={[styles.planRadio, selectedPlan === 'yearly' && styles.planRadioActive]}>
@@ -181,7 +292,9 @@ export default function PremiumScreen() {
                 style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardActive]}
                 onPress={() => setSelectedPlan('monthly')}
               >
-                <Text style={[styles.planPrice, selectedPlan === 'monthly' && styles.planPriceActive]}>€4.99</Text>
+                <Text style={[styles.planPrice, selectedPlan === 'monthly' && styles.planPriceActive]}>
+                  {products.find(p => p.productId === IAP_PRODUCT_IDS.monthly)?.localizedPrice ?? '€4.99'}
+                </Text>
                 <Text style={styles.planPeriod}>{t('premium.perMonth')}</Text>
                 <Text style={styles.planPerMonth}>{t('premium.billedMonthly')}</Text>
                 <View style={[styles.planRadio, selectedPlan === 'monthly' && styles.planRadioActive]}>
@@ -204,9 +317,14 @@ export default function PremiumScreen() {
         {!isPremium && (
           <TouchableOpacity
             style={styles.restoreBtn}
-            onPress={() => Alert.alert(t('premium.restoreTitle'), t('premium.restoreMessage'))}
+            disabled={restoring}
+            onPress={handleRestore}
           >
-            <Text style={styles.restoreText}>{t('premium.restore')}</Text>
+            {restoring ? (
+              <ActivityIndicator size="small" color={theme.colors.textSecondary} />
+            ) : (
+              <Text style={styles.restoreText}>{t('premium.restore')}</Text>
+            )}
           </TouchableOpacity>
         )}
 

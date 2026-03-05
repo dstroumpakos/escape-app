@@ -26,7 +26,139 @@ export const getStatus = query({
   },
 });
 
-// ─── Subscribe to UNLOCKED Premium ───
+// ─── Subscribe via In-App Purchase ───
+// Called after a successful native IAP transaction.
+// Validates the receipt data and activates premium.
+export const subscribeWithIAP = mutation({
+  args: {
+    userId: v.id("users"),
+    plan: v.union(v.literal("monthly"), v.literal("yearly")),
+    productId: v.string(),
+    transactionId: v.string(),
+    transactionReceipt: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    purchaseToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // Check for duplicate transaction
+    const existingSubs = await ctx.db
+      .query("premiumSubscriptions")
+      .withIndex("by_transactionId", (q) => q.eq("transactionId", args.transactionId))
+      .collect();
+    if (existingSubs.length > 0) {
+      // Already processed — return success without double-activating
+      return { success: true, alreadyProcessed: true };
+    }
+
+    const now = Date.now();
+    const price = PREMIUM_PRICES[args.plan];
+    const durationMs =
+      args.plan === "monthly"
+        ? 30 * 24 * 60 * 60 * 1000
+        : 365 * 24 * 60 * 60 * 1000;
+    const endDate = now + durationMs;
+
+    // Create premium subscription record with IAP data
+    await ctx.db.insert("premiumSubscriptions", {
+      userId: args.userId,
+      plan: args.plan,
+      price,
+      startDate: now,
+      endDate,
+      isActive: true,
+      platform: args.platform,
+      productId: args.productId,
+      transactionId: args.transactionId,
+      purchaseToken: args.purchaseToken,
+    });
+
+    // Update user premium status
+    await ctx.db.patch(args.userId, {
+      isPremium: true,
+      premiumSince: user.premiumSince ?? now,
+      premiumExpiresAt: endDate,
+    });
+
+    // Create notification
+    await ctx.db.insert("notifications", {
+      userId: args.userId,
+      type: "system",
+      title: "Welcome to UNLOCKED Premium! 🎉",
+      message: `You now have early access to new rooms 3 days before everyone else. Your ${args.plan} plan is active.`,
+      read: false,
+      createdAt: now,
+    });
+
+    return { success: true, expiresAt: endDate };
+  },
+});
+
+// ─── Restore purchases ───
+// Called when a user taps "Restore Purchases" — re-validates and reactivates.
+export const restoreWithIAP = mutation({
+  args: {
+    userId: v.id("users"),
+    productId: v.string(),
+    transactionId: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    purchaseToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) throw new Error("User not found");
+
+    // Determine plan from product ID
+    const plan = args.productId.includes("yearly") ? "yearly" : "monthly";
+    const price = PREMIUM_PRICES[plan];
+    const durationMs =
+      plan === "monthly"
+        ? 30 * 24 * 60 * 60 * 1000
+        : 365 * 24 * 60 * 60 * 1000;
+
+    // Check if this transaction was already recorded
+    const existingSubs = await ctx.db
+      .query("premiumSubscriptions")
+      .withIndex("by_transactionId", (q) => q.eq("transactionId", args.transactionId))
+      .collect();
+
+    const now = Date.now();
+    const endDate = now + durationMs;
+
+    if (existingSubs.length === 0) {
+      // Record the restored subscription
+      await ctx.db.insert("premiumSubscriptions", {
+        userId: args.userId,
+        plan,
+        price,
+        startDate: now,
+        endDate,
+        isActive: true,
+        platform: args.platform,
+        productId: args.productId,
+        transactionId: args.transactionId,
+        purchaseToken: args.purchaseToken,
+      });
+    } else {
+      // Reactivate existing record
+      const sub = existingSubs[0];
+      await ctx.db.patch(sub._id, { isActive: true, endDate });
+    }
+
+    // Re-activate user premium
+    await ctx.db.patch(args.userId, {
+      isPremium: true,
+      premiumSince: user.premiumSince ?? now,
+      premiumExpiresAt: endDate,
+    });
+
+    return { success: true, plan, expiresAt: endDate };
+  },
+});
+
+// ─── Legacy: Subscribe (kept for backwards compatibility / web) ───
 export const subscribe = mutation({
   args: {
     userId: v.id("users"),
@@ -41,7 +173,6 @@ export const subscribe = mutation({
     const durationMs = args.plan === "monthly" ? 30 * 24 * 60 * 60 * 1000 : 365 * 24 * 60 * 60 * 1000;
     const endDate = now + durationMs;
 
-    // Create premium subscription record
     await ctx.db.insert("premiumSubscriptions", {
       userId: args.userId,
       plan: args.plan,
@@ -49,16 +180,15 @@ export const subscribe = mutation({
       startDate: now,
       endDate,
       isActive: true,
+      platform: "web",
     });
 
-    // Update user premium status
     await ctx.db.patch(args.userId, {
       isPremium: true,
       premiumSince: user.premiumSince ?? now,
       premiumExpiresAt: endDate,
     });
 
-    // Create notification
     await ctx.db.insert("notifications", {
       userId: args.userId,
       type: "system",

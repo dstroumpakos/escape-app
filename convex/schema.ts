@@ -50,7 +50,8 @@ export default defineSchema({
     )),
   })
     .index("by_email", ["email"])
-    .index("by_stripeCustomerId", ["stripeCustomerId"]),
+    .index("by_stripeCustomerId", ["stripeCustomerId"])
+    .index("by_onboardingStatus", ["onboardingStatus"]),
 
   rooms: defineTable({
     title: v.string(),
@@ -145,7 +146,8 @@ export default defineSchema({
     longitude: v.optional(v.number()),
     city: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
-    // UNLOCKED Premium
+    // Phone number (required for bookings)
+    phone: v.optional(v.string()),
     // Language preference for notifications
     language: v.optional(v.string()), // "en" | "el"
     // UNLOCKED Premium
@@ -157,11 +159,30 @@ export default defineSchema({
 
   badges: defineTable({
     userId: v.id("users"),
+    badgeKey: v.string(), // "champion","on_fire","mastermind","speed_demon","team_leader","explorer","perfectionist","night_owl"
     title: v.string(),
     icon: v.string(),
     earned: v.boolean(),
     date: v.optional(v.string()),
-  }).index("by_user", ["userId"]),
+    // Company verification
+    verifiedByCompanyId: v.optional(v.id("companies")),
+    verifiedByBookingId: v.optional(v.id("bookings")),
+    earnedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"])
+    .index("by_user_badge", ["userId", "badgeKey"]),
+
+  // ─── Booking Performance (company-verified escape data) ───
+  bookingPerformance: defineTable({
+    bookingId: v.id("bookings"),
+    companyId: v.id("companies"),
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    escaped: v.boolean(),                      // did they escape?
+    escapeTimeMinutes: v.optional(v.number()),  // how fast (minutes)
+    hintsUsed: v.optional(v.number()),          // how many hints
+    verifiedAt: v.number(),
+  }).index("by_booking", ["bookingId"])
+    .index("by_user", ["userId"]),
 
   bookings: defineTable({
     // userId is optional: external bookings may not have a linked player
@@ -174,7 +195,8 @@ export default defineSchema({
     status: v.union(
       v.literal("upcoming"),
       v.literal("completed"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
+      v.literal("pending_payment")
     ),
     bookingCode: v.string(),
     createdAt: v.number(),
@@ -207,7 +229,10 @@ export default defineSchema({
     .index("by_user_status", ["userId", "status"])
     .index("by_room", ["roomId"])
     .index("by_company", ["companyId"])
-    .index("by_room_date", ["roomId", "date"]),
+    .index("by_room_date", ["roomId", "date"])
+    .index("by_bookingCode", ["bookingCode"])
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_status", ["status"]),
 
   // ─── UNLOCKED Premium Subscriptions (platform-wide) ───
   premiumSubscriptions: defineTable({
@@ -218,8 +243,15 @@ export default defineSchema({
     endDate: v.number(),
     isActive: v.boolean(),
     cancelledAt: v.optional(v.number()),
+    // ── In-App Purchase fields ──
+    platform: v.optional(v.union(v.literal("ios"), v.literal("android"), v.literal("web"))),
+    productId: v.optional(v.string()),         // App Store / Play Store product ID
+    transactionId: v.optional(v.string()),     // Store transaction ID
+    originalTransactionId: v.optional(v.string()), // For subscription renewals
+    purchaseToken: v.optional(v.string()),     // Android purchase token
   })
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_transactionId", ["transactionId"]),
 
   // ─── Social Posts ───
   posts: defineTable({

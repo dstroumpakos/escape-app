@@ -72,7 +72,8 @@
         {
           "photosPermission": "Allow Unlocked to access your photos for your profile and social posts."
         }
-      ]
+      ],
+      "react-native-iap"
     ],
     "platforms": [
       "ios",

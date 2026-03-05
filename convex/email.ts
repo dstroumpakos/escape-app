@@ -35,7 +35,7 @@ function getResend(): Resend | null {
 }
 
 function fromAddr(senderName?: string): string {
-  const addr = process.env.EMAIL_FROM || "noreply@unlockedescapes.com";
+  const addr = process.env.EMAIL_FROM || "noreply@unlocked.gr";
   const name = senderName || process.env.EMAIL_FROM_NAME || "UNLOCKED";
   return `${name} <${addr}>`;
 }
@@ -77,49 +77,141 @@ function planLabel(plan: string): string {
 }
 
 // ══════════════════════════════════════════════════════════════
-// Shared email styles (inline CSS for email clients)
+// Shared email styles — matches UNLOCKED brand (dark red theme)
 // ══════════════════════════════════════════════════════════════
 
+// Brand palette
+const C = {
+  bg: "#1A0D0D",
+  dark: "#0F0707",
+  card: "#2A1515",
+  surface: "#3A2020",
+  border: "#4A2A2A",
+  red: "#FF1E1E",
+  redHover: "#E01A1A",
+  redLight: "#FF4D4D",
+  gold: "#FFD700",
+  text: "#FFFFFF",
+  textSecondary: "#B0A0A0",
+  textMuted: "#6B5555",
+  white: "#FFFFFF",
+};
+
 const S = {
-  body: "margin:0;padding:0;background:#f4f4f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;",
-  container: "max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);",
-  header: "background:#1a1a2e;color:#ffffff;padding:32px 24px;text-align:center;",
-  headerTitle: "margin:0;font-size:24px;font-weight:700;color:#ffffff;",
-  headerSub: "margin:8px 0 0;font-size:14px;color:#a0a0b8;",
-  content: "padding:32px 24px;",
-  badge: "display:inline-block;background:#FF6B35;color:#fff;font-size:18px;font-weight:700;padding:8px 20px;border-radius:6px;letter-spacing:1px;",
-  table: "width:100%;border-collapse:collapse;margin:24px 0;",
-  th: "text-align:left;padding:12px 16px;background:#f8f9fa;color:#666;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #eee;width:40%;",
-  td: "padding:12px 16px;font-size:15px;color:#1a1a2e;border-bottom:1px solid #eee;",
-  footer: "padding:24px;background:#f8f9fa;text-align:center;font-size:12px;color:#999;",
-  btn: "display:inline-block;background:#FF6B35;color:#ffffff;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;text-decoration:none;",
-  btnGreen: "display:inline-block;background:#28a745;color:#ffffff;padding:14px 32px;border-radius:6px;font-size:16px;font-weight:600;text-decoration:none;",
+  body: `margin:0;padding:0;background:${C.dark};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;`,
+  wrapper: `padding:16px 8px;background:${C.dark};`,
+  container: `max-width:600px;margin:0 auto;background:${C.bg};border-radius:16px;overflow:hidden;border:1px solid ${C.border};`,
+  // Header with gradient overlay
+  header: `background:linear-gradient(135deg, ${C.bg} 0%, ${C.card} 100%);padding:28px 20px 24px;text-align:center;border-bottom:2px solid ${C.red};`,
+  logo: `font-size:24px;font-weight:800;letter-spacing:3px;color:${C.red};margin:0 0 4px;`,
+  headerTitle: `margin:10px 0 0;font-size:20px;font-weight:700;color:${C.white};`,
+  headerSub: `margin:6px 0 0;font-size:13px;color:${C.textSecondary};word-break:break-word;`,
+  content: `padding:20px 16px;`,
+  // Booking code badge
+  badge: `display:inline-block;background:linear-gradient(135deg, ${C.red} 0%, ${C.redLight} 100%);color:${C.white};font-size:18px;font-weight:800;padding:10px 20px;border-radius:10px;letter-spacing:2px;font-family:'Courier New',Courier,monospace;`,
+  // Table styles
+  table: `width:100%;border-collapse:separate;border-spacing:0;margin:20px 0;border-radius:12px;overflow:hidden;border:1px solid ${C.border};`,
+  th: `text-align:left;padding:10px 12px;background-color:${C.surface};color:${C.textSecondary};font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid ${C.border};width:35%;`,
+  td: `padding:10px 12px;font-size:13px;color:${C.white};border-bottom:1px solid ${C.border};background-color:${C.card};word-break:break-word;`,
+  // Buttons
+  btn: `display:inline-block;background:linear-gradient(135deg, ${C.red} 0%, ${C.redLight} 100%);color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
+  btnGreen: `display:inline-block;background:linear-gradient(135deg, #22c55e 0%, #16a34a 100%);color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
+  // Footer
+  footer: `padding:20px 16px;background:${C.dark};text-align:center;font-size:11px;color:${C.textMuted};border-top:1px solid ${C.border};`,
+  footerLink: `color:${C.red};text-decoration:none;`,
+  // Divider
+  divider: `height:1px;background:linear-gradient(to right, transparent, ${C.border}, transparent);margin:24px 0;`,
+  // Section header
+  sectionTitle: `font-size:15px;font-weight:700;color:${C.white};margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid ${C.border};`,
+  // Text styles
+  greeting: `font-size:16px;color:${C.white};margin:0 0 8px;`,
+  bodyText: `font-size:14px;color:${C.textSecondary};margin:0 0 24px;line-height:1.7;`,
+  smallText: `font-size:13px;color:${C.textMuted};margin:24px 0 0;line-height:1.6;`,
+  highlight: `color:${C.red};font-weight:600;`,
+  // Status badge
   statusColor: (status: string) => {
     const map: Record<string, { bg: string; color: string }> = {
-      paid: { bg: "#28a745", color: "#fff" },
-      deposit: { bg: "#ffc107", color: "#333" },
-      unpaid: { bg: "#6c757d", color: "#fff" },
+      paid: { bg: "#22c55e", color: "#fff" },
+      deposit: { bg: C.gold, color: "#1a1a1a" },
+      unpaid: { bg: C.surface, color: C.textSecondary },
     };
-    const c = map[status] || { bg: "#6c757d", color: "#fff" };
-    return `display:inline-block;background:${c.bg};color:${c.color};padding:4px 12px;border-radius:4px;font-size:13px;font-weight:600;`;
+    const c = map[status] || { bg: C.surface, color: C.textSecondary };
+    return `display:inline-block;background:${c.bg};color:${c.color};padding:4px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:0.3px;`;
   },
+  // Feature check row
+  featureRow: `padding:10px 12px;font-size:13px;color:${C.textSecondary};border-bottom:1px solid ${C.border};background-color:${C.card};`,
 };
+
+// Helper to generate <th> with bgcolor for mobile email client compatibility
+function TH(label: string): string {
+  return `<th class="email-th" style="${S.th}" bgcolor="${C.surface}">${label}</th>`;
+}
+// Helper to generate <td> with bgcolor
+function TD(content: string): string {
+  return `<td class="email-td" style="${S.td}" bgcolor="${C.card}">${content}</td>`;
+}
+// Helper for table wrapper with bgcolor
+function TABLE(rows: string): string {
+  return `<table class="email-table" style="${S.table}" bgcolor="${C.card}">${rows}</table>`;
+}
+// Helper for feature row
+function FR(content: string): string {
+  return `<tr><td class="email-td" style="${S.featureRow}" bgcolor="${C.card}">${content}</td></tr>`;
+}
 
 function shell(title: string, subtitle: string, body: string, footerText: string): string {
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="${S.body}">
-<div style="padding:24px;">
-<div style="${S.container}">
-<div style="${S.header}">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>${title}</title>
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+<style>
+  :root { color-scheme: light only; supported-color-schemes: light only; }
+  body, .body-wrapper, .email-container, .email-header, .email-content, .email-footer,
+  table, td, th, div, p, h1, h3, span, a {
+    color-scheme: light only !important;
+  }
+  [data-ogsc], [data-ogsb] { background-color: inherit !important; color: inherit !important; }
+  @media (prefers-color-scheme: dark) {
+    body, .body-wrapper { background-color: ${C.dark} !important; }
+    .email-container { background-color: ${C.bg} !important; }
+    .email-header { background: linear-gradient(135deg, ${C.bg} 0%, ${C.card} 100%) !important; }
+    .email-content { background-color: ${C.bg} !important; }
+    .email-footer { background-color: ${C.dark} !important; }
+    .email-td { background-color: ${C.card} !important; color: ${C.white} !important; }
+    .email-th { background-color: ${C.surface} !important; color: ${C.textSecondary} !important; }
+    .email-table { border-color: ${C.border} !important; }
+    h1, p, td, th, div, span { color: inherit !important; }
+  }
+</style>
+</head>
+<body style="${S.body}" bgcolor="${C.dark}">
+<div class="body-wrapper" style="${S.wrapper}" bgcolor="${C.dark}">
+<div class="email-container" style="${S.container}" bgcolor="${C.bg}">
+<!-- Header -->
+<div class="email-header" style="${S.header}" bgcolor="${C.card}">
+  <div style="${S.logo}">UNLOCKED</div>
   <h1 style="${S.headerTitle}">${title}</h1>
   <p style="${S.headerSub}">${subtitle}</p>
 </div>
-<div style="${S.content}">
+<!-- Content -->
+<div class="email-content" style="${S.content}" bgcolor="${C.bg}">
 ${body}
 </div>
-<div style="${S.footer}">
-  <p style="margin:0;">${footerText}</p>
+<!-- Footer -->
+<div class="email-footer" style="${S.footer}" bgcolor="${C.dark}">
+  <p style="margin:0 0 8px;">${footerText}</p>
+  <p style="margin:0;">
+    <a href="https://unlocked.gr" style="${S.footerLink}">unlocked.gr</a>
+    &nbsp;·&nbsp;
+    <a href="https://unlocked.gr/privacy" style="${S.footerLink}">Privacy</a>
+    &nbsp;·&nbsp;
+    <a href="https://unlocked.gr/terms" style="${S.footerLink}">Terms</a>
+  </p>
 </div>
 </div>
 </div>
@@ -160,26 +252,32 @@ export const sendBookingEmails = internalAction({
     // ── Player confirmation ──
     if (playerEmail) {
       const playerHtml = shell(
-        "Booking Confirmed! 🎉",
+        "Booking Confirmed!",
         "Your escape room adventure awaits",
-        `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${d.playerName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;">Thank you for your booking! Here are your details:</p>
-<div style="text-align:center;margin:0 0 24px;"><span style="${S.badge}">${d.bookingCode}</span></div>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Room</th><td style="${S.td}"><strong>${d.roomTitle}</strong></td></tr>
-  <tr><th style="${S.th}">Date</th><td style="${S.td}">${fDate}</td></tr>
-  <tr><th style="${S.th}">Time</th><td style="${S.td}">${d.time}</td></tr>
-  <tr><th style="${S.th}">Players</th><td style="${S.td}">${d.players}</td></tr>
-  <tr><th style="${S.th}">Total</th><td style="${S.td}"><strong>€${d.total.toFixed(2)}</strong></td></tr>
-  <tr><th style="${S.th}">Payment</th><td style="${S.td}"><span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus)}</span></td></tr>
-  ${d.depositPaid ? `<tr><th style="${S.th}">Deposit</th><td style="${S.td}">€${d.depositPaid.toFixed(2)}</td></tr>` : ""}
-  ${d.notes ? `<tr><th style="${S.th}">Notes</th><td style="${S.td}">${d.notes}</td></tr>` : ""}
-</table>
-<p style="font-size:14px;color:#666;margin:24px 0 0;line-height:1.6;">
-  Keep your booking code <strong>${d.bookingCode}</strong> handy — you'll need it when you arrive.
-  Need changes? Call <strong>${d.companyPhone}</strong>.
-</p>`,
-        `${d.companyName} — Automated booking confirmation`
+        `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+<p style="${S.bodyText}">
+  Thank you for your booking! Your escape room experience is locked in. Here are your details:
+</p>
+<div style="text-align:center;margin:0 0 28px;"><span style="${S.badge}">${d.bookingCode}</span></div>
+${TABLE(`
+  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH("Date")}${TD(fDate)}</tr>
+  <tr>${TH("Time")}${TD(d.time)}</tr>
+  <tr>${TH("Players")}${TD(String(d.players))}</tr>
+  <tr>${TH("Total")}${TD(`<strong>€${d.total.toFixed(2)}</strong>`)}</tr>
+  <tr>${TH("Payment")}${TD(`<span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus)}</span>`)}</tr>
+  ${d.depositPaid ? `<tr>${TH("Deposit")}${TD(`€${d.depositPaid.toFixed(2)}`)}</tr>` : ""}
+  ${d.notes ? `<tr>${TH("Notes")}${TD(d.notes)}</tr>` : ""}
+`)}
+<div style="${S.divider}"></div>
+<p style="${S.bodyText}">
+  Keep your booking code <strong style="color:${C.red};">${d.bookingCode}</strong> handy — you'll need it when you arrive.
+  ${d.companyPhone ? `Need changes? Call <strong>${d.companyPhone}</strong>.` : ""}
+</p>
+<div style="text-align:center;margin:24px 0;">
+  <a href="https://unlocked.gr/tickets" style="${S.btn}">View My Tickets</a>
+</div>`,
+        `${d.companyName} · Booked via UNLOCKED`
       );
 
       promises.push(
@@ -196,27 +294,30 @@ export const sendBookingEmails = internalAction({
     // ── Company notification ──
     if (d.companyEmail) {
       const companyHtml = shell(
-        "New Booking Received 📋",
+        "New Booking Received",
         d.bookingCode,
-        `<p style="font-size:16px;color:#333;margin:0 0 24px;">A new booking has been placed.</p>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Booking Code</th><td style="${S.td}"><strong>${d.bookingCode}</strong></td></tr>
-  <tr><th style="${S.th}">Room</th><td style="${S.td}"><strong>${d.roomTitle}</strong></td></tr>
-  <tr><th style="${S.th}">Date</th><td style="${S.td}">${fDate}</td></tr>
-  <tr><th style="${S.th}">Time</th><td style="${S.td}">${d.time}</td></tr>
-  <tr><th style="${S.th}">Players</th><td style="${S.td}">${d.players}</td></tr>
-  <tr><th style="${S.th}">Total</th><td style="${S.td}"><strong>€${d.total.toFixed(2)}</strong></td></tr>
-  <tr><th style="${S.th}">Payment</th><td style="${S.td}"><span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus)}</span></td></tr>
-  ${d.depositPaid ? `<tr><th style="${S.th}">Deposit</th><td style="${S.td}">€${d.depositPaid.toFixed(2)}</td></tr>` : ""}
-</table>
-<h3 style="font-size:16px;color:#1a1a2e;margin:32px 0 12px;border-bottom:2px solid #eee;padding-bottom:8px;">Customer Details</h3>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Name</th><td style="${S.td}">${d.playerName}</td></tr>
-  <tr><th style="${S.th}">Email</th><td style="${S.td}"><a href="mailto:${d.playerContact}" style="color:#FF6B35;">${d.playerContact}</a></td></tr>
-  <tr><th style="${S.th}">Phone</th><td style="${S.td}"><a href="tel:${d.playerPhone}" style="color:#FF6B35;">${d.playerPhone}</a></td></tr>
-  ${d.notes ? `<tr><th style="${S.th}">Notes</th><td style="${S.td}">${d.notes}</td></tr>` : ""}
-</table>`,
-        `${d.companyName} — Automated booking notification`
+        `<p style="${S.bodyText}">A new booking has been placed on your room.</p>
+${TABLE(`
+  <tr>${TH("Booking Code")}${TD(`<strong style="color:${C.red};">${d.bookingCode}</strong>`)}</tr>
+  <tr>${TH("Room")}${TD(`<strong>${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH("Date")}${TD(fDate)}</tr>
+  <tr>${TH("Time")}${TD(d.time)}</tr>
+  <tr>${TH("Players")}${TD(String(d.players))}</tr>
+  <tr>${TH("Total")}${TD(`<strong>€${d.total.toFixed(2)}</strong>`)}</tr>
+  <tr>${TH("Payment")}${TD(`<span style="${S.statusColor(d.paymentStatus)}">${paymentLabel(d.paymentStatus)}</span>`)}</tr>
+  ${d.depositPaid ? `<tr>${TH("Deposit")}${TD(`€${d.depositPaid.toFixed(2)}`)}</tr>` : ""}
+`)}
+<h3 style="${S.sectionTitle}">Customer Details</h3>
+${TABLE(`
+  <tr>${TH("Name")}${TD(d.playerName)}</tr>
+  <tr>${TH("Email")}${TD(`<a href="mailto:${d.playerContact}" style="color:${C.red};">${d.playerContact}</a>`)}</tr>
+  <tr>${TH("Phone")}${TD(`<a href="tel:${d.playerPhone}" style="color:${C.red};">${d.playerPhone || "—"}</a>`)}</tr>
+  ${d.notes ? `<tr>${TH("Notes")}${TD(d.notes)}</tr>` : ""}
+`)}
+<div style="text-align:center;margin:24px 0;">
+  <a href="https://unlocked.gr/company/bookings" style="${S.btn}">View in Dashboard</a>
+</div>`,
+        `${d.companyName} · UNLOCKED Platform`
       );
 
       promises.push(
@@ -248,27 +349,27 @@ export const sendPlayerWelcome = internalAction({
     if (!resend) return;
 
     const html = shell(
-      "Welcome to UNLOCKED! 🔓",
+      "Welcome to UNLOCKED!",
       "Your escape room journey starts here",
-      `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${args.playerName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
-  Welcome to <strong>UNLOCKED</strong> — Greece's escape room platform!
+      `<p style="${S.greeting}">Hi <strong>${args.playerName}</strong>,</p>
+<p style="${S.bodyText}">
+  Welcome to <strong style="color:${C.red};">UNLOCKED</strong> — Greece's escape room platform!
   You're now part of a community of escape room enthusiasts.
 </p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">Here's what you can do:</p>
-<table style="${S.table}">
-  <tr><th style="${S.th}">🔍 Discover</th><td style="${S.td}">Browse escape rooms near you</td></tr>
-  <tr><th style="${S.th}">📅 Book</th><td style="${S.td}">Reserve your spot in seconds</td></tr>
-  <tr><th style="${S.th}">👥 Connect</th><td style="${S.td}">Add friends and invite them to play</td></tr>
-  <tr><th style="${S.th}">🏆 Compete</th><td style="${S.td}">Climb the leaderboard and earn badges</td></tr>
-  <tr><th style="${S.th}">📸 Share</th><td style="${S.td}">Save and share your escape room photos</td></tr>
-</table>
+<p style="${S.bodyText}">Here's what you can do:</p>
+${TABLE(`
+  ${FR(`<strong style="color:${C.white};">Discover</strong> — Browse escape rooms near you`)}
+  ${FR(`<strong style="color:${C.white};">Book</strong> — Reserve your spot in seconds`)}
+  ${FR(`<strong style="color:${C.white};">Connect</strong> — Add friends and invite them to play`)}
+  ${FR(`<strong style="color:${C.white};">Compete</strong> — Climb the leaderboard and earn badges`)}
+  ${FR(`<strong style="color:${C.white};">Share</strong> — Save and share your escape room photos`)}
+`)}
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlockedescapes.com/discover" style="${S.btn}">Start Exploring →</a>
+  <a href="https://unlocked.gr/discover" style="${S.btn}">Start Exploring</a>
 </div>
-<p style="font-size:14px;color:#666;line-height:1.6;">
-  Your rank: <strong>Escape Rookie 🌟</strong><br/>
-  Play more rooms to level up and unlock new titles!
+<div style="${S.divider}"></div>
+<p style="font-size:13px;color:${C.textMuted};text-align:center;margin:0;">
+  Your rank: <strong style="color:${C.gold};">Escape Rookie</strong> — Play more rooms to level up!
 </p>`,
       "UNLOCKED — Escape Room Platform"
     );
@@ -276,7 +377,7 @@ export const sendPlayerWelcome = internalAction({
     await resend.emails.send({
       from: fromAddr(),
       to: args.playerEmail,
-      subject: "Welcome to UNLOCKED! 🔓 Your escape room adventure starts now",
+      subject: "Welcome to UNLOCKED! Your escape room adventure starts now",
       html,
     }).then(r => console.log("[Email] Player welcome sent:", r))
       .catch(e => console.error("[Email] Player welcome failed:", e));
@@ -302,25 +403,25 @@ export const sendCompanyWelcome = internalAction({
       : "";
 
     const html = shell(
-      "Welcome to UNLOCKED! 🏢",
+      "Welcome to UNLOCKED!",
       "Partner with Greece's escape room platform",
-      `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${args.companyName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
-  Thank you for registering on <strong>UNLOCKED</strong>!
+      `<p style="${S.greeting}">Hi <strong>${args.companyName}</strong>,</p>
+<p style="${S.bodyText}">
+  Thank you for registering on <strong style="color:${C.red};">UNLOCKED</strong>!
   We're excited to have you on board.
 </p>
 ${planLine}
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">Here's what happens next:</p>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Step 1</th><td style="${S.td}">Complete your payment (if required)</td></tr>
-  <tr><th style="${S.th}">Step 2</th><td style="${S.td}">Our team reviews your application</td></tr>
-  <tr><th style="${S.th}">Step 3</th><td style="${S.td}">Once approved, you can add rooms and start receiving bookings!</td></tr>
-</table>
-<p style="font-size:15px;color:#555;margin:0 0 8px;line-height:1.6;">
+<p style="${S.bodyText}">Here's what happens next:</p>
+${TABLE(`
+  ${FR(`<strong style="color:${C.white};">Step 1</strong> — Complete your payment (if required)`)}
+  ${FR(`<strong style="color:${C.white};">Step 2</strong> — Our team reviews your application`)}
+  ${FR(`<strong style="color:${C.white};">Step 3</strong> — Once approved, add rooms and start receiving bookings!`)}
+`)}
+<p style="${S.bodyText}">
   You'll receive an email as soon as your account is approved.
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlockedescapes.com/company" style="${S.btn}">Go to Dashboard →</a>
+  <a href="https://unlocked.gr/company" style="${S.btn}">Go to Dashboard</a>
 </div>`,
       "UNLOCKED — Escape Room Platform"
     );
@@ -328,7 +429,7 @@ ${planLine}
     await resend.emails.send({
       from: fromAddr(),
       to: args.companyEmail,
-      subject: "Welcome to UNLOCKED! 🏢 Your registration is being processed",
+      subject: "Welcome to UNLOCKED! Your registration is being processed",
       html,
     }).then(r => console.log("[Email] Company welcome sent:", r))
       .catch(e => console.error("[Email] Company welcome failed:", e));
@@ -374,30 +475,28 @@ export const sendCompanyApproved = internalAction({
 
     const planFeatures = features[args.plan] || features.starter;
     const featureRows = planFeatures
-      .map(f => `<tr><td style="padding:8px 16px;font-size:14px;color:#333;border-bottom:1px solid #f0f0f0;">✅ ${f}</td></tr>`)
+      .map(f => FR(`<span style="color:#22c55e;margin-right:8px;">✓</span> ${f}`))
       .join("");
 
     const html = shell(
-      "You're Approved! 🎉",
+      "You're Approved!",
       "Your UNLOCKED account is now active",
-      `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${args.companyName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
-  Great news! Your company has been <strong>approved</strong> on UNLOCKED.
+      `<p style="${S.greeting}">Hi <strong>${args.companyName}</strong>,</p>
+<p style="${S.bodyText}">
+  Great news! Your company has been <strong style="color:#22c55e;">approved</strong> on UNLOCKED.
   You can now start adding your escape rooms and receiving bookings.
 </p>
-<div style="text-align:center;margin:0 0 24px;">
+<div style="text-align:center;margin:0 0 28px;">
   <span style="${S.badge}">${planLabel(args.plan)} Plan</span>
 </div>
-<p style="font-size:15px;color:#555;margin:0 0 12px;">Your plan includes:</p>
-<table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
-  ${featureRows}
-</table>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
+<p style="${S.bodyText}">Your plan includes:</p>
+${TABLE(featureRows)}
+<p style="${S.bodyText}">
   Log in to your dashboard to start setting up your rooms.
   Players can discover and book your rooms as soon as you publish them!
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlockedescapes.com/company" style="${S.btnGreen}">Go to Dashboard →</a>
+  <a href="https://unlocked.gr/company" style="${S.btnGreen}">Go to Dashboard</a>
 </div>`,
       "UNLOCKED — Escape Room Platform"
     );
@@ -405,7 +504,7 @@ export const sendCompanyApproved = internalAction({
     await resend.emails.send({
       from: fromAddr(),
       to: args.companyEmail,
-      subject: `Your UNLOCKED account is approved! 🎉 ${planLabel(args.plan)} Plan activated`,
+      subject: `Your UNLOCKED account is approved! ${planLabel(args.plan)} Plan activated`,
       html,
     }).then(r => console.log("[Email] Company approved sent:", r))
       .catch(e => console.error("[Email] Company approved failed:", e));
@@ -443,25 +542,26 @@ export const sendStripeReceipt = internalAction({
         : "Payment";
 
     const html = shell(
-      "Payment Receipt 💳",
+      "Payment Receipt",
       `Transaction for booking ${d.bookingCode}`,
-      `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${d.playerName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
+      `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+<p style="${S.bodyText}">
   Your payment has been processed successfully. Here is your receipt:
 </p>
-<div style="text-align:center;margin:0 0 24px;">
+<div style="text-align:center;margin:0 0 28px;">
   <span style="${S.badge}">${d.bookingCode}</span>
 </div>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Room</th><td style="${S.td}"><strong>${d.roomTitle}</strong></td></tr>
-  <tr><th style="${S.th}">Date</th><td style="${S.td}">${fDate}</td></tr>
-  <tr><th style="${S.th}">Time</th><td style="${S.td}">${d.time}</td></tr>
-  <tr><th style="${S.th}">Players</th><td style="${S.td}">${d.players}</td></tr>
-  <tr><th style="${S.th}">Booking Total</th><td style="${S.td}">€${d.total.toFixed(2)}</td></tr>
-  <tr><th style="${S.th}">Payment Type</th><td style="${S.td}">${termsLabel}</td></tr>
-  <tr><th style="${S.th}">Amount Charged</th><td style="${S.td}"><strong style="color:#28a745;">€${d.amountCharged.toFixed(2)}</strong></td></tr>
-</table>
-<p style="font-size:13px;color:#999;margin:24px 0 0;line-height:1.6;">
+${TABLE(`
+  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH("Date")}${TD(fDate)}</tr>
+  <tr>${TH("Time")}${TD(d.time)}</tr>
+  <tr>${TH("Players")}${TD(String(d.players))}</tr>
+  <tr>${TH("Booking Total")}${TD(`€${d.total.toFixed(2)}`)}</tr>
+  <tr>${TH("Payment Type")}${TD(termsLabel)}</tr>
+  <tr>${TH("Amount Charged")}${TD(`<strong style="color:#22c55e;">€${d.amountCharged.toFixed(2)}</strong>`)}</tr>
+`)}
+<div style="${S.divider}"></div>
+<p style="${S.smallText}">
   This is an automated payment receipt from UNLOCKED. The charge will appear on your statement as "UNLOCKED" or "${d.companyName}".
   If you have questions about this charge, please contact us.
 </p>`,
@@ -499,28 +599,29 @@ export const sendSubscriptionReceipt = internalAction({
     const nextBilling = d.period === "yearly" ? "in 12 months" : "in 30 days";
 
     const html = shell(
-      "Subscription Confirmed ✅",
+      "Subscription Confirmed",
       `${planLabel(d.plan)} Plan — ${periodLabel}`,
-      `<p style="font-size:16px;color:#333;margin:0 0 8px;">Hi <strong>${d.companyName}</strong>,</p>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
+      `<p style="${S.greeting}">Hi <strong>${d.companyName}</strong>,</p>
+<p style="${S.bodyText}">
   Your subscription payment has been processed successfully. Here are the details:
 </p>
-<table style="${S.table}">
-  <tr><th style="${S.th}">Plan</th><td style="${S.td}"><strong>${planLabel(d.plan)}</strong></td></tr>
-  <tr><th style="${S.th}">Billing Period</th><td style="${S.td}">${periodLabel}</td></tr>
-  <tr><th style="${S.th}">Amount</th><td style="${S.td}"><strong style="color:#28a745;">€${d.amount.toFixed(2)}</strong></td></tr>
-  <tr><th style="${S.th}">Next Billing</th><td style="${S.td}">${nextBilling}</td></tr>
-  <tr><th style="${S.th}">Status</th><td style="${S.td}"><span style="display:inline-block;background:#28a745;color:#fff;padding:4px 12px;border-radius:4px;font-size:13px;font-weight:600;">Active</span></td></tr>
-</table>
-<p style="font-size:15px;color:#555;margin:0 0 24px;line-height:1.6;">
+${TABLE(`
+  <tr>${TH("Plan")}${TD(`<strong style="color:${C.red};">${planLabel(d.plan)}</strong>`)}</tr>
+  <tr>${TH("Billing Period")}${TD(periodLabel)}</tr>
+  <tr>${TH("Amount")}${TD(`<strong style="color:#22c55e;">€${d.amount.toFixed(2)}</strong>`)}</tr>
+  <tr>${TH("Next Billing")}${TD(nextBilling)}</tr>
+  <tr>${TH("Status")}${TD(`<span style="display:inline-block;background:#22c55e;color:#fff;padding:4px 14px;border-radius:6px;font-size:12px;font-weight:700;">Active</span>`)}</tr>
+`)}
+<p style="${S.bodyText}">
   You can manage your subscription, update your payment method, or download invoices from the
   <strong>Billing</strong> section in your dashboard.
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlockedescapes.com/company/settings" style="${S.btn}">Manage Subscription →</a>
+  <a href="https://unlocked.gr/company/billing" style="${S.btn}">Manage Subscription</a>
 </div>
-<p style="font-size:13px;color:#999;margin:0;line-height:1.6;">
-  This charge will appear on your statement as "UNLOCKED". If you have questions, contact us at support@unlockedescapes.com.
+<div style="${S.divider}"></div>
+<p style="${S.smallText}">
+  This charge will appear on your statement as "UNLOCKED". If you have questions, contact us at hello@unlocked.gr.
 </p>`,
       "UNLOCKED — Subscription Receipt"
     );
@@ -532,5 +633,61 @@ export const sendSubscriptionReceipt = internalAction({
       html,
     }).then(r => console.log("[Email] Subscription receipt sent:", r))
       .catch(e => console.error("[Email] Subscription receipt failed:", e));
+  },
+});
+
+// ══════════════════════════════════════════════════════════════
+// 7. SLOT AVAILABLE EMAIL (sent when a booked slot opens up)
+// ══════════════════════════════════════════════════════════════
+
+export const sendSlotAvailableEmail = internalAction({
+  args: {
+    playerName: v.string(),
+    playerEmail: v.string(),
+    roomTitle: v.string(),
+    date: v.string(),
+    time: v.string(),
+    roomId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const resend = getResend();
+    if (!resend) return;
+
+    const d = args;
+
+    const bookUrl = `https://unlocked.gr/rooms/${d.roomId}/book`;
+
+    const html = shell(
+      "A Slot Just Opened Up! 🔔",
+      `${d.roomTitle} — ${fmtDate(d.date)} at ${d.time}`,
+      `<p style="${S.greeting}">Hi <strong>${d.playerName}</strong>,</p>
+<p style="${S.bodyText}">
+  Great news! A time slot you were watching just became available:
+</p>
+${TABLE(`
+  <tr>${TH("Room")}${TD(`<strong style="color:${C.red};">${d.roomTitle}</strong>`)}</tr>
+  <tr>${TH("Date")}${TD(fmtDate(d.date))}</tr>
+  <tr>${TH("Time")}${TD(`<strong>${d.time}</strong>`)}</tr>
+`)}
+<p style="${S.bodyText}">
+  This slot won't last long — book it now before someone else grabs it!
+</p>
+<div style="text-align:center;margin:32px 0;">
+  <a href="${bookUrl}" style="${S.btnGreen}">Book This Slot</a>
+</div>
+<div style="${S.divider}"></div>
+<p style="${S.smallText}">
+  You received this email because you subscribed to notifications for this time slot on UNLOCKED.
+</p>`,
+      "UNLOCKED — Slot Alert"
+    );
+
+    await resend.emails.send({
+      from: fromAddr(),
+      to: d.playerEmail,
+      subject: `🔔 Slot Available: ${d.roomTitle} — ${fmtDate(d.date)} at ${d.time}`,
+      html,
+    }).then(r => console.log("[Email] Slot available email sent:", r))
+      .catch(e => console.error("[Email] Slot available email failed:", e));
   },
 });

@@ -288,6 +288,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'checkout.confirmPay': 'Confirm & Pay €{{amount}}',
     'checkout.loginRequired': 'Please log in to complete your booking.',
     'checkout.bookingFailed': 'Something went wrong. Please try again.',
+    'checkout.phoneRequired': 'Phone Number Required',
+    'checkout.phoneRequiredDesc': 'A phone number is required to complete your booking. The escape room needs to be able to contact you.',
+    'checkout.phonePlaceholder': 'e.g. +30 6912345678',
 
     /* ── BookingConfirmation ── */
     'confirmation.title': 'Room Unlocked!',
@@ -395,6 +398,8 @@ export const translations: Record<Language, Record<string, string>> = {
     'editProfile.cameraPermission': 'Please allow camera access to take a profile photo.',
     'editProfile.nameEmpty': 'Name cannot be empty',
     'editProfile.failed': 'Failed to update profile',
+    'editProfile.phone': 'Phone Number',
+    'editProfile.phonePlaceholder': 'e.g. +30 6912345678',
 
     /* ── Themes ── */
     'theme.horror': 'Horror',
@@ -1117,6 +1122,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'premium.restore': 'Restore Purchases',
     'premium.restoreTitle': 'Restore Purchases',
     'premium.restoreMessage': 'If you previously purchased a subscription, it will be restored automatically.',
+    'premium.restoreNoneFound': 'No previous subscription found for this account.',
+    'premium.restoreSuccess': 'Your premium subscription has been restored successfully!',
+    'premium.restoreError': 'Failed to restore purchases. Please try again.',
     'premium.autoRenewNotice': 'Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your account settings.',
     'premium.termsOfService': 'Terms of Service',
     'premium.privacyPolicy': 'Privacy Policy',
@@ -1442,6 +1450,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'checkout.confirmPay': 'Επιβεβαίωση & Πληρωμή €{{amount}}',
     'checkout.loginRequired': 'Συνδέσου για να ολοκληρώσεις την κράτησή σου.',
     'checkout.bookingFailed': 'Κάτι πήγε στραβά. Δοκίμασε ξανά.',
+    'checkout.phoneRequired': 'Απαιτείται Τηλέφωνο',
+    'checkout.phoneRequiredDesc': 'Απαιτείται αριθμός τηλεφώνου για την ολοκλήρωση της κράτησης. Το escape room πρέπει να μπορεί να επικοινωνήσει μαζί σας.',
+    'checkout.phonePlaceholder': 'π.χ. +30 6912345678',
 
     /* ── BookingConfirmation ── */
     'confirmation.title': 'Δωμάτιο Ξεκλειδώθηκε!',
@@ -1549,6 +1560,8 @@ export const translations: Record<Language, Record<string, string>> = {
     'editProfile.cameraPermission': 'Επιτρέψτε την πρόσβαση στην κάμερα για λήψη φωτογραφίας προφίλ.',
     'editProfile.nameEmpty': 'Το όνομα δεν μπορεί να είναι κενό',
     'editProfile.failed': 'Αποτυχία ενημέρωσης προφίλ',
+    'editProfile.phone': 'Τηλέφωνο',
+    'editProfile.phonePlaceholder': 'π.χ. +30 6912345678',
 
     /* ── Themes ── */
     'theme.horror': 'Τρόμος',
@@ -2271,6 +2284,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'premium.restore': 'Επαναφορά Αγορών',
     'premium.restoreTitle': 'Επαναφορά Αγορών',
     'premium.restoreMessage': 'Εάν είχατε αγοράσει προηγουμένως συνδρομή, θα αποκατασταθεί αυτόματα.',
+    'premium.restoreNoneFound': 'Δεν βρέθηκε προηγούμενη συνδρομή για αυτόν τον λογαριασμό.',
+    'premium.restoreSuccess': 'Η premium συνδρομή σας αποκαταστάθηκε επιτυχώς!',
+    'premium.restoreError': 'Αποτυχία επαναφοράς αγορών. Δοκιμάστε ξανά.',
     'premium.autoRenewNotice': 'Οι συνδρομές ανανεώνονται αυτόματα εκτός εάν ακυρωθούν τουλάχιστον 24 ώρες πριν τη λήξη της τρέχουσας περιόδου. Ο λογαριασμός σας θα χρεωθεί για ανανέωση εντός 24 ωρών πριν τη λήξη της τρέχουσας περιόδου. Μπορείτε να διαχειριστείτε και να ακυρώσετε τις συνδρομές σας μεταβαίνοντας στις ρυθμίσεις του λογαριασμού σας.',
     'premium.termsOfService': 'Όροι Χρήσης',
     'premium.privacyPolicy': 'Πολιτική Απορρήτου',

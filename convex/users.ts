@@ -277,6 +277,7 @@ export const updateProfile = mutation({
   args: {
     userId: v.id("users"),
     name: v.optional(v.string()),
+    phone: v.optional(v.string()),
     avatar: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
   },
@@ -286,6 +287,7 @@ export const updateProfile = mutation({
 
     const updates: Record<string, any> = {};
     if (args.name !== undefined) updates.name = args.name;
+    if (args.phone !== undefined) updates.phone = args.phone;
 
     // Store the storageId persistently — URL is resolved at query time
     if (args.avatarStorageId) {

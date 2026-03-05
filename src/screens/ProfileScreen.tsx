@@ -110,6 +110,12 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
               )}
             </View>
             <Text style={styles.userEmail}>{user.email}</Text>
+            {(user as any).phone && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                <Ionicons name="call-outline" size={12} color={theme.colors.textSecondary} />
+                <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>{(user as any).phone}</Text>
+              </View>
+            )}
             <View style={styles.titleBadge}>
               <Ionicons name="trophy" size={12} color={theme.colors.redPrimary} />
               <Text style={styles.titleText}>{user.title}</Text>
@@ -282,6 +288,7 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
         userId={userId!}
         currentName={user.name}
         currentAvatar={user.avatar}
+        currentPhone={(user as any).phone || ''}
       />
     </View>
   );
