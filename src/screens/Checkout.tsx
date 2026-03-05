@@ -42,7 +42,6 @@ export default function Checkout() {
   const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === id) || allRooms[0];
 
-  const [paymentMethod, setPaymentMethod] = useState<'apple' | 'credit'>('apple');
   const [promoCode, setPromoCode] = useState('');
 
   // Resolve available payment terms (array or legacy single value)
@@ -216,30 +215,18 @@ export default function Checkout() {
         ) : (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('checkout.paymentMethod')}</Text>
-            <TouchableOpacity
-              style={[styles.payOption, paymentMethod === 'apple' && styles.payOptionActive]}
-              onPress={() => setPaymentMethod('apple')}
-            >
-              <View style={styles.payRow}>
-                <Ionicons name="logo-apple" size={22} color="#fff" />
-                <Text style={styles.payText}>{t('checkout.applePay')}</Text>
-              </View>
-              <View style={[styles.radio, paymentMethod === 'apple' && styles.radioActive]}>
-                {paymentMethod === 'apple' && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.payOption, paymentMethod === 'credit' && styles.payOptionActive]}
-              onPress={() => setPaymentMethod('credit')}
-            >
+            <View style={[styles.payOption, styles.payOptionActive]}>
               <View style={styles.payRow}>
                 <Ionicons name="card-outline" size={22} color="#fff" />
-                <Text style={styles.payText}>{t('checkout.creditCard')}</Text>
+                <View>
+                  <Text style={styles.payText}>{t('checkout.creditCard')}</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
+                    {t('checkout.stripeSecure')}
+                  </Text>
+                </View>
               </View>
-              <View style={[styles.radio, paymentMethod === 'credit' && styles.radioActive]}>
-                {paymentMethod === 'credit' && <View style={styles.radioDot} />}
-              </View>
-            </TouchableOpacity>
+              <Ionicons name="shield-checkmark-outline" size={18} color="#4CAF50" />
+            </View>
           </View>
         )}
       </ScrollView>
