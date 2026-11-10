@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { assertSlotStillBookable } from "./slotRules";
 
 export const create = mutation({
   args: {
@@ -33,12 +34,20 @@ export const create = mutation({
 
     // Look up room to set companyId for tracking
     const room = await ctx.db.get(args.roomId);
+    // Started times / last-hour cutoff (see slotRules.ts)
+    await assertSlotStillBookable(ctx, room, args.date, args.time, existing);
+
+    // If this booking is pending Stripe payment, mark it as pending
+    const isPending = args.pendingPayment === true;
 
     // Determine payment status based on payment terms
     const paymentTerms = args.paymentTerms || 'full';
     let paymentStatus: 'paid' | 'deposit' | 'unpaid' = 'paid';
     let depositPaid: number | undefined;
-    if (paymentTerms === 'deposit_20') {
+    if (isPending) {
+      // Payment hasn't happened yet — will be updated by Stripe webhook
+      paymentStatus = 'unpaid';
+    } else if (paymentTerms === 'deposit_20') {
       paymentStatus = 'deposit';
       depositPaid = Math.round(args.total * 0.2 * 100) / 100;
     } else if (paymentTerms === 'pay_on_arrival') {
@@ -53,7 +62,7 @@ export const create = mutation({
       time: args.time,
       players: args.players,
       total: args.total,
-      status: args.pendingPayment ? "pending_payment" : "upcoming",
+      status: isPending ? "pending_payment" : "upcoming",
       bookingCode,
       createdAt: Date.now(),
       source: "unlocked",
@@ -63,30 +72,40 @@ export const create = mutation({
       depositPaid,
     });
 
-    // Send booking confirmation emails (player + company)
-    const user = await ctx.db.get(args.userId);
-    const company = room?.companyId ? await ctx.db.get(room.companyId) : null;
-    if (user) {
-      await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {
-        bookingCode,
-        playerName: user.name,
-        playerContact: user.email,
-        playerPhone: (user as any).phone || "",
-        roomTitle: room?.title || "Escape Room",
-        date: args.date,
-        time: args.time,
-        players: args.players,
-        total: args.total,
-        paymentStatus,
-        depositPaid,
-        companyName: company?.name ?? "Escape Room",
-        companyPhone: company?.phone ?? "",
-        companyEmail: company?.email ?? "",
-        lang: (user as any).language || "en",
-      });
+    // Only send confirmation emails if payment is not pending
+    // (for Stripe bookings, emails are sent after payment is confirmed via webhook)
+    if (!isPending) {
+      const user = await ctx.db.get(args.userId);
+      const company: any = room?.companyId ? await ctx.db.get(room.companyId as any) : null;
+      if (user) {
+        await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {
+          bookingCode,
+          playerName: user.name,
+          playerContact: user.email,
+          playerPhone: (user as any).phone || "",
+          roomTitle: room?.title || "Escape Room",
+          date: args.date,
+          time: args.time,
+          players: args.players,
+          total: args.total,
+          paymentStatus,
+          depositPaid,
+          companyName: company?.name ?? "Escape Room",
+          companyPhone: company?.phone ?? "",
+          companyEmail: company?.email ?? "",
+          lang: (user as any).language || "en",
+        });
+      }
     }
 
     return { id, bookingCode };
+  },
+});
+
+export const getById = query({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.bookingId);
   },
 });
 
@@ -157,9 +176,27 @@ export const cancel = mutation({
             q.eq("roomId", booking.roomId).eq("date", booking.date).eq("time", booking.time)
           )
           .collect();
+
+        // Get room info for the email
+        const room = await ctx.db.get(booking.roomId);
+
         for (const alert of alerts) {
           if (!alert.notified) {
             await ctx.db.patch(alert._id, { notified: true });
+
+            // Send email notification to the user
+            const alertUser = await ctx.db.get(alert.userId);
+            if (alertUser?.email && room) {
+              await ctx.scheduler.runAfter(0, internal.email.sendSlotAvailableEmail, {
+                playerName: alertUser.name || "Player",
+                playerEmail: alertUser.email,
+                roomTitle: room.title,
+                date: booking.date,
+                time: booking.time,
+                roomId: booking.roomId,
+                lang: (alertUser as any).language || "en",
+              });
+            }
           }
         }
 
@@ -246,8 +283,11 @@ export const confirmBookingPayment = mutation({
     stripePaymentIntentId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Find the booking - bookingId is stored as string from Stripe metadata
     const booking = await ctx.db.get(args.bookingId as any);
     if (!booking) return;
+
+    // Check that this is a booking record
     if (!('total' in booking)) return;
     const bookingDoc = booking as any;
 
@@ -291,12 +331,13 @@ export const confirmBookingPayment = mutation({
   },
 });
 
-// ── Cancel unpaid booking (if Stripe checkout is abandoned) ──
+// ── Cancel booking and refund if it was paid (called if Stripe checkout is abandoned) ──
 export const cancelUnpaidBooking = mutation({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, args) => {
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) return;
+    // Only cancel if payment hasn't been confirmed yet
     if (booking.paymentStatus === "paid" || booking.paymentStatus === "deposit") return;
     await ctx.db.patch(args.bookingId, { status: "cancelled" });
   },

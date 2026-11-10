@@ -144,12 +144,12 @@ export const seed = mutation({
 
     // Seed badges
     const badgesData = [
-      { title: "First Escape", badgeKey: "champion", icon: "🔓", earned: true, date: "2025-03-15" },
-      { title: "Speed Demon", badgeKey: "speed_demon", icon: "⚡", earned: true, date: "2025-05-22" },
-      { title: "Horror Survivor", badgeKey: "explorer", icon: "👻", earned: true, date: "2025-07-10" },
-      { title: "Team Leader", badgeKey: "team_leader", icon: "👑", earned: true, date: "2025-09-01" },
-      { title: "Puzzle Master", badgeKey: "mastermind", icon: "🧩", earned: true, date: "2025-11-18" },
-      { title: "Night Owl", badgeKey: "night_owl", icon: "🦉", earned: false },
+      { badgeKey: "champion", title: "Champion", icon: "🏆", earned: true, date: "2025-03-15" },
+      { badgeKey: "speed_demon", title: "Speed Demon", icon: "⚡", earned: true, date: "2025-05-22" },
+      { badgeKey: "mastermind", title: "Mastermind", icon: "🧠", earned: true, date: "2025-07-10" },
+      { badgeKey: "team_leader", title: "Team Leader", icon: "👥", earned: true, date: "2025-09-01" },
+      { badgeKey: "perfectionist", title: "Perfectionist", icon: "🎯", earned: true, date: "2025-11-18" },
+      { badgeKey: "night_owl", title: "Night Owl", icon: "🌙", earned: false },
     ];
 
     for (const badge of badgesData) {
@@ -210,5 +210,29 @@ export const clearSeedRooms = mutation({
       }
     }
     return `Deleted ${deleted} seed rooms`;
+  },
+});
+
+export const seedDiscountCodes = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db
+      .query("discountCodes")
+      .withIndex("by_code", (q) => q.eq("code", "UNLOCKEDVIP"))
+      .first();
+    if (existing) return "Discount code already exists";
+
+    await ctx.db.insert("discountCodes", {
+      code: "UNLOCKEDVIP",
+      plan: "enterprise",
+      period: "yearly",
+      durationMonths: 12,
+      maxUses: 100,
+      usedCount: 0,
+      isActive: true,
+      createdAt: Date.now(),
+    });
+
+    return "Created UNLOCKEDVIP discount code";
   },
 });

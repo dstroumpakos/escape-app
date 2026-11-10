@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // ═══════════════════════════════════════════════════════════════
 // Badge Definitions — the 8 UNLOCKED badges
@@ -158,7 +159,7 @@ export const submitPerformance = mutation({
     if (!booking) throw new Error("Booking not found");
     if (!booking.userId) return; // external bookings — no user to award badges to
 
-    const userId = booking.userId!;
+    const userId = booking.userId!; // TS narrowing — checked above
 
     // Verify company owns this booking
     if (booking.companyId?.toString() !== args.companyId.toString()) {
@@ -333,5 +334,63 @@ export const badgeLeaderboard = query({
       icon: def.icon,
       earnedCount: counts[def.key] || 0,
     }));
+  },
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Manual badge award — company awards specific badges to a player
+// ═══════════════════════════════════════════════════════════════
+
+export const manualAwardBadges = mutation({
+  args: {
+    companyId: v.id("companies"),
+    bookingId: v.id("bookings"),
+    badgeKeys: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+    if (!booking.userId) return; // external bookings — no user
+
+    const userId = booking.userId;
+
+    // Verify company owns this booking's room
+    if (booking.companyId?.toString() !== args.companyId.toString()) {
+      throw new Error("Not authorised");
+    }
+
+    // Validate badge keys
+    const validKeys = new Set(BADGE_DEFS.map((d) => d.key as string));
+    const keysToAward = args.badgeKeys.filter((k) => validKeys.has(k));
+    if (keysToAward.length === 0) return;
+
+    // Check which badges user already has
+    const existingBadges = await ctx.db
+      .query("badges")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    const earnedKeys = new Set(existingBadges.map((b) => b.badgeKey));
+
+    const today = new Date().toISOString().split("T")[0];
+    const now = Date.now();
+
+    for (const key of keysToAward) {
+      if (earnedKeys.has(key)) continue; // already earned
+      const def = BADGE_DEFS.find((d) => d.key === key);
+      if (!def) continue;
+
+      await ctx.db.insert("badges", {
+        userId,
+        badgeKey: key,
+        title: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        icon: def.icon,
+        earned: true,
+        date: today,
+        verifiedByCompanyId: args.companyId,
+        verifiedByBookingId: args.bookingId,
+        earnedAt: now,
+      });
+      earnedKeys.add(key);
+    }
   },
 });

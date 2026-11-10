@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
+import { slotClosedReason, useNow } from '../slotTime';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'DateTimeSelect'>;
@@ -98,7 +99,35 @@ export default function DateTimeSelect() {
   const overflowActiveToday = overflowSlot?.days
     ? overflowSlot.days.includes(selectedDayOfWeek)
     : true;
-  const showOverflow = allRegularBooked && !!overflowSlot && overflowActiveToday;
+
+  // Hide times that can't be booked any more: started ones, and free ones inside
+  // their last hour unless the time right before them is booked (see slotTime.ts).
+  // Booked times stay listed (for slot alerts) until they start.
+  const now = useNow();
+  const allTimes = useMemo(
+    () => new Set<string>([...displaySlots.map((s: any) => s.time), ...bookedSet]),
+    [displaySlots, bookedSet]
+  );
+  const visibleSlots = useMemo(
+    () =>
+      displaySlots.filter((s: any) => {
+        const reason = slotClosedReason(dateStr, s.time, allTimes, bookedSet, now);
+        return bookedSet.has(s.time) ? reason !== 'past' : reason === null;
+      }),
+    [displaySlots, allTimes, bookedSet, dateStr, now]
+  );
+  const overflowClosed =
+    !!overflowSlot &&
+    slotClosedReason(dateStr, overflowSlot.time, new Set([...allTimes, overflowSlot.time]), bookedSet, now) !== null;
+  const showOverflow = allRegularBooked && !!overflowSlot && overflowActiveToday && !overflowClosed;
+
+  // Drop the selection if that time just closed.
+  useEffect(() => {
+    if (!selectedTime) return;
+    const stillThere =
+      selectedTime === 'overflow' ? showOverflow : visibleSlots.some((s: any) => s.id === selectedTime && s.available);
+    if (!stillThere) setSelectedTime(null);
+  }, [selectedTime, visibleSlots, showOverflow]);
 
   // ── Slot alerts: let users subscribe to unavailable slots ──
   const slotAlerts = useQuery(
@@ -251,8 +280,11 @@ export default function DateTimeSelect() {
 
         {/* Time Slots */}
         <Text style={styles.timeSectionTitle}>{t('dateTime.availableSlots')}</Text>
+        {visibleSlots.length === 0 && !showOverflow && (
+          <Text style={styles.noTimesLeft}>{t('dateTime.noTimesLeft')}</Text>
+        )}
         <View style={styles.timeGrid}>
-          {displaySlots.map((slot: any) => {
+          {visibleSlots.map((slot: any) => {
             const slotTotal = getSlotPrice(slot);
             const discount = getSlotDiscount(slot);
             const isAlerted = alertedTimes.has(slot.time);
@@ -435,6 +467,7 @@ const styles = StyleSheet.create({
   // Time Slots
   timeSectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 14 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  noTimesLeft: { fontSize: 14, color: theme.colors.textMuted, marginBottom: 12 },
   timeCard: {
     width: '48%', alignItems: 'center', gap: 4,
     paddingVertical: 14,

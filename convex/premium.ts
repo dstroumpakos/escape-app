@@ -158,50 +158,6 @@ export const restoreWithIAP = mutation({
   },
 });
 
-// ─── Legacy: Subscribe (kept for backwards compatibility / web) ───
-export const subscribe = mutation({
-  args: {
-    userId: v.id("users"),
-    plan: v.union(v.literal("monthly"), v.literal("yearly")),
-  },
-  handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-    if (!user) throw new Error("User not found");
-
-    const now = Date.now();
-    const price = PREMIUM_PRICES[args.plan];
-    const durationMs = args.plan === "monthly" ? 30 * 24 * 60 * 60 * 1000 : 365 * 24 * 60 * 60 * 1000;
-    const endDate = now + durationMs;
-
-    await ctx.db.insert("premiumSubscriptions", {
-      userId: args.userId,
-      plan: args.plan,
-      price,
-      startDate: now,
-      endDate,
-      isActive: true,
-      platform: "web",
-    });
-
-    await ctx.db.patch(args.userId, {
-      isPremium: true,
-      premiumSince: user.premiumSince ?? now,
-      premiumExpiresAt: endDate,
-    });
-
-    await ctx.db.insert("notifications", {
-      userId: args.userId,
-      type: "system",
-      title: "Welcome to UNLOCKED Premium! 🎉",
-      message: `You now have early access to new rooms 3 days before everyone else. Your ${args.plan} plan is active.`,
-      read: false,
-      createdAt: now,
-    });
-
-    return { success: true, expiresAt: endDate };
-  },
-});
-
 // ─── Cancel premium subscription ───
 export const cancel = mutation({
   args: { userId: v.id("users") },

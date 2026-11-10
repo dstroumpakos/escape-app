@@ -4,6 +4,7 @@ import { api, internal } from "./_generated/api";
 
 const http = httpRouter();
 
+// ── Widget JS Handler ──
 const widgetHandler = httpAction(async (ctx) => {
   const bundle = await ctx.runQuery(api.widget.getBundle);
 
@@ -44,6 +45,8 @@ const corsHandler = httpAction(async () => {
 const stripeWebhook = httpAction(async (ctx, request) => {
   const body = await request.text();
 
+  // Parse the event — in production with webhook signing secret,
+  // you'd verify the signature here. For now we parse directly.
   let event: any;
   try {
     event = JSON.parse(body);
@@ -114,7 +117,7 @@ const stripeWebhook = httpAction(async (ctx, request) => {
       const plan = session.metadata?.plan;
       const period = session.metadata?.period;
       const subscriptionId = session.subscription;
-      const amountTotal = session.amount_total;
+      const amountTotal = session.amount_total; // in cents
 
       if (companyId && plan && period && subscriptionId) {
         await ctx.runMutation(api.companies.completeStripePayment, {
@@ -124,6 +127,19 @@ const stripeWebhook = httpAction(async (ctx, request) => {
           period,
         });
 
+        // If a discount code was used, increment its usage
+        const discountCode = session.metadata?.discountCode;
+        if (discountCode) {
+          try {
+            await ctx.runMutation(api.companies.redeemDiscountCode, {
+              code: discountCode,
+            });
+          } catch (e) {
+            console.error("[Webhook] Failed to redeem discount code:", e);
+          }
+        }
+
+        // Send subscription receipt to company
         try {
           const company = await ctx.runQuery(api.companies.getById, { id: companyId as any });
           if (company) {
@@ -141,6 +157,7 @@ const stripeWebhook = httpAction(async (ctx, request) => {
       }
     }
   } else if (eventType === "customer.subscription.updated") {
+    // Handles: plan changes, cancel_at_period_end, reactivation from portal
     const subscription = event.data.object;
     const customerId = subscription.customer;
     if (customerId) {
@@ -148,9 +165,11 @@ const stripeWebhook = httpAction(async (ctx, request) => {
         stripeCustomerId: customerId,
       });
       if (company) {
+        // Detect plan + period from the subscription items
         const item = subscription.items?.data?.[0];
-        const interval = item?.price?.recurring?.interval;
+        const interval = item?.price?.recurring?.interval; // "month" or "year"
         const period = interval === "year" ? "yearly" : "monthly";
+        // Detect plan from metadata (set during checkout)
         const plan = subscription.metadata?.plan || undefined;
 
         await ctx.runMutation(api.companies.handleSubscriptionUpdated, {
@@ -180,6 +199,8 @@ const stripeWebhook = httpAction(async (ctx, request) => {
     }
   } else if (eventType === "invoice.payment_failed") {
     const invoice = event.data.object;
+    const subscriptionId = invoice.subscription;
+    // Try to find company by customer id
     const customerId = invoice.customer;
     if (customerId) {
       const company = await ctx.runQuery(api.companies.findCompanyByStripeCustomer, {
@@ -200,7 +221,7 @@ const stripeWebhook = httpAction(async (ctx, request) => {
   });
 });
 
-// Serve at /widget.js (cached by CDN) and /booking-widget.js (fresh path)
+// Widget routes
 http.route({ path: "/widget.js", method: "GET", handler: widgetHandler });
 http.route({ path: "/widget.js", method: "OPTIONS", handler: corsHandler });
 http.route({ path: "/booking-widget.js", method: "GET", handler: widgetHandler });

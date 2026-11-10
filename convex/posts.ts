@@ -12,7 +12,23 @@ export const getFeed = query({
       .order("desc")
       .take(50);
 
-    // Enrich posts with author info + room info
+    if (posts.length === 0) return [];
+
+    // Batch-load all unique authors and rooms to avoid N+1
+    const userIds = Array.from(new Set(posts.filter((p) => p.authorType === "user" && p.authorUserId).map((p) => p.authorUserId!)));
+    const companyIds = Array.from(new Set(posts.filter((p) => p.authorType === "company" && p.authorCompanyId).map((p) => p.authorCompanyId!)));
+    const roomIds = Array.from(new Set(posts.filter((p) => p.roomId).map((p) => p.roomId!)));
+    const [users, companies, rooms] = await Promise.all([
+      Promise.all(userIds.map((id) => ctx.db.get(id))),
+      Promise.all(companyIds.map((id) => ctx.db.get(id))),
+      Promise.all(roomIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const userMap = new Map(userIds.map((id, i) => [id, users[i]]));
+    const companyMap = new Map(companyIds.map((id, i) => [id, companies[i]]));
+    const roomMap = new Map(roomIds.map((id, i) => [id, rooms[i]]));
+
+    // Enrich posts
     const enriched = await Promise.all(
       posts.map(async (post) => {
         let authorName = "Unknown";
@@ -20,13 +36,13 @@ export const getFeed = query({
         let authorVerified = false;
 
         if (post.authorType === "user" && post.authorUserId) {
-          const user = await ctx.db.get(post.authorUserId);
+          const user = userMap.get(post.authorUserId);
           if (user) {
             authorName = user.name;
             authorAvatar = user.avatar;
           }
         } else if (post.authorType === "company" && post.authorCompanyId) {
-          const company = await ctx.db.get(post.authorCompanyId);
+          const company = companyMap.get(post.authorCompanyId);
           if (company) {
             authorName = company.name;
             authorAvatar = company.logo;
@@ -37,21 +53,33 @@ export const getFeed = query({
         let roomTitle = "";
         let roomImage = "";
         if (post.roomId) {
-          const room = await ctx.db.get(post.roomId);
+          const room = roomMap.get(post.roomId);
           if (room) {
             roomTitle = room.title;
             roomImage = room.image;
           }
         }
 
-        // Count comments
+        // Count comments (indexed query, fast)
         const comments = await ctx.db
           .query("postComments")
           .withIndex("by_post", (q) => q.eq("postId", post._id))
           .collect();
 
+        // Re-resolve media storage URLs (they expire, so refresh each query)
+        const freshMedia = await Promise.all(
+          (post.media || []).map(async (m) => {
+            if (m.storageId) {
+              const freshUrl = await ctx.storage.getUrl(m.storageId);
+              return { ...m, url: freshUrl || m.url };
+            }
+            return m;
+          })
+        );
+
         return {
           ...post,
+          media: freshMedia,
           authorName,
           authorAvatar,
           authorVerified,
@@ -71,8 +99,7 @@ export const getUserLikes = query({
   handler: async (ctx, args) => {
     const likes = await ctx.db
       .query("postLikes")
-      .withIndex("by_user_post")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .withIndex("by_user_post", (q) => q.eq("userId", args.userId))
       .collect();
     return likes.map((l) => l.postId);
   },

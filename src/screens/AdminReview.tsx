@@ -33,6 +33,9 @@ export default function AdminReview({ onBack }: Props) {
   const { t } = useTranslation();
   const { userId } = useUser();
   const companies = useQuery(api.companies.getAllCompanies, userId ? { userId: userId as Id<"users"> } : "skip");
+  // approve/decline check the admin by email on the server
+  const me = useQuery(api.users.getById, userId ? { userId: userId as Id<"users"> } : "skip");
+  const adminEmail = me?.email ?? '';
   const approveMut = useMutation(api.companies.approveCompany);
   const declineMut = useMutation(api.companies.declineCompany);
 
@@ -56,7 +59,7 @@ export default function AdminReview({ onBack }: Props) {
           onPress: async () => {
             try {
               setLoading(true);
-              await approveMut({ companyId: id as Id<"companies">, userId: userId as Id<"users"> });
+              await approveMut({ companyId: id as Id<"companies">, adminEmail });
             } catch (err: any) {
               Alert.alert(t('error'), err.message || 'Failed to approve company');
             } finally {
@@ -78,7 +81,7 @@ export default function AdminReview({ onBack }: Props) {
       await declineMut({
         companyId: declineModal as Id<"companies">,
         notes: declineNotes.trim(),
-        userId: userId as Id<"users">,
+        adminEmail,
       });
       setDeclineModal(null);
       setDeclineNotes('');

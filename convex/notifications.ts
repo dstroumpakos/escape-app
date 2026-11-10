@@ -35,15 +35,15 @@ export const create = mutation({
   },
 });
 
-// ─── Get all notifications for a user (newest first) ───
+// ─── Get all notifications for a user (newest first, limited) ───
 export const getByUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
-    const all = await ctx.db
+    return await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    return all.sort((a, b) => b.createdAt - a.createdAt);
+      .order("desc")
+      .take(50);
   },
 });
 

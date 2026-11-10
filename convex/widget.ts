@@ -10,6 +10,7 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { slotClosedReason, assertSlotStillBookable } from "./slotRules";
 
 // ─── Get Widget Configuration ─────────────────────────────────
 // Returns company info + its active rooms for the widget to render
@@ -138,6 +139,17 @@ export const getRoomAvailability = query({
       }
     }
 
+    // Started times, and free times inside their last hour whose previous time
+    // isn't booked, can't be booked any more (see slotRules.ts). Done after the
+    // overflow check so the bonus slot still only depends on real bookings.
+    const allTimes = new Set<string>([...slots.map((s) => s.time), ...bookedTimes]);
+    const nowMs = Date.now();
+    for (const s of slots) {
+      if (s.available && slotClosedReason(args.date, s.time, allTimes, bookedTimes, nowMs)) {
+        s.available = false;
+      }
+    }
+
     // Sort by time — treat hours before 06:00 as late-night (after 23:59)
     const sortKey = (t: string) => {
       const hour = parseInt(t.split(":")[0], 10);
@@ -211,6 +223,7 @@ export const createGuestBooking = mutation({
       (b) => b.time === args.time && b.status !== "cancelled"
     );
     if (conflict) throw new Error("This time slot is no longer available");
+    await assertSlotStillBookable(ctx, room, args.date, args.time, existing);
 
     // Calculate price
     let total: number;

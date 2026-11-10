@@ -17,7 +17,7 @@
     "@react-navigation/bottom-tabs": "^7.13.0",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/native-stack": "^7.12.0",
-    "convex": "^1.32.0",
+    "convex": "^1.49.0",
     "css-tree": "^3.1.0",
     "expo": "~54.0.33",
     "expo-apple-authentication": "~8.0.8",

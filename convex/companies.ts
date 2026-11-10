@@ -6,7 +6,7 @@ import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 import { nt } from "./notificationTexts";
 
 // ─── Admin helper: verify the calling user has isAdmin ───
-const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay'];
+const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay', 'dstroumpakos@planeraai.app'];
 
 async function requireAdmin(ctx: any, userId: string) {
   const user = await ctx.db.get(userId);
@@ -83,6 +83,61 @@ export const register = mutation({
   },
 });
 
+// ─── Full Registration with Onboarding (matches app flow) ───
+export const registerWithOnboarding = mutation({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    address: v.string(),
+    city: v.string(),
+    vatNumber: v.optional(v.string()),
+    description: v.string(),
+    password: v.string(),
+    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+  },
+  handler: async (ctx, args) => {
+    // Validate inputs
+    requireNonEmpty(args.name, "Company name");
+    if (!validateEmail(args.email)) return { error: "Invalid email format" };
+    const pwError = validatePassword(args.password);
+    if (pwError) return { error: pwError };
+    requireNonEmpty(args.phone, "Phone");
+    requireNonEmpty(args.address, "Address");
+    requireNonEmpty(args.city, "City");
+
+    const existing = await ctx.db
+      .query("companies")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (existing) return { error: "Email already registered" };
+
+    const hashedPw = await hashPassword(args.password);
+
+    const { plan, ...rest } = args;
+    const id = await ctx.db.insert("companies", {
+      ...rest,
+      password: hashedPw,
+      logo: "",
+      verified: false,
+      createdAt: Date.now(),
+      onboardingStatus: "pending_review",
+      termsAcceptedAt: Date.now(),
+      platformPlan: plan,
+      platformSubscribedAt: Date.now(),
+    });
+
+    // Send welcome email with plan info
+    await ctx.scheduler.runAfter(0, internal.email.sendCompanyWelcome, {
+      companyName: args.name,
+      companyEmail: args.email,
+      plan,
+    });
+
+    return { id };
+  },
+});
+
 // ─── Company Profile ───
 export const getById = query({
   args: { id: v.id("companies") },
@@ -106,17 +161,11 @@ export const updateProfile = mutation({
     description: v.optional(v.string()),
     logo: v.optional(v.string()),
     subscriptionEnabled: v.optional(v.boolean()),
+    autoTranslateEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
-    // Strip undefined values so we only patch provided fields
-    const patch: Record<string, unknown> = {};
-    for (const [k, val] of Object.entries(fields)) {
-      if (val !== undefined) patch[k] = val;
-    }
-    if (Object.keys(patch).length > 0) {
-      await ctx.db.patch(id, patch);
-    }
+    await ctx.db.patch(id, fields);
   },
 });
 
@@ -148,7 +197,7 @@ export const getDashboardStats = query({
         .withIndex("by_room", (q) => q.eq("roomId", roomId))
         .collect();
       totalBookings += bookings.length;
-      totalRevenue += bookings.reduce((sum, b) => sum + b.total, 0);
+      totalRevenue += bookings.filter((b) => b.status === "completed").reduce((sum, b) => sum + b.total, 0);
       upcomingBookings += bookings.filter((b) => b.status === "upcoming").length;
       completedBookings += bookings.filter((b) => b.status === "completed").length;
       cancelledBookings += bookings.filter((b) => b.status === "cancelled").length;
@@ -185,13 +234,114 @@ export const getDashboardStats = query({
     } : null;
 
     // Full analytics (enterprise only)
-    const fullAnalytics = plan === "enterprise" ? {
-      revenuePerRoom: rooms.map((r) => ({
-        roomId: r._id,
-        title: r.title,
-        revenue: 0, // would aggregate per-room
-      })),
-    } : null;
+    let fullAnalytics = null;
+    if (plan === "enterprise") {
+      // Count platform subscribers (app users with isPremium)
+      const allUsers = await ctx.db.query("users").collect();
+      const premiumUsers = allUsers.filter((u) => u.isPremium === true);
+      const activeSubscribers = premiumUsers.filter(
+        (u) => !u.premiumExpiresAt || u.premiumExpiresAt > Date.now()
+      ).length;
+      const churnedSubscribers = premiumUsers.length - activeSubscribers;
+
+      // Collect ALL bookings across all rooms for deeper analytics
+      const allBookings = [];
+      const revenuePerRoom = [];
+      for (const room of rooms) {
+        const roomBookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_room", (q) => q.eq("roomId", room._id))
+          .collect();
+        const roomRevenue = roomBookings.filter((b) => b.status === "completed").reduce((sum, b) => sum + b.total, 0);
+        revenuePerRoom.push({
+          roomId: room._id,
+          title: room.title,
+          revenue: roomRevenue,
+        });
+        allBookings.push(...roomBookings);
+      }
+
+      // ── Unique players ──
+      const uniquePlayerIds = new Set(
+        allBookings.filter((b) => b.userId).map((b) => b.userId!.toString())
+      );
+      const totalUniquePlayers = uniquePlayerIds.size;
+
+      // ── Average group size ──
+      const nonCancelledBookings = allBookings.filter((b) => b.status !== "cancelled");
+      const avgGroupSize = nonCancelledBookings.length > 0
+        ? Math.round((nonCancelledBookings.reduce((sum, b) => sum + b.players, 0) / nonCancelledBookings.length) * 10) / 10
+        : 0;
+
+      // ── Total players served ──
+      const totalPlayersServed = nonCancelledBookings.reduce((sum, b) => sum + b.players, 0);
+
+      // ── Repeat customers ──
+      const playerBookingCount: Record<string, number> = {};
+      for (const b of allBookings.filter((b) => b.userId && b.status !== "cancelled")) {
+        const key = b.userId!.toString();
+        playerBookingCount[key] = (playerBookingCount[key] || 0) + 1;
+      }
+      const repeatCustomers = Object.values(playerBookingCount).filter((c) => c > 1).length;
+      const repeatCustomerRate = totalUniquePlayers > 0
+        ? Math.round((repeatCustomers / totalUniquePlayers) * 100)
+        : 0;
+
+      // ── Overall escape rate ──
+      const today = new Date().toISOString().split("T")[0];
+      const pastNonCancelled = allBookings.filter(
+        (b) => b.date <= today && b.status !== "cancelled" && b.status !== "pending_payment"
+      );
+      const completedPast = pastNonCancelled.filter((b) => b.status === "completed").length;
+      const escapeRate = pastNonCancelled.length > 0
+        ? Math.round((completedPast / pastNonCancelled.length) * 100)
+        : 0;
+
+      // ── Most popular day of week ──
+      const dayCount: Record<number, number> = {};
+      for (const b of nonCancelledBookings) {
+        const day = new Date(b.date).getDay(); // 0=Sun..6=Sat
+        dayCount[day] = (dayCount[day] || 0) + 1;
+      }
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const peakDayNum = Object.entries(dayCount).sort((a, b) => b[1] - a[1])[0];
+      const peakDay = peakDayNum ? dayNames[Number(peakDayNum[0])] : "—";
+
+      // ── Most popular time slot ──
+      const timeCount: Record<string, number> = {};
+      for (const b of nonCancelledBookings) {
+        timeCount[b.time] = (timeCount[b.time] || 0) + 1;
+      }
+      const peakTimeEntry = Object.entries(timeCount).sort((a, b) => b[1] - a[1])[0];
+      const peakTime = peakTimeEntry ? peakTimeEntry[0] : "—";
+
+      // ── Booking source breakdown ──
+      const platformBookings = allBookings.filter((b) => b.source !== "external" && b.status !== "cancelled").length;
+      const widgetBookings = allBookings.filter((b) => b.source === "external" && b.status !== "cancelled").length;
+
+      // ── Total reviews ──
+      let totalReviews = 0;
+      for (const room of rooms) {
+        totalReviews += room.reviews ?? 0;
+      }
+
+      fullAnalytics = {
+        totalSubscribers: premiumUsers.length,
+        activeSubscribers,
+        churnedSubscribers,
+        revenuePerRoom,
+        totalUniquePlayers,
+        avgGroupSize,
+        totalPlayersServed,
+        repeatCustomerRate,
+        escapeRate,
+        peakDay,
+        peakTime,
+        platformBookings,
+        widgetBookings,
+        totalReviews,
+      };
+    }
 
     return { ...base, advanced, fullAnalytics };
   },
@@ -199,6 +349,7 @@ export const getDashboardStats = query({
 
 // ─── Plan limits helper ───
 const PLAN_ROOM_LIMITS: Record<string, number> = {
+  free: 1,
   starter: 1,
   pro: 2,
   enterprise: Infinity,
@@ -259,6 +410,8 @@ export const createRoom = mutation({
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),
+    storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
+    descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     paymentTerms: v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival"))),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
@@ -335,6 +488,8 @@ export const updateRoom = mutation({
     tags: v.optional(v.array(v.string())),
     description: v.optional(v.string()),
     story: v.optional(v.string()),
+    storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
+    descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     paymentTerms: v.optional(v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival")))),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
@@ -510,7 +665,7 @@ export const acceptTerms = mutation({
 export const selectPlan = mutation({
   args: {
     companyId: v.id("companies"),
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    plan: v.union(v.literal("free"), v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
   },
   handler: async (ctx, args) => {
     const company = await ctx.db.get(args.companyId);
@@ -526,6 +681,64 @@ export const selectPlan = mutation({
     }
 
     await ctx.db.patch(args.companyId, updates);
+
+    // Notify admin of new application
+    if (updates.onboardingStatus === "pending_review") {
+      await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
+        companyName: company.name,
+        companyEmail: company.email,
+        plan: args.plan,
+      });
+    }
+  },
+});
+
+// ─── Discount Codes ───
+export const validateDiscountCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const code = args.code.trim().toUpperCase();
+    const discount = await ctx.db
+      .query("discountCodes")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+
+    if (!discount) return { valid: false, error: "invalid_code" };
+    if (!discount.isActive) return { valid: false, error: "code_inactive" };
+    if (discount.expiresAt && discount.expiresAt < Date.now()) return { valid: false, error: "code_expired" };
+    if (discount.maxUses && discount.usedCount >= discount.maxUses) return { valid: false, error: "code_used_up" };
+
+    return {
+      valid: true,
+      plan: discount.plan,
+      period: discount.period,
+      durationMonths: discount.durationMonths,
+    };
+  },
+});
+
+export const redeemDiscountCode = mutation({
+  args: {
+    code: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const code = args.code.trim().toUpperCase();
+    const discount = await ctx.db
+      .query("discountCodes")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+
+    if (!discount) throw new Error("Invalid discount code");
+    if (!discount.isActive) throw new Error("This code is no longer active");
+    if (discount.expiresAt && discount.expiresAt < Date.now()) throw new Error("This code has expired");
+    if (discount.maxUses && discount.usedCount >= discount.maxUses) throw new Error("This code has been fully redeemed");
+
+    // Increment usage count
+    await ctx.db.patch(discount._id, {
+      usedCount: discount.usedCount + 1,
+    });
+
+    return { plan: discount.plan, period: discount.period, durationMonths: discount.durationMonths };
   },
 });
 
@@ -553,9 +766,10 @@ export const getAllCompanies = query({
 
 // Admin: approve company
 export const approveCompany = mutation({
-  args: { companyId: v.id("companies"), userId: v.id("users") },
+  args: { companyId: v.id("companies"), adminEmail: v.string() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.userId);
+    const email = args.adminEmail.toLowerCase().trim();
+    if (!ADMIN_EMAILS.includes(email)) throw new Error("Unauthorized: admin access required");
     const company = await ctx.db.get(args.companyId);
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "approved",
@@ -577,9 +791,10 @@ export const approveCompany = mutation({
 
 // Admin: decline company with notes
 export const declineCompany = mutation({
-  args: { companyId: v.id("companies"), notes: v.string(), userId: v.id("users") },
+  args: { companyId: v.id("companies"), notes: v.string(), adminEmail: v.string() },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.userId);
+    const email = args.adminEmail.toLowerCase().trim();
+    if (!ADMIN_EMAILS.includes(email)) throw new Error("Unauthorized: admin access required");
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "declined",
       reviewedAt: Date.now(),
@@ -663,6 +878,7 @@ export const getBookingsByDate = query({
         allBookings.push({
           ...b,
           roomTitle: room.title,
+          roomImage: room.image,
           playerName: playerName || (b.source === "external" ? "External" : "Walk-in"),
           source: b.source || "unlocked",
         });
@@ -957,61 +1173,175 @@ export const updateBookingNotes = mutation({
   },
 });
 
-// ─── Register with onboarding (plan selection during signup) ───
-export const registerWithOnboarding = mutation({
-  args: {
-    name: v.string(),
-    email: v.string(),
-    phone: v.string(),
-    address: v.string(),
-    city: v.string(),
-    vatNumber: v.optional(v.string()),
-    description: v.string(),
-    password: v.string(),
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
-  },
+// ═══════════════════════════════════════════════════════════════
+// ADMIN — Platform-wide login & dashboard
+// ═══════════════════════════════════════════════════════════════
+
+/** Admin login — email-only, no password needed (email must be in ADMIN_EMAILS) */
+export const adminLogin = mutation({
+  args: { email: v.string() },
   handler: async (ctx, args) => {
-    requireNonEmpty(args.name, "Company name");
-    if (!validateEmail(args.email)) return { error: "Invalid email format" };
-    const pwError = validatePassword(args.password);
-    if (pwError) return { error: pwError };
-    requireNonEmpty(args.phone, "Phone");
-    requireNonEmpty(args.address, "Address");
-    requireNonEmpty(args.city, "City");
-
-    const existing = await ctx.db
-      .query("companies")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-    if (existing) return { error: "Email already registered" };
-
-    const hashedPw = await hashPassword(args.password);
-
-    const { plan, ...rest } = args;
-    const id = await ctx.db.insert("companies", {
-      ...rest,
-      password: hashedPw,
-      logo: "",
-      verified: false,
-      createdAt: Date.now(),
-      onboardingStatus: "pending_review",
-      termsAcceptedAt: Date.now(),
-      platformPlan: plan,
-      platformSubscribedAt: Date.now(),
-    });
-
-    // Send welcome email with plan info
-    await ctx.scheduler.runAfter(0, internal.email.sendCompanyWelcome, {
-      companyName: args.name,
-      companyEmail: args.email,
-      plan,
-    });
-
-    return { id };
+    const email = args.email.toLowerCase().trim();
+    if (!ADMIN_EMAILS.includes(email)) {
+      throw new Error("Not an admin email");
+    }
+    return { email, isAdmin: true };
   },
 });
 
-// ─── Stripe integration mutations ───
+/** Full platform dashboard — returns every metric the admin needs */
+export const getAdminDashboard = query({
+  args: { adminEmail: v.string() },
+  handler: async (ctx, args) => {
+    const email = args.adminEmail.toLowerCase().trim();
+    if (!ADMIN_EMAILS.includes(email)) {
+      throw new Error("Unauthorized");
+    }
+
+    // ── Companies ──
+    const allCompanies = await ctx.db.query("companies").collect();
+    const companiesSafe = allCompanies.map((c) => {
+      const { password: _pw, ...safe } = c;
+      return safe;
+    });
+    const approvedCompanies = allCompanies.filter((c) => c.onboardingStatus === "approved");
+    const pendingCompanies = allCompanies.filter(
+      (c) => c.onboardingStatus === "pending_review" || c.onboardingStatus === "pending_terms" || c.onboardingStatus === "pending_plan"
+    );
+    const declinedCompanies = allCompanies.filter((c) => c.onboardingStatus === "declined");
+
+    // Plan breakdown
+    const planCounts = { starter: 0, pro: 0, enterprise: 0, none: 0 };
+    for (const c of allCompanies) {
+      if (c.platformPlan === "starter") planCounts.starter++;
+      else if (c.platformPlan === "pro") planCounts.pro++;
+      else if (c.platformPlan === "enterprise") planCounts.enterprise++;
+      else planCounts.none++;
+    }
+
+    // ── Rooms ──
+    const allRooms = await ctx.db.query("rooms").collect();
+    const activeRooms = allRooms.filter((r) => r.isActive !== false);
+    const ratedRooms = allRooms.filter((r) => r.reviews > 0);
+    const avgRating = ratedRooms.length > 0
+      ? ratedRooms.reduce((sum, r) => sum + r.rating, 0) / ratedRooms.length
+      : 0;
+
+    // ── Bookings ──
+    const allBookings = await ctx.db.query("bookings").collect();
+    const upcomingBookings = allBookings.filter((b) => b.status === "upcoming");
+    const completedBookings = allBookings.filter((b) => b.status === "completed");
+    const cancelledBookings = allBookings.filter((b) => b.status === "cancelled");
+    const totalRevenue = allBookings
+      .filter((b) => b.status !== "cancelled")
+      .reduce((sum, b) => sum + b.total, 0);
+
+    // Bookings by source
+    const unlockedBookings = allBookings.filter((b) => b.source === "unlocked" || !b.source);
+    const externalBookings = allBookings.filter((b) => b.source === "external");
+
+    // Revenue by month (last 6 months)
+    const now = Date.now();
+    const sixMonthsAgo = now - 6 * 30 * 24 * 60 * 60 * 1000;
+    const recentBookings = allBookings.filter(
+      (b) => b.createdAt > sixMonthsAgo && b.status !== "cancelled"
+    );
+    const revenueByMonth: Record<string, number> = {};
+    const bookingsByMonth: Record<string, number> = {};
+    for (const b of recentBookings) {
+      const d = new Date(b.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      revenueByMonth[key] = (revenueByMonth[key] || 0) + b.total;
+      bookingsByMonth[key] = (bookingsByMonth[key] || 0) + 1;
+    }
+
+    // Recent bookings (last 20)
+    const recentBookingsList = [...allBookings]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 20)
+      .map((b) => {
+        const room = allRooms.find((r) => String(r._id) === String(b.roomId));
+        const company = allCompanies.find(
+          (c) => String(c._id) === String(b.companyId)
+        );
+        return {
+          ...b,
+          roomTitle: room?.title || "Deleted room",
+          companyName: company?.name || "—",
+        };
+      });
+
+    // ── Users ──
+    const allUsers = await ctx.db.query("users").collect();
+    const premiumUsers = allUsers.filter((u) => u.isPremium);
+
+    // ── Posts ──
+    const allPosts = await ctx.db.query("posts").collect();
+
+    // ── Top companies by bookings ──
+    const companyBookingCounts: Record<string, number> = {};
+    const companyRevenue: Record<string, number> = {};
+    for (const b of allBookings) {
+      if (b.companyId && b.status !== "cancelled") {
+        const cid = String(b.companyId);
+        companyBookingCounts[cid] = (companyBookingCounts[cid] || 0) + 1;
+        companyRevenue[cid] = (companyRevenue[cid] || 0) + b.total;
+      }
+    }
+    const topCompanies = Object.entries(companyBookingCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([cid, count]) => {
+        const c = allCompanies.find((co) => String(co._id) === cid);
+        return {
+          name: c?.name || "Unknown",
+          city: c?.city || "",
+          bookings: count,
+          revenue: companyRevenue[cid] || 0,
+          plan: c?.platformPlan || null,
+        };
+      });
+
+    return {
+      companies: {
+        total: allCompanies.length,
+        approved: approvedCompanies.length,
+        pending: pendingCompanies.length,
+        declined: declinedCompanies.length,
+        plans: planCounts,
+        list: companiesSafe,
+      },
+      rooms: {
+        total: allRooms.length,
+        active: activeRooms.length,
+        avgRating: Math.round(avgRating * 10) / 10,
+        totalReviews: ratedRooms.reduce((s, r) => s + r.reviews, 0),
+      },
+      bookings: {
+        total: allBookings.length,
+        upcoming: upcomingBookings.length,
+        completed: completedBookings.length,
+        cancelled: cancelledBookings.length,
+        totalRevenue,
+        unlocked: unlockedBookings.length,
+        external: externalBookings.length,
+        revenueByMonth,
+        bookingsByMonth,
+        recent: recentBookingsList,
+      },
+      users: {
+        total: allUsers.length,
+        premium: premiumUsers.length,
+      },
+      social: {
+        totalPosts: allPosts.length,
+      },
+      topCompanies,
+    };
+  },
+});
+
+// ── Stripe helpers ──────────────────────────────────────────
 
 export const updateStripeCustomer = mutation({
   args: {
@@ -1059,6 +1389,13 @@ export const completeStripePayment = mutation({
       platformSubscribedAt: Date.now(),
       onboardingStatus: "pending_review",
     });
+
+    // Notify admin of new application
+    await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
+      companyName: company.name,
+      companyEmail: company.email,
+      plan: args.plan,
+    });
   },
 });
 
@@ -1073,6 +1410,7 @@ export const findCompanyByStripeCustomer = query({
 });
 
 // Called by the customer.subscription.updated webhook
+// Handles plan changes, cancel_at_period_end, and reactivation
 export const handleSubscriptionUpdated = mutation({
   args: {
     companyId: v.id("companies"),
@@ -1084,6 +1422,7 @@ export const handleSubscriptionUpdated = mutation({
   handler: async (ctx, args) => {
     const updates: any = {};
 
+    // Map Stripe status to our status
     if (args.cancelAtPeriodEnd) {
       updates.stripePaymentStatus = "cancelled";
     } else if (args.status === "active") {
@@ -1092,6 +1431,7 @@ export const handleSubscriptionUpdated = mutation({
       updates.stripePaymentStatus = "past_due";
     }
 
+    // If plan/period changed (upgrade/downgrade via portal)
     if (args.plan) updates.platformPlan = args.plan;
     if (args.period) updates.billingPeriod = args.period;
 

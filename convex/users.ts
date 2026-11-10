@@ -1,19 +1,8 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
-
-// ── Rank thresholds based on completed rooms ──
-function getPlayerRank(completed: number): string {
-  if (completed >= 100) return "rank_legend";
-  if (completed >= 50) return "rank_master";
-  if (completed >= 25) return "rank_expert";
-  if (completed >= 10) return "rank_veteran";
-  if (completed >= 5) return "rank_adventurer";
-  if (completed >= 1) return "rank_explorer";
-  return "rank_rookie";
-}
 
 export const getByEmail = query({
   args: { email: v.string() },
@@ -61,6 +50,17 @@ export const getByEmail = query({
     };
   },
 });
+
+// ── Rank thresholds based on completed rooms ──
+function getPlayerRank(completed: number): string {
+  if (completed >= 100) return "rank_legend";
+  if (completed >= 50) return "rank_master";
+  if (completed >= 25) return "rank_expert";
+  if (completed >= 10) return "rank_veteran";
+  if (completed >= 5) return "rank_adventurer";
+  if (completed >= 1) return "rank_explorer";
+  return "rank_rookie";
+}
 
 export const getById = query({
   args: { userId: v.id("users") },
@@ -122,10 +122,16 @@ export const register = mutation({
   },
   handler: async (ctx, args) => {
     // Validate inputs
-    const name = requireNonEmpty(args.name, "Name");
-    if (!validateEmail(args.email)) throw new Error("Invalid email format");
+    const trimmedName = args.name.trim();
+    if (!trimmedName) throw new ConvexError("NAME_REQUIRED");
+    if (!validateEmail(args.email)) throw new ConvexError("INVALID_EMAIL");
     const pwError = validatePassword(args.password);
-    if (pwError) throw new Error(pwError);
+    if (pwError) {
+      if (pwError.includes("8 characters")) throw new ConvexError("PASSWORD_LENGTH");
+      if (pwError.includes("uppercase")) throw new ConvexError("PASSWORD_UPPERCASE");
+      if (pwError.includes("number")) throw new ConvexError("PASSWORD_NUMBER");
+      throw new ConvexError("PASSWORD_INVALID");
+    }
 
     // Check if email already exists
     const existing = await ctx.db
@@ -133,7 +139,7 @@ export const register = mutation({
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .unique();
     if (existing) {
-      throw new Error("An account with this email already exists");
+      throw new ConvexError("EMAIL_EXISTS");
     }
 
     const now = new Date();
@@ -143,7 +149,7 @@ export const register = mutation({
     const hashedPw = await hashPassword(args.password);
 
     const userId = await ctx.db.insert("users", {
-      name,
+      name: trimmedName,
       email: args.email.toLowerCase(),
       password: hashedPw,
       avatar: "",
@@ -157,7 +163,7 @@ export const register = mutation({
 
     // Send welcome email
     await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
-      playerName: name,
+      playerName: trimmedName,
       playerEmail: args.email.toLowerCase(),
       lang: args.lang || "en",
     });
@@ -178,16 +184,16 @@ export const login = mutation({
       .unique();
 
     if (!user) {
-      throw new Error("No account found with this email");
+      throw new ConvexError("INVALID_CREDENTIALS");
     }
 
     if (!user.password) {
-      throw new Error("Incorrect password");
+      throw new ConvexError("INVALID_CREDENTIALS");
     }
 
     const valid = await verifyPassword(args.password, user.password);
     if (!valid) {
-      throw new Error("Incorrect password");
+      throw new ConvexError("INVALID_CREDENTIALS");
     }
 
     // Upgrade legacy plaintext passwords to hashed on successful login
@@ -518,15 +524,23 @@ export const leaderboard = query({
   handler: async (ctx, args) => {
     const max = args.limit ?? 20;
 
-    // Fetch all users and all bookings
-    const allUsers = await ctx.db.query("users").collect();
-    const allBookings = await ctx.db.query("bookings").collect();
+    // Fetch all users and only completed bookings (use status index)
+    const [allUsers, completedBookings] = await Promise.all([
+      ctx.db.query("users").collect(),
+      ctx.db.query("bookings").withIndex("by_status", (q) => q.eq("status", "completed")).collect(),
+    ]);
 
-    // Compute dynamic stats per user
+    // Compute dynamic stats per user using a Map for O(1) lookups
+    const userBookingsMap = new Map<string, typeof completedBookings>();
+    for (const b of completedBookings) {
+      if (!b.userId) continue;
+      const uid = b.userId as string;
+      if (!userBookingsMap.has(uid)) userBookingsMap.set(uid, []);
+      userBookingsMap.get(uid)!.push(b);
+    }
+
     const userStats = allUsers.map((user) => {
-      const userBookings = allBookings.filter(
-        (b) => b.userId === user._id && b.status === "completed"
-      );
+      const userBookings = userBookingsMap.get(user._id as string) ?? [];
       const played = userBookings.length;
       const escaped = new Set(userBookings.map((b) => b.roomId)).size;
       return { ...user, played, escaped };
@@ -542,63 +556,72 @@ export const leaderboard = query({
 
     const topUsers = sorted.slice(0, max);
 
-    // Fetch badges for each top user
-    const players = await Promise.all(
-      topUsers.map(async (user, i) => {
+    // Batch-fetch badges for all top users in parallel
+    const badgeCounts = await Promise.all(
+      topUsers.map(async (user) => {
         const badges = await ctx.db
           .query("badges")
           .withIndex("by_user", (q) => q.eq("userId", user._id))
           .collect();
-
-        // Resolve avatar
-        let avatar = user.avatar;
-        if (user.avatarStorageId) {
-          const freshUrl = await ctx.storage.getUrl(user.avatarStorageId);
-          if (freshUrl) avatar = freshUrl;
-        }
-
-        const rate = user.played > 0 ? Math.round((user.escaped / user.played) * 100) : 0;
-        const initials = user.name
-          .split(" ")
-          .map((w: string) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2);
-
-        return {
-          rank: i + 1,
-          id: user._id,
-          name: user.name,
-          avatar,
-          initials,
-          played: user.played,
-          escaped: user.escaped,
-          rate,
-          badges: badges.length,
-          isPremium: user.isPremium ?? false,
-        };
+        return badges.length;
       })
     );
+
+    // Batch-resolve avatars for users with storageIds
+    const avatarUrls = await Promise.all(
+      topUsers.map(async (user) => {
+        if (user.avatarStorageId) {
+          return await ctx.storage.getUrl(user.avatarStorageId);
+        }
+        return null;
+      })
+    );
+
+    const players = topUsers.map((user, i) => {
+      const avatar = avatarUrls[i] || user.avatar;
+      const rate = user.played > 0 ? Math.round((user.escaped / user.played) * 100) : 0;
+      const initials = user.name
+        .split(" ")
+        .map((w: string) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+      return {
+        rank: i + 1,
+        id: user._id,
+        name: user.name,
+        avatar,
+        initials,
+        played: user.played,
+        escaped: user.escaped,
+        rate,
+        badges: badgeCounts[i],
+        isPremium: user.isPremium ?? false,
+      };
+    });
 
     // Aggregate stats across ALL users (dynamic)
     const totalEscapes = userStats.reduce((sum, u) => sum + u.escaped, 0);
     const totalPlayed = userStats.reduce((sum, u) => sum + u.played, 0);
     const successRate = totalPlayed > 0 ? Math.round((totalEscapes / totalPlayed) * 100) : 0;
 
-    // Total badges
-    const allBadges = await ctx.db.query("badges").collect();
-    const totalBadges = allBadges.length;
+    // Total badges — count from the already-loaded badge queries for top users
+    // For accuracy we still need the full count, but we can use a single query
+    const allBadgesCount = (await ctx.db.query("badges").collect()).length;
 
     // ── Per-room escape stats (computed from bookings) ──
     const allRooms = await ctx.db.query("rooms").collect();
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+    // Use ALL bookings (not just completed) for room stats — load non-cancelled
+    const allBookings = await ctx.db.query("bookings").collect();
 
     const roomStats: Record<string, { completed: number; total: number }> = {};
     for (const booking of allBookings) {
       if (booking.status === "cancelled") continue;
       const rid = booking.roomId as string;
       if (!roomStats[rid]) roomStats[rid] = { completed: 0, total: 0 };
-      // Only count past bookings (date <= today) for escape rate
       if (booking.date <= today) {
         roomStats[rid].total += 1;
         if (booking.status === "completed") {
@@ -630,17 +653,17 @@ export const leaderboard = query({
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
       .slice(0, 10);
 
-    // Enrich top rooms with company name
-    const topRoomsEnriched = await Promise.all(
-      topRooms.map(async (r) => {
-        let companyName = "";
-        if (r.companyId) {
-          const company = await ctx.db.get(r.companyId);
-          if (company) companyName = company.name;
-        }
-        return { ...r, companyName };
-      })
+    // Batch-enrich top rooms with company name
+    const roomCompanyIds = Array.from(new Set(topRooms.map((r) => r.companyId).filter(Boolean)));
+    const roomCompanies = await Promise.all(roomCompanyIds.map((id) => ctx.db.get(id!)));
+    const roomCompanyMap = new Map(
+      roomCompanyIds.map((id, i) => [id!.toString(), roomCompanies[i]])
     );
+
+    const topRoomsEnriched = topRooms.map((r) => {
+      const company = r.companyId ? roomCompanyMap.get(r.companyId.toString()) : null;
+      return { ...r, companyName: company?.name ?? "" };
+    });
 
     return {
       players,
@@ -649,7 +672,7 @@ export const leaderboard = query({
         totalEscapes,
         totalPlayed,
         successRate,
-        totalBadges,
+        totalBadges: allBadgesCount,
       },
     };
   },

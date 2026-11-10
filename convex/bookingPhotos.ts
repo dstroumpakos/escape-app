@@ -37,6 +37,7 @@ export const savePreset = mutation({
     overlayUrl: v.optional(v.string()),
     overlayStorageId: v.optional(v.id("_storage")),
     useOverlay: v.optional(v.boolean()),
+    logoScale: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -49,6 +50,7 @@ export const savePreset = mutation({
       logoUrl: args.logoUrl,
       logoStorageId: args.logoStorageId,
       logoPosition: args.logoPosition,
+      logoScale: args.logoScale,
       brandColor: args.brandColor,
       watermarkOpacity: args.watermarkOpacity,
       textTemplate: args.textTemplate,
@@ -81,6 +83,7 @@ export const addPhoto = mutation({
     order: v.number(),
   },
   handler: async (ctx, args) => {
+    // Verify the booking belongs to this company
     const booking = await ctx.db.get(args.bookingId);
     if (!booking || booking.companyId?.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized: booking does not belong to this company");
@@ -114,6 +117,7 @@ export const getByBooking = query({
 export const getReadyByBooking = query({
   args: { bookingId: v.id("bookings"), userId: v.id("users") },
   handler: async (ctx, args) => {
+    // Verify this user owns this booking
     const booking = await ctx.db.get(args.bookingId);
     if (!booking || booking.userId?.toString() !== args.userId.toString()) {
       return [];
@@ -141,6 +145,7 @@ export const deletePhoto = mutation({
     if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
     }
+    // Delete stored files
     await ctx.storage.delete(photo.originalStorageId);
     if (photo.processedStorageId) {
       await ctx.storage.delete(photo.processedStorageId);
@@ -196,44 +201,60 @@ export const updatePhotoStatus = internalMutation({
 export const processPhoto = action({
   args: { photoId: v.id("bookingPhotos") },
   handler: async (ctx, args) => {
+    // 1. Get the photo record
     const photo: any = await ctx.runQuery(api.bookingPhotos.getPhotoById, { photoId: args.photoId });
     if (!photo) throw new Error("Photo not found");
 
+    // 2. Mark as processing
     await ctx.runMutation(internal.bookingPhotos.updatePhotoStatus, {
       photoId: args.photoId,
       status: "processing",
     });
 
     try {
+      // 3. Get the company's photo preset
       const preset: any = await ctx.runQuery(api.bookingPhotos.getPreset, {
         companyId: photo.companyId,
       });
 
+      // 4. Fetch the original image
       const originalUrl = photo.originalUrl;
       const imageResponse = await fetch(originalUrl);
       if (!imageResponse.ok) throw new Error("Failed to fetch original image");
+      const imageBuffer = await imageResponse.arrayBuffer();
 
-      // For now: mark as ready with original URL (branding applied client-side)
+      // 5. Apply branding using Canvas API (via server-side processing)
+      // Since Convex actions run in Node.js-like environment, we'll compose
+      // a branded image using a lightweight approach:
+      // - For MVP, we store the original as "processed" with metadata
+      // - The branding overlay is applied client-side with CSS/Canvas
+      // - For production, integrate a service like Cloudinary or Sharp
+
+      // For now: mark as ready with original URL (branding applied via CSS overlay on client)
+      // This keeps the pipeline async-ready for future server-side processing
       const processedUrl = originalUrl;
 
+      // 6. Update photo as ready
       await ctx.runMutation(internal.bookingPhotos.updatePhotoStatus, {
         photoId: args.photoId,
         status: "ready",
         processedUrl,
       });
 
-      // Check if all photos for this booking are now ready
+      // 7. Check if all photos for this booking are now ready
       const allPhotos: any[] = await ctx.runQuery(api.bookingPhotos.getByBooking, {
         bookingId: photo.bookingId,
       });
       const allReady = allPhotos.every((p: any) => p.status === "ready");
 
       if (allReady) {
+        // Notify the player
         await ctx.runMutation(api.bookingPhotos.notifyPhotosReady, {
           bookingId: photo.bookingId,
         });
       }
     } catch (error: any) {
+      // Mark as failed
       await ctx.runMutation(internal.bookingPhotos.updatePhotoStatus, {
         photoId: args.photoId,
         status: "failed",
@@ -314,16 +335,18 @@ export const notifyPhotosReady = mutation({
     const booking = await ctx.db.get(args.bookingId);
     if (!booking || !booking.userId) return;
 
+    // Get the room name for the notification
     const room = await ctx.db.get(booking.roomId);
     const roomName = room?.title || "Escape Room";
-    const recipientUser = await ctx.db.get(booking.userId);
-    const lang = recipientUser?.language;
+    const recipientUser2 = await ctx.db.get(booking.userId);
+    const lang2 = recipientUser2?.language;
 
+    // Create in-app notification
     await ctx.db.insert("notifications", {
       userId: booking.userId,
       type: "photos_ready",
-      title: nt(lang, "photos_ready.title"),
-      message: nt(lang, "photos_ready.message", { room: roomName }),
+      title: nt(lang2, "photos_ready.title"),
+      message: nt(lang2, "photos_ready.message", { room: roomName }),
       read: false,
       createdAt: Date.now(),
       data: {
@@ -344,6 +367,7 @@ export const processAllForBooking = action({
 
     const pending = photos.filter((p: any) => p.status === "pending");
 
+    // Process each photo
     for (const photo of pending) {
       await ctx.runAction(api.bookingPhotos.processPhoto, {
         photoId: photo._id,
@@ -365,6 +389,7 @@ export const getCompletedBookings = query({
       .filter((b) => b.status === "completed")
       .sort((a, b) => b.createdAt - a.createdAt);
 
+    // Enrich with room + player data + photo count
     const enriched = await Promise.all(
       completed.map(async (b) => {
         const room = await ctx.db.get(b.roomId);
@@ -373,6 +398,7 @@ export const getCompletedBookings = query({
           const user = await ctx.db.get(b.userId);
           playerName = user?.name;
         }
+        // Count existing photos
         const photos = await ctx.db
           .query("bookingPhotos")
           .withIndex("by_booking", (q) => q.eq("bookingId", b._id))

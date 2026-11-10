@@ -30,6 +30,7 @@ export default defineSchema({
     )),
     termsAcceptedAt: v.optional(v.number()),
     platformPlan: v.optional(v.union(
+      v.literal("free"),
       v.literal("starter"),
       v.literal("pro"),
       v.literal("enterprise")
@@ -43,11 +44,13 @@ export default defineSchema({
     stripePriceId: v.optional(v.string()),
     billingPeriod: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
     stripePaymentStatus: v.optional(v.union(
-      v.literal("pending"),
-      v.literal("active"),
-      v.literal("cancelled"),
-      v.literal("past_due"),
+      v.literal("pending"),      // Checkout started but not completed
+      v.literal("active"),       // Subscription active
+      v.literal("cancelled"),    // Subscription cancelled
+      v.literal("past_due"),     // Payment failed
     )),
+    // Auto-translate room content to all supported languages
+    autoTranslateEnabled: v.optional(v.boolean()),
   })
     .index("by_email", ["email"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
@@ -73,6 +76,17 @@ export default defineSchema({
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),
+    // Multi-language translations for story & description
+    storyTranslations: v.optional(v.object({
+      en: v.optional(v.string()),
+      el: v.optional(v.string()),
+      nl: v.optional(v.string()),
+    })),
+    descriptionTranslations: v.optional(v.object({
+      en: v.optional(v.string()),
+      el: v.optional(v.string()),
+      nl: v.optional(v.string()),
+    })),
     isNew: v.optional(v.boolean()),
     isFeatured: v.optional(v.boolean()),
     isTrending: v.optional(v.boolean()),
@@ -113,6 +127,8 @@ export default defineSchema({
     })),
     // Early Access: date the room goes public (YYYY-MM-DD). Premium players see it 3 days before.
     releaseDate: v.optional(v.string()),
+    // Photos-only rooms (created from photos.unlocked.gr) — hidden from main site listings
+    photosOnly: v.optional(v.boolean()),
   })
     .index("by_theme", ["theme"])
     .index("by_featured", ["isFeatured"])
@@ -446,6 +462,7 @@ export default defineSchema({
       v.literal("bottom-right"),
       v.literal("bottom-center")
     ),
+    logoScale: v.optional(v.number()), // 0.05–0.5 (fraction of image width)
     brandColor: v.string(), // hex e.g. "#FF1E1E"
     watermarkOpacity: v.number(), // 0.0 – 1.0
     textTemplate: v.optional(v.string()), // e.g. "You escaped in {{time}}"
@@ -480,4 +497,118 @@ export default defineSchema({
     .index("by_booking", ["bookingId"])
     .index("by_company", ["companyId"])
     .index("by_status", ["status"]),
+
+  // ════════════════════════════════════════════════════════════
+  // Photos Tool — Standalone photo management (photos.unlocked.gr)
+  // ════════════════════════════════════════════════════════════
+
+  // ─── Standalone Photos (not tied to bookings) ───
+  standalonePhotos: defineTable({
+    companyId: v.id("companies"),
+    roomId: v.optional(v.id("rooms")),
+    // Storage
+    originalStorageId: v.id("_storage"),
+    originalUrl: v.string(),
+    processedStorageId: v.optional(v.id("_storage")),
+    processedUrl: v.optional(v.string()),
+    // R2 path for public hosting
+    r2Path: v.optional(v.string()),
+    r2Url: v.optional(v.string()),
+    // Editing state
+    filter: v.optional(v.string()),
+    adjustments: v.optional(v.object({
+      brightness: v.optional(v.number()),
+      contrast: v.optional(v.number()),
+      saturation: v.optional(v.number()),
+      temperature: v.optional(v.number()),
+      sharpness: v.optional(v.number()),
+      vignette: v.optional(v.number()),
+      grain: v.optional(v.number()),
+    })),
+    // Overlays
+    hasWatermark: v.optional(v.boolean()),
+    hasFrame: v.optional(v.boolean()),
+    frameOverlayUrl: v.optional(v.string()),
+    textOverlay: v.optional(v.string()),
+    sticker: v.optional(v.string()),
+    // Metadata
+    teamName: v.optional(v.string()),
+    escaped: v.optional(v.boolean()),
+    escapeTime: v.optional(v.string()),
+    // Status
+    status: v.union(
+      v.literal("draft"),
+      v.literal("ready"),
+      v.literal("sent")
+    ),
+    // Tracking
+    emailsSent: v.number(),
+    hostedPageViews: v.number(),
+    downloads: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_company_created", ["companyId", "createdAt"])
+    .index("by_room", ["roomId"])
+    .index("by_status", ["companyId", "status"]),
+
+  // ─── Photo Emails (delivery tracking) ───
+  photoEmails: defineTable({
+    photoId: v.id("standalonePhotos"),
+    companyId: v.id("companies"),
+    recipientEmail: v.string(),
+    resendMessageId: v.optional(v.string()),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("delivered"),
+      v.literal("opened"),
+      v.literal("bounced"),
+      v.literal("failed")
+    ),
+    sentAt: v.number(),
+    openedAt: v.optional(v.number()),
+  })
+    .index("by_photo", ["photoId"])
+    .index("by_company", ["companyId", "sentAt"]),
+
+  // ─── Per-Room Photo Presets (photos.unlocked.gr) ───
+  roomPhotoPresets: defineTable({
+    roomId: v.id("rooms"),
+    companyId: v.id("companies"),
+    logoUrl: v.optional(v.string()),
+    logoStorageId: v.optional(v.id("_storage")),
+    logoPosition: v.optional(v.union(
+      v.literal("top-left"),
+      v.literal("top-right"),
+      v.literal("bottom-left"),
+      v.literal("bottom-right"),
+      v.literal("bottom-center")
+    )),
+    logoScale: v.optional(v.number()), // 0.05–0.5 (fraction of image width)
+    brandColor: v.optional(v.string()),
+    watermarkOpacity: v.optional(v.number()),
+    textTemplate: v.optional(v.string()),
+    overlayUrl: v.optional(v.string()),
+    overlayStorageId: v.optional(v.id("_storage")),
+    useOverlay: v.optional(v.boolean()),
+    defaultFilter: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_room", ["roomId"])
+    .index("by_company", ["companyId"]),
+
+  // ─── Discount Codes ───
+  discountCodes: defineTable({
+    code: v.string(),                    // e.g. "ENTERPRISE2026"
+    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    period: v.union(v.literal("monthly"), v.literal("yearly")),
+    durationMonths: v.number(),          // how long the free period lasts (12 = 1 year)
+    maxUses: v.optional(v.number()),     // null = unlimited
+    usedCount: v.number(),
+    isActive: v.boolean(),
+    expiresAt: v.optional(v.number()),   // timestamp, null = never expires
+    createdAt: v.number(),
+  })
+    .index("by_code", ["code"]),
 });

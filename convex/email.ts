@@ -243,49 +243,49 @@ function et(lang: Lang, key: string): string {
 
 // Brand palette
 const C = {
-  bg: "#1A0D0D",
-  dark: "#0F0707",
-  card: "#2A1515",
-  surface: "#3A2020",
-  border: "#4A2A2A",
-  red: "#FF1E1E",
-  redHover: "#E01A1A",
-  redLight: "#FF4D4D",
-  gold: "#FFD700",
-  text: "#FFFFFF",
-  textSecondary: "#B0A0A0",
-  textMuted: "#6B5555",
-  white: "#FFFFFF",
+  bg: "#ffffff",
+  dark: "#f5f5f5",
+  card: "#f9f9f9",
+  surface: "#f0f0f0",
+  border: "#e0e0e0",
+  red: "#DC2626",
+  redHover: "#B91C1C",
+  redLight: "#EF4444",
+  gold: "#F59E0B",
+  text: "#1a1a1a",
+  textSecondary: "#555555",
+  textMuted: "#999999",
+  white: "#ffffff",
 };
 
 const S = {
   body: `margin:0;padding:0;background:${C.dark};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;`,
   wrapper: `padding:16px 8px;background:${C.dark};`,
   container: `max-width:600px;margin:0 auto;background:${C.bg};border-radius:16px;overflow:hidden;border:1px solid ${C.border};`,
-  // Header with gradient overlay
-  header: `background:linear-gradient(135deg, ${C.bg} 0%, ${C.card} 100%);padding:28px 20px 24px;text-align:center;border-bottom:2px solid ${C.red};`,
+  // Header — white bg with red bottom border
+  header: `background-color:${C.bg};padding:28px 20px 24px;text-align:center;border-bottom:3px solid ${C.red};`,
   logo: `font-size:24px;font-weight:800;letter-spacing:3px;color:${C.red};margin:0 0 4px;`,
-  headerTitle: `margin:10px 0 0;font-size:20px;font-weight:700;color:${C.white};`,
+  headerTitle: `margin:10px 0 0;font-size:20px;font-weight:700;color:${C.text};`,
   headerSub: `margin:6px 0 0;font-size:13px;color:${C.textSecondary};word-break:break-word;`,
   content: `padding:20px 16px;`,
   // Booking code badge
-  badge: `display:inline-block;background:linear-gradient(135deg, ${C.red} 0%, ${C.redLight} 100%);color:${C.white};font-size:18px;font-weight:800;padding:10px 20px;border-radius:10px;letter-spacing:2px;font-family:'Courier New',Courier,monospace;`,
+  badge: `display:inline-block;background:${C.red};color:${C.white};font-size:18px;font-weight:800;padding:10px 20px;border-radius:10px;letter-spacing:2px;font-family:'Courier New',Courier,monospace;`,
   // Table styles
   table: `width:100%;border-collapse:separate;border-spacing:0;margin:20px 0;border-radius:12px;overflow:hidden;border:1px solid ${C.border};`,
   th: `text-align:left;padding:10px 12px;background-color:${C.surface};color:${C.textSecondary};font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid ${C.border};width:35%;`,
-  td: `padding:10px 12px;font-size:13px;color:${C.white};border-bottom:1px solid ${C.border};background-color:${C.card};word-break:break-word;`,
+  td: `padding:10px 12px;font-size:13px;color:${C.text};border-bottom:1px solid ${C.border};background-color:${C.bg};word-break:break-word;`,
   // Buttons
-  btn: `display:inline-block;background:linear-gradient(135deg, ${C.red} 0%, ${C.redLight} 100%);color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
-  btnGreen: `display:inline-block;background:linear-gradient(135deg, #22c55e 0%, #16a34a 100%);color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
+  btn: `display:inline-block;background-color:${C.red};color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
+  btnGreen: `display:inline-block;background-color:#22c55e;color:${C.white};padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;letter-spacing:0.5px;`,
   // Footer
   footer: `padding:20px 16px;background:${C.dark};text-align:center;font-size:11px;color:${C.textMuted};border-top:1px solid ${C.border};`,
   footerLink: `color:${C.red};text-decoration:none;`,
   // Divider
-  divider: `height:1px;background:linear-gradient(to right, transparent, ${C.border}, transparent);margin:24px 0;`,
+  divider: `height:1px;background:${C.border};margin:24px 0;`,
   // Section header
-  sectionTitle: `font-size:15px;font-weight:700;color:${C.white};margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid ${C.border};`,
+  sectionTitle: `font-size:15px;font-weight:700;color:${C.text};margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid ${C.border};`,
   // Text styles
-  greeting: `font-size:16px;color:${C.white};margin:0 0 8px;`,
+  greeting: `font-size:16px;color:${C.text};margin:0 0 8px;`,
   bodyText: `font-size:14px;color:${C.textSecondary};margin:0 0 24px;line-height:1.7;`,
   smallText: `font-size:13px;color:${C.textMuted};margin:24px 0 0;line-height:1.6;`,
   highlight: `color:${C.red};font-weight:600;`,
@@ -300,24 +300,24 @@ const S = {
     return `display:inline-block;background:${c.bg};color:${c.color};padding:4px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:0.3px;`;
   },
   // Feature check row
-  featureRow: `padding:10px 12px;font-size:13px;color:${C.textSecondary};border-bottom:1px solid ${C.border};background-color:${C.card};`,
+  featureRow: `padding:10px 12px;font-size:13px;color:${C.textSecondary};border-bottom:1px solid ${C.border};background-color:${C.bg};`,
 };
 
 // Helper to generate <th> with bgcolor for mobile email client compatibility
 function TH(label: string): string {
-  return `<th class="email-th" style="${S.th}" bgcolor="${C.surface}">${label}</th>`;
+  return `<th style="${S.th}" bgcolor="${C.surface}">${label}</th>`;
 }
 // Helper to generate <td> with bgcolor
 function TD(content: string): string {
-  return `<td class="email-td" style="${S.td}" bgcolor="${C.card}">${content}</td>`;
+  return `<td style="${S.td}" bgcolor="${C.bg}">${content}</td>`;
 }
 // Helper for table wrapper with bgcolor
 function TABLE(rows: string): string {
-  return `<table class="email-table" style="${S.table}" bgcolor="${C.card}">${rows}</table>`;
+  return `<table style="${S.table}" bgcolor="${C.bg}">${rows}</table>`;
 }
 // Helper for feature row
 function FR(content: string): string {
-  return `<tr><td class="email-td" style="${S.featureRow}" bgcolor="${C.card}">${content}</td></tr>`;
+  return `<tr><td style="${S.featureRow}" bgcolor="${C.bg}">${content}</td></tr>`;
 }
 
 function shell(title: string, subtitle: string, body: string, footerText: string): string {
@@ -330,43 +330,24 @@ function shell(title: string, subtitle: string, body: string, footerText: string
 <meta name="supported-color-schemes" content="light only">
 <title>${title}</title>
 <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
-<style>
-  :root { color-scheme: light only; supported-color-schemes: light only; }
-  body, .body-wrapper, .email-container, .email-header, .email-content, .email-footer,
-  table, td, th, div, p, h1, h3, span, a {
-    color-scheme: light only !important;
-  }
-  [data-ogsc], [data-ogsb] { background-color: inherit !important; color: inherit !important; }
-  @media (prefers-color-scheme: dark) {
-    body, .body-wrapper { background-color: ${C.dark} !important; }
-    .email-container { background-color: ${C.bg} !important; }
-    .email-header { background: linear-gradient(135deg, ${C.bg} 0%, ${C.card} 100%) !important; }
-    .email-content { background-color: ${C.bg} !important; }
-    .email-footer { background-color: ${C.dark} !important; }
-    .email-td { background-color: ${C.card} !important; color: ${C.white} !important; }
-    .email-th { background-color: ${C.surface} !important; color: ${C.textSecondary} !important; }
-    .email-table { border-color: ${C.border} !important; }
-    h1, p, td, th, div, span { color: inherit !important; }
-  }
-</style>
 </head>
 <body style="${S.body}" bgcolor="${C.dark}">
-<div class="body-wrapper" style="${S.wrapper}" bgcolor="${C.dark}">
-<div class="email-container" style="${S.container}" bgcolor="${C.bg}">
+<div style="${S.wrapper}" bgcolor="${C.dark}">
+<div style="${S.container}" bgcolor="${C.bg}">
 <!-- Header -->
-<div class="email-header" style="${S.header}" bgcolor="${C.card}">
+<div style="${S.header}" bgcolor="${C.bg}">
   <div style="${S.logo}">UNLOCKED</div>
   <h1 style="${S.headerTitle}">${title}</h1>
   <p style="${S.headerSub}">${subtitle}</p>
 </div>
 <!-- Content -->
-<div class="email-content" style="${S.content}" bgcolor="${C.bg}">
+<div style="${S.content}" bgcolor="${C.bg}">
 ${body}
 </div>
 <!-- Footer -->
-<div class="email-footer" style="${S.footer}" bgcolor="${C.dark}">
-  <p style="margin:0 0 8px;">${footerText}</p>
-  <p style="margin:0;">
+<div style="${S.footer}" bgcolor="${C.dark}">
+  <p style="margin:0 0 8px;color:${C.textMuted};">${footerText}</p>
+  <p style="margin:0;color:${C.textMuted};">
     <a href="https://unlocked.gr" style="${S.footerLink}">unlocked.gr</a>
     &nbsp;·&nbsp;
     <a href="https://unlocked.gr/privacy" style="${S.footerLink}">Privacy</a>
@@ -478,7 +459,7 @@ ${TABLE(`
   ${d.notes ? `<tr>${TH("Notes")}${TD(d.notes)}</tr>` : ""}
 `)}
 <div style="text-align:center;margin:24px 0;">
-  <a href="https://unlocked.gr/company/bookings" style="${S.btn}">View in Dashboard</a>
+  <a href="https://business.unlocked.gr/bookings" style="${S.btn}">View in Dashboard</a>
 </div>`,
         `${d.companyName} · UNLOCKED Platform`
       );
@@ -586,7 +567,7 @@ ${TABLE(`
   You'll receive an email as soon as your account is approved.
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlocked.gr/company" style="${S.btn}">Go to Dashboard</a>
+  <a href="https://business.unlocked.gr" style="${S.btn}">Go to Dashboard</a>
 </div>`,
       "UNLOCKED — Escape Room Platform"
     );
@@ -661,7 +642,7 @@ ${TABLE(featureRows)}
   Players can discover and book your rooms as soon as you publish them!
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlocked.gr/company" style="${S.btnGreen}">Go to Dashboard</a>
+  <a href="https://business.unlocked.gr" style="${S.btnGreen}">Go to Dashboard</a>
 </div>`,
       "UNLOCKED — Escape Room Platform"
     );
@@ -784,7 +765,7 @@ ${TABLE(`
   <strong>Billing</strong> section in your dashboard.
 </p>
 <div style="text-align:center;margin:32px 0;">
-  <a href="https://unlocked.gr/company/billing" style="${S.btn}">Manage Subscription</a>
+  <a href="https://business.unlocked.gr/billing" style="${S.btn}">Manage Subscription</a>
 </div>
 <div style="${S.divider}"></div>
 <p style="${S.smallText}">
@@ -800,6 +781,76 @@ ${TABLE(`
       html,
     }).then(r => console.log("[Email] Subscription receipt sent:", r))
       .catch(e => console.error("[Email] Subscription receipt failed:", e));
+  },
+});
+
+// ══════════════════════════════════════════════════════════════
+// 7. PHOTO DELIVERY EMAIL (photos.unlocked.gr)
+// ══════════════════════════════════════════════════════════════
+
+export const sendPhotoEmail = internalAction({
+  args: {
+    recipientEmail: v.string(),
+    photoUrl: v.string(),
+    photoPageUrl: v.string(),
+    companyName: v.string(),
+    companyLogo: v.optional(v.string()),
+    roomTitle: v.optional(v.string()),
+    teamName: v.optional(v.string()),
+    escaped: v.optional(v.boolean()),
+    escapeTime: v.optional(v.string()),
+    lang: v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const resend = getResend();
+    if (!resend) return { messageId: null };
+
+    const d = args;
+    const escapeBadge = d.escaped !== undefined
+      ? d.escaped
+        ? `<span style="display:inline-block;background:#22c55e;color:#fff;padding:6px 16px;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.5px;">✓ ESCAPED${d.escapeTime ? ` — ${d.escapeTime}` : ""}</span>`
+        : `<span style="display:inline-block;background:${C.red};color:#fff;padding:6px 16px;border-radius:8px;font-size:14px;font-weight:700;letter-spacing:0.5px;">✗ LOCKED IN</span>`
+      : "";
+
+    const html = shell(
+      d.teamName ? `${d.teamName}'s Escape Photo` : "Your Escape Room Photo",
+      d.roomTitle ? `${d.roomTitle} — ${d.companyName}` : d.companyName,
+      `<p style="${S.bodyText}">
+  Your escape room photo from <strong style="color:${C.red};">${d.companyName}</strong> is ready!
+</p>
+${d.teamName ? `<p style="text-align:center;font-size:18px;font-weight:700;color:${C.text};margin:0 0 8px;">Team: ${d.teamName}</p>` : ""}
+${escapeBadge ? `<div style="text-align:center;margin:0 0 20px;">${escapeBadge}</div>` : ""}
+<!-- Photo -->
+<div style="text-align:center;margin:20px 0;">
+  <img src="${d.photoUrl}" alt="Escape Room Photo" style="max-width:100%;border-radius:12px;border:2px solid ${C.border};" />
+</div>
+<div style="text-align:center;margin:28px 0;">
+  <a href="${d.photoPageUrl}" style="${S.btn}">View & Download Photo</a>
+</div>
+<div style="${S.divider}"></div>
+<p style="${S.smallText};text-align:center;">
+  Share your achievement with friends! This photo was created with ❤️ by ${d.companyName}.
+</p>`,
+      `${d.companyName} · Powered by UNLOCKED Photos`
+    );
+
+    const subjectLine = d.teamName
+      ? `${d.teamName}'s Escape Photo — ${d.companyName}`
+      : `Your Escape Room Photo — ${d.companyName}`;
+
+    try {
+      const result = await resend.emails.send({
+        from: fromAddr(d.companyName),
+        to: d.recipientEmail,
+        subject: subjectLine,
+        html,
+      });
+      console.log("[Email] Photo email sent:", result);
+      return { messageId: (result as any)?.data?.id || null };
+    } catch (e) {
+      console.error("[Email] Photo email failed:", e);
+      return { messageId: null };
+    }
   },
 });
 
@@ -858,5 +909,44 @@ ${TABLE(`
       html,
     }).then(r => console.log("[Email] Slot available email sent:", r))
       .catch(e => console.error("[Email] Slot available email failed:", e));
+  },
+});
+
+// ══════════════════════════════════════════════════════════════
+// Admin: new company application notification
+// ══════════════════════════════════════════════════════════════
+
+export const sendNewApplicationNotification = internalAction({
+  args: {
+    companyName: v.string(),
+    companyEmail: v.string(),
+    plan: v.string(),
+  },
+  handler: async (_ctx, d) => {
+    const resend = getResend();
+    if (!resend) return;
+
+    const html = shell(
+      "New Company Application",
+      "A new company is waiting for your review",
+      `<h2 style="color:#E53E3E; margin:0 0 16px">New Application Submitted</h2>
+<p style="color:#ccc; font-size:15px; margin:0 0 8px">
+  <strong>${d.companyName}</strong> has submitted a new application and is waiting for review.
+</p>
+<p style="color:#999; font-size:14px; margin:0 0 4px">Email: ${d.companyEmail}</p>
+<p style="color:#999; font-size:14px; margin:0 0 20px">Plan: ${d.plan}</p>
+<a href="https://business.unlocked.gr/admin" style="display:inline-block; background:#E53E3E; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
+  Review Application
+</a>`,
+      "You received this email because a new company registered on UNLOCKED."
+    );
+
+    await resend.emails.send({
+      from: fromAddr(),
+      to: "dstroumpakos@planeraai.app",
+      subject: `🏢 New Application: ${d.companyName} — Review Required`,
+      html,
+    }).then(r => console.log("[Email] Admin notification sent:", r))
+      .catch(e => console.error("[Email] Admin notification failed:", e));
   },
 });

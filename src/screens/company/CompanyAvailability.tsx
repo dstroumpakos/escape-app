@@ -143,7 +143,9 @@ export default function CompanyAvailability() {
   const [expandedSlot, setExpandedSlot] = useState<number | null>(null);
 
   // Get group price breakdown for a slot with discount applied
-  const getGroupBreakdown = (discountPct: number) => {
+  const getGroupBreakdown = (
+    discountPct: number
+  ): { players: number; original: number; discounted: number; saved: number }[] => {
     if (!room?.pricePerGroup || room.pricePerGroup.length === 0) return [];
     return room.pricePerGroup.map((g: { players: number; price: number }) => {
       const discounted = Math.round(g.price * (1 - discountPct / 100) * 100) / 100;

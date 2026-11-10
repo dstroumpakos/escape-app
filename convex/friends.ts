@@ -25,9 +25,35 @@ export const searchUsers = query({
       )
       .slice(0, 20);
 
-    // Check existing friendship status for each result
+    if (results.length === 0) return [];
+
+    // Batch-load all friendships for current user (sent + received) in 2 queries
+    const [sentRequests, receivedRequests, blockedUsers] = await Promise.all([
+      ctx.db
+        .query("friendships")
+        .withIndex("by_requester", (q) => q.eq("requesterId", args.currentUserId))
+        .collect(),
+      ctx.db
+        .query("friendships")
+        .withIndex("by_receiver", (q) => q.eq("receiverId", args.currentUserId))
+        .collect(),
+      ctx.db
+        .query("blockedUsers")
+        .withIndex("by_blocker", (q) => q.eq("blockerId", args.currentUserId))
+        .collect(),
+    ]);
+
+    // Build Maps for O(1) lookups
+    const sentMap = new Map(sentRequests.map((f) => [f.receiverId, f]));
+    const receivedMap = new Map(receivedRequests.map((f) => [f.requesterId, f]));
+    const blockedSet = new Set(blockedUsers.map((b) => b.blockedUserId));
+
+    // Enrich results (only storage URL calls remain as N+1, but they're fast)
     const enriched = await Promise.all(
       results.map(async (u) => {
+        // Skip blocked users early
+        if (blockedSet.has(u._id)) return null;
+
         // Resolve avatar
         let avatar = u.avatar;
         if (u.avatarStorageId) {
@@ -35,20 +61,9 @@ export const searchUsers = query({
           if (freshUrl) avatar = freshUrl;
         }
 
-        // Check if there's already a friendship between these users
-        const sentRequest = await ctx.db
-          .query("friendships")
-          .withIndex("by_pair", (q) =>
-            q.eq("requesterId", args.currentUserId).eq("receiverId", u._id)
-          )
-          .first();
-        const receivedRequest = await ctx.db
-          .query("friendships")
-          .withIndex("by_pair", (q) =>
-            q.eq("requesterId", u._id).eq("receiverId", args.currentUserId)
-          )
-          .first();
-
+        // Check friendship status from pre-loaded maps
+        const sentRequest = sentMap.get(u._id);
+        const receivedRequest = receivedMap.get(u._id);
         const friendship = sentRequest || receivedRequest;
         let friendshipStatus: string | null = null;
         if (friendship) {
@@ -61,14 +76,6 @@ export const searchUsers = query({
           }
         }
 
-        // Check if blocked
-        const blocked = await ctx.db
-          .query("blockedUsers")
-          .withIndex("by_blocker_blocked", (q) =>
-            q.eq("blockerId", args.currentUserId).eq("blockedUserId", u._id)
-          )
-          .first();
-
         return {
           _id: u._id,
           name: u.name,
@@ -76,12 +83,12 @@ export const searchUsers = query({
           avatar,
           title: u.title,
           friendshipStatus,
-          isBlocked: !!blocked,
+          isBlocked: false,
         };
       })
     );
 
-    return enriched.filter((u) => !u.isBlocked);
+    return enriched.filter(Boolean);
   },
 });
 

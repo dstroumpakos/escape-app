@@ -8,9 +8,9 @@ import Stripe from "stripe";
 // ── Price IDs — these will map plan + period to Stripe prices
 // We create prices dynamically via the Stripe API on first use
 const PLAN_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  starter: { monthly: 2900, yearly: 29000 },   // in cents: €29/mo, €290/yr
-  pro: { monthly: 4900, yearly: 49000 },        // €49/mo, €490/yr
-  enterprise: { monthly: 9900, yearly: 99000 }, // €99/mo, €990/yr
+  starter: { monthly: 5800, yearly: 58000 },   // in cents: €58/mo, €580/yr
+  pro: { monthly: 9800, yearly: 98000 },        // €98/mo, €980/yr
+  enterprise: { monthly: 19800, yearly: 198000 }, // €198/mo, €1980/yr
 };
 
 const PLAN_NAMES: Record<string, string> = {
@@ -25,6 +25,11 @@ function getStripe() {
   return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
 }
 
+// stripe-node 23's types target API 2026-09-30, which renamed this param to
+// allowed_payment_method_types. We're pinned to 2025-02-24.acacia above, where
+// Checkout still expects payment_method_types, so keep sending the old name.
+const CARD_ONLY = { payment_method_types: ["card"] } as {};
+
 /**
  * Create a Stripe Checkout Session for a company's plan subscription.
  * Returns the checkout URL to redirect the user to.
@@ -36,6 +41,8 @@ export const createCheckoutSession = action({
     period: v.union(v.literal("monthly"), v.literal("yearly")),
     successUrl: v.string(),
     cancelUrl: v.string(),
+    trialDays: v.optional(v.number()),
+    discountCode: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<string> => {
     const stripe = getStripe();
@@ -68,11 +75,33 @@ export const createCheckoutSession = action({
       });
     }
 
+    // Build subscription_data with optional trial
+    const subscriptionData: any = {
+      metadata: {
+        companyId: args.companyId,
+        plan: args.plan,
+        period: args.period,
+      },
+    };
+    if (args.trialDays) {
+      subscriptionData.trial_period_days = args.trialDays;
+    }
+
+    // Build metadata with optional discount code
+    const sessionMetadata: Record<string, string> = {
+      companyId: args.companyId,
+      plan: args.plan,
+      period: args.period,
+    };
+    if (args.discountCode) {
+      sessionMetadata.discountCode = args.discountCode;
+    }
+
     // Create checkout session with a subscription
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
-      payment_method_types: ["card"],
+      ...CARD_ONLY,
       line_items: [
         {
           price_data: {
@@ -89,18 +118,8 @@ export const createCheckoutSession = action({
           quantity: 1,
         },
       ],
-      metadata: {
-        companyId: args.companyId,
-        plan: args.plan,
-        period: args.period,
-      },
-      subscription_data: {
-        metadata: {
-          companyId: args.companyId,
-          plan: args.plan,
-          period: args.period,
-        },
-      },
+      metadata: sessionMetadata,
+      subscription_data: subscriptionData,
       success_url: args.successUrl,
       cancel_url: args.cancelUrl,
     });
@@ -264,7 +283,7 @@ export const createBookingCheckout = action({
       description = `20% deposit for ${room.title}`;
     }
 
-    // Create the booking in "pending" state first
+    // Create the booking in "pending_payment" state first
     const { id: bookingId, bookingCode } = await ctx.runMutation(api.bookings.create, {
       userId: args.userId,
       roomId: args.roomId,
@@ -273,12 +292,13 @@ export const createBookingCheckout = action({
       players: args.players,
       total: args.total,
       paymentTerms: args.paymentTerms,
+      pendingPayment: true,
     }) as { id: string; bookingCode: string };
 
     // Create Stripe checkout session (one-time payment)
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
+      ...CARD_ONLY,
       customer_email: user.email,
       line_items: [
         {
@@ -313,6 +333,134 @@ export const createBookingCheckout = action({
       stripeSessionId: session.id,
     });
 
+    // Schedule auto-cancellation after 30 minutes if payment is not completed
+    await ctx.scheduler.runAfter(30 * 60 * 1000, api.bookings.cancelUnpaidBooking, {
+      bookingId: bookingId as any,
+    });
+
     return { url: session.url, bookingId };
+  },
+});
+
+/**
+ * Retry payment for an existing pending_payment booking.
+ * Creates a new Stripe checkout session for the same booking.
+ * Resets the 30-minute auto-cancellation timer.
+ */
+export const retryBookingPayment = action({
+  args: {
+    bookingId: v.id("bookings"),
+    successUrl: v.string(),
+    cancelUrl: v.string(),
+  },
+  handler: async (ctx, args): Promise<{ url: string }> => {
+    const stripe = getStripe();
+
+    // Get the existing booking
+    const booking: any = await ctx.runQuery(api.bookings.getById, { bookingId: args.bookingId });
+    if (!booking) throw new Error("Booking not found");
+    if (booking.status !== "pending_payment") throw new Error("Booking is not pending payment");
+
+    // Get room + user info
+    const room = await ctx.runQuery(api.rooms.getById, { id: booking.roomId });
+    if (!room) throw new Error("Room not found");
+
+    const user = booking.userId
+      ? await ctx.runQuery(api.users.getById, { userId: booking.userId })
+      : null;
+
+    // Calculate charge amount (same logic as createBookingCheckout)
+    const serviceFee = 399; // €3.99 in cents
+    const paymentTerms = booking.paymentTerms || "full";
+    let chargeAmount: number;
+    let description: string;
+
+    if (paymentTerms === "full") {
+      chargeAmount = Math.round(booking.total * 100) + serviceFee;
+      description = `Full payment for ${room.title}`;
+    } else {
+      // deposit_20
+      const deposit = Math.round(booking.total * 0.2 * 100);
+      chargeAmount = deposit + serviceFee;
+      description = `20% deposit for ${room.title}`;
+    }
+
+    // Create a new Stripe checkout session for the same booking
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      ...CARD_ONLY,
+      customer_email: user?.email,
+      line_items: [
+        {
+          price_data: {
+            currency: "eur",
+            product_data: {
+              name: room.title,
+              description,
+            },
+            unit_amount: chargeAmount,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        type: "booking",
+        bookingId: args.bookingId,
+        bookingCode: booking.bookingCode,
+        paymentTerms,
+        userId: booking.userId || "",
+        roomId: booking.roomId,
+      },
+      success_url: args.successUrl,
+      cancel_url: args.cancelUrl,
+    });
+
+    if (!session.url) throw new Error("Failed to create checkout session");
+
+    // Update the session ID on the booking
+    await ctx.runMutation(api.bookings.updateStripeSession, {
+      bookingId: args.bookingId,
+      stripeSessionId: session.id,
+    });
+
+    // Schedule new auto-cancellation (30 minutes from now)
+    await ctx.scheduler.runAfter(30 * 60 * 1000, api.bookings.cancelUnpaidBooking, {
+      bookingId: args.bookingId,
+    });
+
+    return { url: session.url };
+  },
+});
+
+/**
+ * Admin: decline a company and cancel their Stripe subscription if one exists.
+ */
+export const declineCompanyWithCancel = action({
+  args: {
+    companyId: v.id("companies"),
+    notes: v.string(),
+    adminEmail: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Get company to check for subscription
+    const company: any = await ctx.runQuery(api.companies.getById, { id: args.companyId });
+    if (!company) throw new Error("Company not found");
+
+    // Cancel Stripe subscription if exists
+    if (company.stripeSubscriptionId) {
+      try {
+        const stripe = getStripe();
+        await stripe.subscriptions.cancel(company.stripeSubscriptionId);
+      } catch (e: any) {
+        console.error("[DeclineCompany] Failed to cancel Stripe subscription:", e.message);
+      }
+    }
+
+    // Run the existing decline mutation
+    await ctx.runMutation(api.companies.declineCompany, {
+      companyId: args.companyId,
+      notes: args.notes,
+      adminEmail: args.adminEmail,
+    });
   },
 });
