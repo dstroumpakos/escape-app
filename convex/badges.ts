@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { sessionTokenV, requireCompany } from "./companySession";
 
 // ═══════════════════════════════════════════════════════════════
 // Badge Definitions — the 8 UNLOCKED badges
@@ -149,12 +150,14 @@ export const getUserBadges = query({
 export const submitPerformance = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
     escaped: v.boolean(),
     escapeTimeMinutes: v.optional(v.number()),
     hintsUsed: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "badges:submitPerformance");
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
     if (!booking.userId) return; // external bookings — no user to award badges to
@@ -344,10 +347,12 @@ export const badgeLeaderboard = query({
 export const manualAwardBadges = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
     badgeKeys: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "badges:manualAwardBadges");
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) throw new Error("Booking not found");
     if (!booking.userId) return; // external bookings — no user

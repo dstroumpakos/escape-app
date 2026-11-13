@@ -29,13 +29,20 @@ export default defineSchema({
       v.literal("declined")           // Admin declined (with notes)
     )),
     termsAcceptedAt: v.optional(v.number()),
+    // Current plans are "unlimited" and "payg" (see plans.ts). The other four are
+    // legacy values kept until billing:migrateLegacyPlans has run in prod.
     platformPlan: v.optional(v.union(
+      v.literal("unlimited"),
+      v.literal("payg"),
       v.literal("free"),
       v.literal("starter"),
       v.literal("pro"),
       v.literal("enterprise")
     )),
     platformSubscribedAt: v.optional(v.number()),
+    // When the company last moved onto pay-as-you-go. Bookings played before
+    // this date aren't charged (they fell under the Unlimited subscription).
+    paygSince: v.optional(v.number()),
     adminNotes: v.optional(v.string()),
     reviewedAt: v.optional(v.number()),
     // ── Stripe ──
@@ -51,10 +58,41 @@ export default defineSchema({
     )),
     // Auto-translate room content to all supported languages
     autoTranslateEnabled: v.optional(v.boolean()),
+    // ── Player payments (company's own Stripe / Viva account) ──
+    // Non-secret summary only. The keys live encrypted in companyPaymentCredentials.
+    paymentProvider: v.optional(v.union(v.literal("stripe"), v.literal("viva"))),
+    paymentMode: v.optional(v.union(v.literal("live"), v.literal("test"))),
+    paymentAccountLabel: v.optional(v.string()),
+    paymentConnectedAt: v.optional(v.number()),
+    depositPercent: v.optional(v.number()),      // default upfront % for deposit bookings (1–99)
+    bookingFeeEnabled: v.optional(v.boolean()),  // add a booking fee on online payments
+    bookingFeeAmount: v.optional(v.number()),    // euros, goes to the company with the payment
   })
     .index("by_email", ["email"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
     .index("by_onboardingStatus", ["onboardingStatus"]),
+
+  // Encrypted payment keys, one row per company. Only internal functions read
+  // this table; no public query may return it.
+  companyPaymentCredentials: defineTable({
+    companyId: v.id("companies"),
+    provider: v.union(v.literal("stripe"), v.literal("viva")),
+    mode: v.union(v.literal("live"), v.literal("test")),
+    encrypted: v.string(), // AES-256-GCM, see companyPayments.ts
+    updatedAt: v.number(),
+  }).index("by_company", ["companyId"]),
+
+  // Business-portal login sessions. Only the SHA-256 of the token is stored;
+  // the raw token lives on the client. See companySession.ts.
+  companySessions: defineTable({
+    companyId: v.id("companies"),
+    tokenHash: v.string(),
+    client: v.optional(v.string()), // "web" | "app"
+    createdAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_company", ["companyId"]),
 
   rooms: defineTable({
     title: v.string(),
@@ -104,6 +142,8 @@ export default defineSchema({
       v.literal("deposit_20"),
       v.literal("pay_on_arrival")
     )),
+    // Overrides the company's default deposit % for this room (1–99)
+    depositPercent: v.optional(v.number()),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
@@ -240,6 +280,15 @@ export default defineSchema({
     // Stripe session for player-side payments
     stripeSessionId: v.optional(v.string()),
     stripePaymentIntentId: v.optional(v.string()),
+    // Online payment into the company's own Stripe / Viva account
+    paymentProvider: v.optional(v.union(v.literal("stripe"), v.literal("viva"))),
+    paymentMode: v.optional(v.union(v.literal("live"), v.literal("test"))),
+    depositPercent: v.optional(v.number()),
+    bookingFee: v.optional(v.number()),       // euros, added on top of the booking amount
+    amountDueNow: v.optional(v.number()),     // euros charged online (deposit or full, + fee)
+    vivaOrderCode: v.optional(v.string()),    // 16 digits, kept as a string
+    paymentReference: v.optional(v.string()), // Stripe payment intent / Viva transaction id
+    paidAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])
@@ -248,6 +297,7 @@ export default defineSchema({
     .index("by_room_date", ["roomId", "date"])
     .index("by_bookingCode", ["bookingCode"])
     .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_vivaOrderCode", ["vivaOrderCode"])
     .index("by_status", ["status"]),
 
   // ─── UNLOCKED Premium Subscriptions (platform-wide) ───
@@ -601,7 +651,9 @@ export default defineSchema({
   // ─── Discount Codes ───
   discountCodes: defineTable({
     code: v.string(),                    // e.g. "ENTERPRISE2026"
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    // Codes only apply to the Unlimited subscription; legacy plan values are
+    // read as "unlimited".
+    plan: v.union(v.literal("unlimited"), v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
     period: v.union(v.literal("monthly"), v.literal("yearly")),
     durationMonths: v.number(),          // how long the free period lasts (12 = 1 year)
     maxUses: v.optional(v.number()),     // null = unlimited
@@ -611,4 +663,27 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_code", ["code"]),
+
+  // ─── Pay-as-you-go platform fee invoices (one per company per month) ───
+  platformFeeInvoices: defineTable({
+    companyId: v.id("companies"),
+    month: v.string(),                   // "YYYY-MM" the fees are for
+    bookingCount: v.number(),
+    amountCents: v.number(),             // after the monthly cap
+    status: v.union(
+      v.literal("creating"),             // claimed, Stripe invoice not sent yet
+      v.literal("open"),                 // sent, waiting for payment
+      v.literal("paid"),
+      v.literal("void"),
+      v.literal("failed"),               // Stripe call failed; retried next run
+    ),
+    stripeInvoiceId: v.optional(v.string()),
+    hostedInvoiceUrl: v.optional(v.string()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company_month", ["companyId", "month"])
+    .index("by_month", ["month"])
+    .index("by_stripeInvoiceId", ["stripeInvoiceId"]),
 });

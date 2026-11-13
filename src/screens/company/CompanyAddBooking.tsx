@@ -1,6 +1,6 @@
 // PHASE 2: Add Booking / Block Slot
 // Allows company admins to create UNLOCKED bookings manually or
-// block slots with external bookings (EscapeAll, Phone, Walk-in, Private Event).
+// block slots with external bookings (Phone, Walk-in, Private Event).
 // Respects existing bookings to prevent double-booking.
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -19,7 +20,7 @@ import { useTranslation } from '../../i18n';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyAddBooking'>;
 
-const EXTERNAL_SOURCES = ['EscapeAll', 'Phone', 'Walk-in', 'Private Event'];
+const EXTERNAL_SOURCES = ['Phone', 'Walk-in', 'Private Event'];
 
 export default function CompanyAddBooking() {
   const navigation = useNavigation();
@@ -33,7 +34,7 @@ export default function CompanyAddBooking() {
     'Private Event': t('addBooking.privateEvent'),
   };
 
-  const rooms = useQuery(api.companies.getRooms, {
+  const rooms = useCompanyQuery(api.companies.getRooms, {
     companyId: companyId as Id<"companies">,
   });
 
@@ -47,7 +48,7 @@ export default function CompanyAddBooking() {
   const [players, setPlayers] = useState('2');
   const [total, setTotal] = useState('');
   const [notes, setNotes] = useState('');
-  const [externalSource, setExternalSource] = useState('EscapeAll');
+  const [externalSource, setExternalSource] = useState('Phone');
   const [saving, setSaving] = useState(false);
 
   // Pre-select room if provided
@@ -64,13 +65,13 @@ export default function CompanyAddBooking() {
   );
 
   // Load existing bookings for selected room + date (to show conflicts)
-  const existingBookings = useQuery(
+  const existingBookings = useCompanyQuery(
     api.companies.getBookingsByDate,
     { companyId: companyId as Id<"companies">, date }
   );
 
-  const createAdminBooking = useMutation(api.companies.createAdminBooking);
-  const createExternalBlock = useMutation(api.companies.createExternalBlock);
+  const createAdminBooking = useCompanyMutation(api.companies.createAdminBooking);
+  const createExternalBlock = useCompanyMutation(api.companies.createExternalBlock);
 
   // Filter to available slots (not already booked), sort midnight to end
   const availableSlots = useMemo(() => {

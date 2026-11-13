@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useQuery, useMutation } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
@@ -19,15 +20,15 @@ export default function CompanyPhotos({ companyId }: Props) {
   const { t } = useTranslation();
   const cId = companyId as Id<'companies'>;
 
-  const completedBookings = useQuery(api.bookingPhotos.getCompletedBookings, { companyId: cId });
+  const completedBookings = useCompanyQuery(api.bookingPhotos.getCompletedBookings, { companyId: cId });
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: cId });
 
   const generateUploadUrl = useMutation(api.companies.generateUploadUrl);
   const getUrlMutation = useMutation(api.companies.getUrlMutation);
-  const addPhoto = useMutation(api.bookingPhotos.addPhoto);
-  const deletePhoto = useMutation(api.bookingPhotos.deletePhoto);
-  const markPhotoProcessed = useMutation(api.bookingPhotos.markPhotoProcessed);
-  const checkAndNotify = useMutation(api.bookingPhotos.checkAndNotifyBooking);
+  const addPhoto = useCompanyMutation(api.bookingPhotos.addPhoto);
+  const deletePhoto = useCompanyMutation(api.bookingPhotos.deletePhoto);
+  const markPhotoProcessed = useCompanyMutation(api.bookingPhotos.markPhotoProcessed);
+  const checkAndNotify = useCompanyMutation(api.bookingPhotos.checkAndNotifyBooking);
 
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -37,7 +38,7 @@ export default function CompanyPhotos({ companyId }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Fetch photos for expanded booking
-  const bookingPhotos = useQuery(
+  const bookingPhotos = useCompanyQuery(
     api.bookingPhotos.getByBooking,
     expandedBooking ? { bookingId: expandedBooking as Id<'bookings'> } : 'skip'
   );

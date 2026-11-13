@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from 'convex/react';
+import { useCompanyQuery } from '../../companySession';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../../../convex/_generated/api';
@@ -39,12 +39,12 @@ export default function CompanyBookings({ companyId }: Props) {
 
   const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
 
-  const bookings = useQuery(api.companies.getBookingsByDate, {
+  const bookings = useCompanyQuery(api.companies.getBookingsByDate, {
     companyId: companyId as Id<"companies">,
     date: dateStr,
   });
 
-  const rooms = useQuery(api.companies.getRooms, {
+  const rooms = useCompanyQuery(api.companies.getRooms, {
     companyId: companyId as Id<"companies">,
   });
 

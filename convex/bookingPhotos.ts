@@ -1,7 +1,8 @@
-import { query, mutation, action, internalMutation } from "./_generated/server";
+import { query, mutation, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { nt } from "./notificationTexts";
+import { sessionTokenV, requireCompany, optionalCompany, requireBookingOf } from "./companySession";
 
 // ════════════════════════════════════════════════
 // Company Photo Presets
@@ -21,6 +22,7 @@ export const getPreset = query({
 // ── Save (upsert) photo preset ──
 export const savePreset = mutation({
   args: {
+    sessionToken: sessionTokenV,
     companyId: v.id("companies"),
     logoUrl: v.optional(v.string()),
     logoStorageId: v.optional(v.id("_storage")),
@@ -40,6 +42,7 @@ export const savePreset = mutation({
     logoScale: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "bookingPhotos:savePreset");
     const existing = await ctx.db
       .query("companyPhotoPresets")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -78,11 +81,13 @@ export const addPhoto = mutation({
   args: {
     bookingId: v.id("bookings"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     storageId: v.id("_storage"),
     url: v.string(),
     order: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "bookingPhotos:addPhoto");
     // Verify the booking belongs to this company
     const booking = await ctx.db.get(args.bookingId);
     if (!booking || booking.companyId?.toString() !== args.companyId.toString()) {
@@ -103,14 +108,26 @@ export const addPhoto = mutation({
 
 // ── Get all photos for a booking (company view — sees all statuses) ──
 export const getByBooking = query({
-  args: { bookingId: v.id("bookings") },
+  args: { bookingId: v.id("bookings"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
-    const photos = await ctx.db
-      .query("bookingPhotos")
-      .withIndex("by_booking", (q) => q.eq("bookingId", args.bookingId))
-      .collect();
-    return photos.sort((a, b) => a.order - b.order);
+    const caller = await optionalCompany(ctx, args.sessionToken, "bookingPhotos:getByBooking");
+    if (!(await ctx.db.get(args.bookingId))) return [];
+    await requireBookingOf(ctx, caller, args.bookingId);
+    return await photosForBooking(ctx, args.bookingId);
   },
+});
+
+async function photosForBooking(ctx: any, bookingId: any) {
+  const photos = await ctx.db
+    .query("bookingPhotos")
+    .withIndex("by_booking", (q: any) => q.eq("bookingId", bookingId))
+    .collect();
+  return photos.sort((a: any, b: any) => a.order - b.order);
+}
+
+export const getByBookingInternal = internalQuery({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => await photosForBooking(ctx, args.bookingId),
 });
 
 // ── Get photos for a booking (player view — only ready photos) ──
@@ -139,8 +156,10 @@ export const deletePhoto = mutation({
   args: {
     photoId: v.id("bookingPhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "bookingPhotos:deletePhoto");
     const photo = await ctx.db.get(args.photoId);
     if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
@@ -198,11 +217,12 @@ export const updatePhotoStatus = internalMutation({
 });
 
 // ── Action: process a single photo (applies branding overlay) ──
-export const processPhoto = action({
+// Internal: no client calls it; the portal composites photos itself.
+export const processPhoto = internalAction({
   args: { photoId: v.id("bookingPhotos") },
   handler: async (ctx, args) => {
     // 1. Get the photo record
-    const photo: any = await ctx.runQuery(api.bookingPhotos.getPhotoById, { photoId: args.photoId });
+    const photo: any = await ctx.runQuery(internal.bookingPhotos.getPhotoById, { photoId: args.photoId });
     if (!photo) throw new Error("Photo not found");
 
     // 2. Mark as processing
@@ -242,14 +262,14 @@ export const processPhoto = action({
       });
 
       // 7. Check if all photos for this booking are now ready
-      const allPhotos: any[] = await ctx.runQuery(api.bookingPhotos.getByBooking, {
+      const allPhotos: any[] = await ctx.runQuery(internal.bookingPhotos.getByBookingInternal, {
         bookingId: photo.bookingId,
       });
       const allReady = allPhotos.every((p: any) => p.status === "ready");
 
       if (allReady) {
         // Notify the player
-        await ctx.runMutation(api.bookingPhotos.notifyPhotosReady, {
+        await ctx.runMutation(internal.bookingPhotos.notifyPhotosReady, {
           bookingId: photo.bookingId,
         });
       }
@@ -265,7 +285,7 @@ export const processPhoto = action({
 });
 
 // ── Helper query: get a single photo by ID ──
-export const getPhotoById = query({
+export const getPhotoById = internalQuery({
   args: { photoId: v.id("bookingPhotos") },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.photoId);
@@ -277,10 +297,12 @@ export const markPhotoProcessed = mutation({
   args: {
     photoId: v.id("bookingPhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     processedStorageId: v.id("_storage"),
     processedUrl: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "bookingPhotos:markPhotoProcessed");
     const photo = await ctx.db.get(args.photoId);
     if (!photo || photo.companyId !== args.companyId) {
       throw new Error("Not authorized");
@@ -296,8 +318,10 @@ export const markPhotoProcessed = mutation({
 
 // ── Public mutation: check if all booking photos are ready and notify player ──
 export const checkAndNotifyBooking = mutation({
-  args: { bookingId: v.id("bookings"), companyId: v.id("companies") },
+  args: { bookingId: v.id("bookings"), companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    const company = await requireCompany(ctx, args, "bookingPhotos:checkAndNotifyBooking");
+    await requireBookingOf(ctx, company, args.bookingId);
     const photos = await ctx.db
       .query("bookingPhotos")
       .withIndex("by_booking", (q) => q.eq("bookingId", args.bookingId))
@@ -329,7 +353,7 @@ export const checkAndNotifyBooking = mutation({
 });
 
 // ── Notify player that booking photos are ready ──
-export const notifyPhotosReady = mutation({
+export const notifyPhotosReady = internalMutation({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, args) => {
     const booking = await ctx.db.get(args.bookingId);
@@ -358,10 +382,10 @@ export const notifyPhotosReady = mutation({
 });
 
 // ── Trigger processing for all pending photos in a booking ──
-export const processAllForBooking = action({
+export const processAllForBooking = internalAction({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, args) => {
-    const photos: any[] = await ctx.runQuery(api.bookingPhotos.getByBooking, {
+    const photos: any[] = await ctx.runQuery(internal.bookingPhotos.getByBookingInternal, {
       bookingId: args.bookingId,
     });
 
@@ -369,7 +393,7 @@ export const processAllForBooking = action({
 
     // Process each photo
     for (const photo of pending) {
-      await ctx.runAction(api.bookingPhotos.processPhoto, {
+      await ctx.runAction(internal.bookingPhotos.processPhoto, {
         photoId: photo._id,
       });
     }
@@ -378,8 +402,9 @@ export const processAllForBooking = action({
 
 // ── Get completed bookings for a company (for photo upload selection) ──
 export const getCompletedBookings = query({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "bookingPhotos:getCompletedBookings");
     const bookings = await ctx.db
       .query("bookings")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))

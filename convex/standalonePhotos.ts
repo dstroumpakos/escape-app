@@ -1,6 +1,8 @@
-import { query, mutation, action } from "./_generated/server";
+import { query, mutation, action, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
+import { internal } from "./_generated/api";
+import { sessionTokenV, requireCompany, optionalCompany, ACCESS_DENIED } from "./companySession";
+import { ConvexError } from "convex/values";
 
 // ════════════════════════════════════════════════════════════════
 // Standalone Photos — photos.unlocked.gr workflow
@@ -10,6 +12,7 @@ import { api, internal } from "./_generated/api";
 export const create = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     roomId: v.optional(v.id("rooms")),
     originalStorageId: v.id("_storage"),
     originalUrl: v.string(),
@@ -18,6 +21,7 @@ export const create = mutation({
     escapeTime: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:create");
     // Verify company exists
     const company = await ctx.db.get(args.companyId);
     if (!company) throw new Error("Company not found");
@@ -44,6 +48,7 @@ export const saveProcessed = mutation({
   args: {
     photoId: v.id("standalonePhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     processedStorageId: v.id("_storage"),
     processedUrl: v.string(),
     filter: v.optional(v.string()),
@@ -62,6 +67,7 @@ export const saveProcessed = mutation({
     sticker: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:saveProcessed");
     const photo = await ctx.db.get(args.photoId);
     if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
@@ -91,12 +97,14 @@ export const updateMeta = mutation({
   args: {
     photoId: v.id("standalonePhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     roomId: v.optional(v.id("rooms")),
     teamName: v.optional(v.string()),
     escaped: v.optional(v.boolean()),
     escapeTime: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:updateMeta");
     const photo = await ctx.db.get(args.photoId);
     if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
@@ -115,8 +123,10 @@ export const deletePhoto = mutation({
   args: {
     photoId: v.id("standalonePhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:deletePhoto");
     const photo = await ctx.db.get(args.photoId);
     if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
@@ -141,9 +151,11 @@ export const deletePhoto = mutation({
 export const listByCompany = query({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:listByCompany");
     const photos = await ctx.db
       .query("standalonePhotos")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -167,8 +179,8 @@ export const listByCompany = query({
   },
 });
 
-// ── Get a single photo by ID (company view) ──
-export const getById = query({
+// ── Get a single photo by ID (server-side; used by sendPhotoToEmails) ──
+export const getById = internalQuery({
   args: { photoId: v.id("standalonePhotos") },
   handler: async (ctx, args) => {
     const photo = await ctx.db.get(args.photoId);
@@ -236,8 +248,8 @@ export const trackDownload = mutation({
   },
 });
 
-// ── Record sent email ──
-export const recordEmail = mutation({
+// ── Record sent email (server-side; used by sendPhotoToEmails) ──
+export const recordEmail = internalMutation({
   args: {
     photoId: v.id("standalonePhotos"),
     companyId: v.id("companies"),
@@ -267,8 +279,12 @@ export const recordEmail = mutation({
 
 // ── Get emails for a photo ──
 export const getEmailsByPhoto = query({
-  args: { photoId: v.id("standalonePhotos") },
+  args: { photoId: v.id("standalonePhotos"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    const caller = await optionalCompany(ctx, args.sessionToken, "standalonePhotos:getEmailsByPhoto");
+    const photo = await ctx.db.get(args.photoId);
+    if (!photo) return [];
+    if (caller && photo.companyId !== caller._id) throw new ConvexError(ACCESS_DENIED);
     return await ctx.db
       .query("photoEmails")
       .withIndex("by_photo", (q) => q.eq("photoId", args.photoId))
@@ -279,8 +295,9 @@ export const getEmailsByPhoto = query({
 
 // ── Company stats (for dashboard) ──
 export const getStats = query({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:getStats");
     const allPhotos = await ctx.db
       .query("standalonePhotos")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -305,15 +322,21 @@ export const sendPhotoToEmails = action({
   args: {
     photoId: v.id("standalonePhotos"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     emails: v.array(v.string()),
     photoPageUrl: v.string(),
   },
   handler: async (ctx, args) => {
+    const companyId = await ctx.runQuery(internal.companySession.resolveForAction, {
+      companyId: args.companyId,
+      sessionToken: args.sessionToken,
+      fn: "standalonePhotos:sendPhotoToEmails",
+    });
     // Fetch photo + company + room data
-    const photo = await ctx.runQuery(api.standalonePhotos.getById, {
+    const photo = await ctx.runQuery(internal.standalonePhotos.getById, {
       photoId: args.photoId,
     });
-    if (!photo || photo.companyId.toString() !== args.companyId.toString()) {
+    if (!photo || photo.companyId !== companyId) {
       throw new Error("Unauthorized");
     }
 
@@ -335,7 +358,7 @@ export const sendPhotoToEmails = action({
       });
 
       // 2. Record in DB
-      await ctx.runMutation(api.standalonePhotos.recordEmail, {
+      await ctx.runMutation(internal.standalonePhotos.recordEmail, {
         photoId: args.photoId,
         companyId: args.companyId,
         recipientEmail: email,
@@ -355,9 +378,11 @@ export const sendPhotoToEmails = action({
 export const createSimpleRoom = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     title: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:createSimpleRoom");
     const company = await ctx.db.get(args.companyId);
     if (!company) throw new Error("Company not found");
 
@@ -390,8 +415,10 @@ export const deleteSimpleRoom = mutation({
   args: {
     roomId: v.id("rooms"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:deleteSimpleRoom");
     const room = await ctx.db.get(args.roomId);
     if (!room || room.companyId?.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");
@@ -412,9 +439,11 @@ export const listByRoom = query({
   args: {
     roomId: v.id("rooms"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:listByRoom");
     const photos = await ctx.db
       .query("standalonePhotos")
       .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
@@ -437,8 +466,10 @@ export const getStatsByRoom = query({
   args: {
     roomId: v.id("rooms"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:getStatsByRoom");
     const allPhotos = await ctx.db
       .query("standalonePhotos")
       .withIndex("by_room", (q) => q.eq("roomId", args.roomId))
@@ -479,6 +510,7 @@ export const saveRoomPreset = mutation({
   args: {
     roomId: v.id("rooms"),
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     logoUrl: v.optional(v.string()),
     logoStorageId: v.optional(v.id("_storage")),
     logoPosition: v.optional(v.union(
@@ -498,6 +530,7 @@ export const saveRoomPreset = mutation({
     logoScale: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "standalonePhotos:saveRoomPreset");
     const room = await ctx.db.get(args.roomId);
     if (!room || room.companyId?.toString() !== args.companyId.toString()) {
       throw new Error("Unauthorized");

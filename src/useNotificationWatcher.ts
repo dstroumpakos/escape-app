@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation } from 'convex/react';
+import { useCompanyQuery } from './companySession';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../convex/_generated/api';
 import type { Id } from '../convex/_generated/dataModel';
@@ -170,7 +171,7 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
   }, [bookings, userId]);
 
   // ── Watch company bookings (only for company-connected users) ──
-  const companyBookings = useQuery(
+  const companyBookings = useCompanyQuery(
     api.companies.getBookings,
     companyId ? { companyId: companyId as any } : 'skip',
   );

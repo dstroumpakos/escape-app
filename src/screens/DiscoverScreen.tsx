@@ -24,6 +24,7 @@ import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { useTranslation } from '../i18n';
+import { ROOM_THEMES, ROOM_THEME_VALUES } from '../roomThemes';
 
 const { width, height } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -35,7 +36,7 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.45,
 };
 
-const filters = ['All', 'Horror', 'Sci-Fi', 'Mystery', 'Historical'];
+const filters = ['All', ...ROOM_THEME_VALUES];
 
 function getDiffLabel(d: number) {
   if (d <= 2) return 'discover.easy';
@@ -101,10 +102,7 @@ export default function DiscoverScreen() {
 
   const filterLabels: Record<string, string> = {
     All: t('discover.all'),
-    Horror: t('theme.horror'),
-    'Sci-Fi': t('theme.sciFi'),
-    Mystery: t('theme.mystery'),
-    Historical: t('theme.historical'),
+    ...Object.fromEntries(ROOM_THEMES.map((th) => [th.value, t(th.key)])),
   };
 
   // Use saved user location as initial region, fall back to device location

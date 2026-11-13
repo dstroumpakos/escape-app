@@ -9,9 +9,15 @@
  */
 
 import type * as badges from "../badges.js";
+import type * as billing from "../billing.js";
+import type * as billingStripe from "../billingStripe.js";
 import type * as bookingPhotos from "../bookingPhotos.js";
 import type * as bookings from "../bookings.js";
 import type * as companies from "../companies.js";
+import type * as companyPayments from "../companyPayments.js";
+import type * as companyPaymentsData from "../companyPaymentsData.js";
+import type * as companySession from "../companySession.js";
+import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as friends from "../friends.js";
 import type * as http from "../http.js";
@@ -19,6 +25,7 @@ import type * as moderation from "../moderation.js";
 import type * as notificationTexts from "../notificationTexts.js";
 import type * as notifications from "../notifications.js";
 import type * as passwordUtils from "../passwordUtils.js";
+import type * as plans from "../plans.js";
 import type * as posts from "../posts.js";
 import type * as premium from "../premium.js";
 import type * as reviews from "../reviews.js";
@@ -29,6 +36,7 @@ import type * as slotRules from "../slotRules.js";
 import type * as standalonePhotos from "../standalonePhotos.js";
 import type * as stats from "../stats.js";
 import type * as stripe from "../stripe.js";
+import type * as stripeSignature from "../stripeSignature.js";
 import type * as timeSlots from "../timeSlots.js";
 import type * as translate from "../translate.js";
 import type * as translateHelpers from "../translateHelpers.js";
@@ -44,9 +52,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   badges: typeof badges;
+  billing: typeof billing;
+  billingStripe: typeof billingStripe;
   bookingPhotos: typeof bookingPhotos;
   bookings: typeof bookings;
   companies: typeof companies;
+  companyPayments: typeof companyPayments;
+  companyPaymentsData: typeof companyPaymentsData;
+  companySession: typeof companySession;
+  crons: typeof crons;
   email: typeof email;
   friends: typeof friends;
   http: typeof http;
@@ -54,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   notificationTexts: typeof notificationTexts;
   notifications: typeof notifications;
   passwordUtils: typeof passwordUtils;
+  plans: typeof plans;
   posts: typeof posts;
   premium: typeof premium;
   reviews: typeof reviews;
@@ -64,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   standalonePhotos: typeof standalonePhotos;
   stats: typeof stats;
   stripe: typeof stripe;
+  stripeSignature: typeof stripeSignature;
   timeSlots: typeof timeSlots;
   translate: typeof translate;
   translateHelpers: typeof translateHelpers;

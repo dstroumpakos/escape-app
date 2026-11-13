@@ -3,12 +3,13 @@ import {
   View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMutation, useAction } from 'convex/react';
+import { useCompanyAction, useCompanyMutation } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { openCheckout, buildDeepLink, isPaymentEnabled } from '../../payments';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { PLAN_OPTIONS, PLAN_STYLE, asPlanId, planPrice, type PlanId } from './platformPlans';
 
 interface Props {
   visible: boolean;
@@ -17,57 +18,39 @@ interface Props {
   currentPlan: string;
 }
 
-const PLANS = [
-  {
-    id: 'starter' as const,
-    icon: 'rocket-outline' as const,
-    color: '#4CAF50',
-    priceMonth: '€29',
-    priceYear: '€290',
-    features: ['onboarding.plan1f1', 'onboarding.plan1f2', 'onboarding.plan1f3'],
-  },
-  {
-    id: 'pro' as const,
-    icon: 'diamond-outline' as const,
-    color: theme.colors.redPrimary,
-    priceMonth: '€49',
-    priceYear: '€490',
-    popular: true,
-    features: ['onboarding.plan2f1', 'onboarding.plan2f2', 'onboarding.plan2f3', 'onboarding.plan2f4'],
-  },
-  {
-    id: 'enterprise' as const,
-    icon: 'business-outline' as const,
-    color: '#7C4DFF',
-    priceMonth: '€99',
-    priceYear: '€990',
-    features: ['onboarding.plan3f1', 'onboarding.plan3f2', 'onboarding.plan3f3', 'onboarding.plan3f4'],
-  },
-];
-
 export default function CompanyPlanModal({ visible, onClose, companyId, currentPlan }: Props) {
   const { t } = useTranslation();
-  const selectPlan = useMutation(api.companies.selectPlan);
-  const createCheckoutSession = useAction(api.stripe.createCheckoutSession);
+  const selectPlan = useCompanyMutation(api.companies.selectPlan);
+  const createCheckoutSession = useCompanyAction(api.stripe.createCheckoutSession);
   const [loading, setLoading] = useState(false);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
-  const handleSelectPlan = async (planId: 'starter' | 'pro' | 'enterprise') => {
-    if (planId === currentPlan) {
+  const current = asPlanId(currentPlan);
+
+  const handleSelectPlan = async (planId: PlanId) => {
+    if (planId === current) {
       onClose();
       return;
     }
 
     setLoading(true);
     try {
-      if (isPaymentEnabled()) {
-        // Create Stripe Checkout session for the subscription
+      if (planId === 'payg') {
+        // From Unlimited the server refuses and explains: cancel the subscription instead.
+        await selectPlan({
+          companyId: companyId as Id<"companies">,
+          plan: 'payg',
+        });
+        Alert.alert(t('success'), t('settings.planUpdated'));
+        onClose();
+      } else if (isPaymentEnabled()) {
+        // Unlimited is a Stripe subscription; the webhook switches the plan once paid.
         const successUrl = buildDeepLink('subscription-success');
         const cancelUrl = buildDeepLink('subscription-cancel');
 
         const url = await createCheckoutSession({
           companyId: companyId as Id<"companies">,
-          plan: planId,
+          plan: 'unlimited',
           period: billingPeriod,
           successUrl,
           cancelUrl,
@@ -76,13 +59,7 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
         await openCheckout(url);
         onClose();
       } else {
-        // Stripe not configured — just update plan in DB (dev/testing mode)
-        await selectPlan({
-          companyId: companyId as Id<"companies">,
-          plan: planId,
-        });
-        Alert.alert(t('success'), t('settings.planUpdated'));
-        onClose();
+        Alert.alert(t('error'), t('plans.checkoutUnavailable'));
       }
     } catch (error: any) {
       Alert.alert(t('error'), error.message || t('settings.updateFailed'));
@@ -124,8 +101,9 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
             </TouchableOpacity>
           </View>
 
-          {PLANS.map((plan) => {
-            const isCurrent = plan.id === currentPlan;
+          {PLAN_OPTIONS.map((plan) => {
+            const isCurrent = plan.id === current;
+            const style = PLAN_STYLE[plan.id];
             return (
               <TouchableOpacity
                 key={plan.id}
@@ -144,14 +122,18 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
                   </View>
                 )}
                 <View style={styles.planHeader}>
-                  <View style={[styles.iconBox, { backgroundColor: `${plan.color}20` }]}>
-                    <Ionicons name={plan.icon} size={24} color={plan.color} />
+                  <View style={[styles.iconBox, { backgroundColor: style.bg }]}>
+                    <Ionicons name={style.icon} size={24} color={style.text} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.planName}>{t(`onboarding.plan${plan.id.charAt(0).toUpperCase() + plan.id.slice(1)}`)}</Text>
+                    <Text style={styles.planName}>{t(`plan.${plan.id}`)}</Text>
                     <Text style={styles.planPrice}>
-                      {billingPeriod === 'monthly' ? plan.priceMonth : plan.priceYear}
-                      <Text style={styles.planPeriod}>{billingPeriod === 'monthly' ? '/mo' : '/yr'}</Text>
+                      {planPrice(plan.id, billingPeriod)}
+                      <Text style={styles.planPeriod}>
+                        {plan.id === 'payg'
+                          ? `/${t('plans.perBooking')}`
+                          : billingPeriod === 'monthly' ? '/mo' : '/yr'}
+                      </Text>
                     </Text>
                   </View>
                   {isCurrent && (
@@ -164,14 +146,14 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
                 <View style={styles.featuresList}>
                   {plan.features.map((feat, i) => (
                     <View key={i} style={styles.featureRow}>
-                      <Ionicons name="checkmark-circle" size={18} color={plan.color} />
+                      <Ionicons name="checkmark-circle" size={18} color={style.text} />
                       <Text style={styles.featureText}>{t(feat as any)}</Text>
                     </View>
                   ))}
                 </View>
 
                 {!isCurrent && (
-                  <View style={[styles.selectBtn, { backgroundColor: plan.color }]}>
+                  <View style={[styles.selectBtn, { backgroundColor: style.text }]}>
                     <Text style={styles.selectBtnText}>{t('onboarding.selectPlan')}</Text>
                   </View>
                 )}

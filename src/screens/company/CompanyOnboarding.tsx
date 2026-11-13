@@ -4,11 +4,13 @@ import {
   Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation } from 'convex/react';
+import { useCompanyAction, useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
+import { openCheckout, buildDeepLink, isPaymentEnabled } from '../../payments';
+import { PLAN_OPTIONS, PLAN_STYLE, UNLIMITED_PRICE, asPlanId, planPrice, type PlanId } from './platformPlans';
 
 interface Props {
   companyId: string;
@@ -16,40 +18,13 @@ interface Props {
   onLogout: () => void;
 }
 
-const PLANS = [
-  {
-    id: 'starter' as const,
-    icon: 'rocket-outline' as const,
-    color: '#4CAF50',
-    priceMonth: '€29',
-    priceYear: '€290',
-    features: ['onboarding.plan1f1', 'onboarding.plan1f2', 'onboarding.plan1f3'],
-  },
-  {
-    id: 'pro' as const,
-    icon: 'diamond-outline' as const,
-    color: theme.colors.redPrimary,
-    priceMonth: '€49',
-    priceYear: '€490',
-    popular: true,
-    features: ['onboarding.plan2f1', 'onboarding.plan2f2', 'onboarding.plan2f3', 'onboarding.plan2f4'],
-  },
-  {
-    id: 'enterprise' as const,
-    icon: 'business-outline' as const,
-    color: '#7C4DFF',
-    priceMonth: '€99',
-    priceYear: '€990',
-    features: ['onboarding.plan3f1', 'onboarding.plan3f2', 'onboarding.plan3f3', 'onboarding.plan3f4'],
-  },
-];
-
 export default function CompanyOnboarding({ companyId, onComplete, onLogout }: Props) {
   const { t } = useTranslation();
-  const company = useQuery(api.companies.getById, { id: companyId as Id<"companies"> });
-  const acceptTerms = useMutation(api.companies.acceptTerms);
-  const selectPlan = useMutation(api.companies.selectPlan);
-  const resubmit = useMutation(api.companies.resubmitForReview);
+  const company = useCompanyQuery(api.companies.getById, { id: companyId as Id<"companies"> });
+  const acceptTerms = useCompanyMutation(api.companies.acceptTerms);
+  const selectPlan = useCompanyMutation(api.companies.selectPlan);
+  const createCheckoutSession = useCompanyAction(api.stripe.createCheckoutSession);
+  const resubmit = useCompanyMutation(api.companies.resubmitForReview);
 
   const [loading, setLoading] = useState(false);
   const [termsScrolledToEnd, setTermsScrolledToEnd] = useState(false);
@@ -164,24 +139,49 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 40 }}>
           <Text style={styles.planSubtitle}>{t('onboarding.planSubtitle')}</Text>
 
-          {PLANS.map((plan) => (
+          {PLAN_OPTIONS.map((plan) => {
+            const style = PLAN_STYLE[plan.id];
+            const choose = async (id: PlanId) => {
+              setLoading(true);
+              try {
+                if (id === 'payg') {
+                  await selectPlan({ companyId: companyId as Id<"companies">, plan: 'payg' });
+                } else if (isPaymentEnabled()) {
+                  // The webhook moves the company to review once Stripe confirms payment.
+                  const url = await createCheckoutSession({
+                    companyId: companyId as Id<"companies">,
+                    plan: 'unlimited',
+                    period: 'monthly',
+                    successUrl: buildDeepLink('subscription-success'),
+                    cancelUrl: buildDeepLink('subscription-cancel'),
+                  });
+                  await openCheckout(url);
+                } else {
+                  Alert.alert(t('error'), t('plans.checkoutUnavailable'));
+                }
+              } catch (e: any) {
+                Alert.alert(t('error'), e?.message || t('settings.updateFailed'));
+              } finally {
+                setLoading(false);
+              }
+            };
+            return (
             <TouchableOpacity
               key={plan.id}
               style={[styles.planCard, plan.popular && styles.planCardPopular]}
               activeOpacity={0.8}
-              onPress={async () => {
+              disabled={loading}
+              onPress={() => {
                 Alert.alert(
                   t('onboarding.confirmPlanTitle'),
-                  t('onboarding.confirmPlanMsg', { plan: t(`onboarding.plan_${plan.id}`), price: plan.priceMonth }),
+                  plan.id === 'payg'
+                    ? t('plans.confirmPayg')
+                    : t('onboarding.confirmPlanMsg', { plan: t('plan.unlimited'), price: `€${UNLIMITED_PRICE.monthly}` }),
                   [
                     { text: t('cancel'), style: 'cancel' },
                     {
-                      text: t('onboarding.subscribe'),
-                      onPress: async () => {
-                        setLoading(true);
-                        await selectPlan({ companyId: companyId as Id<"companies">, plan: plan.id });
-                        setLoading(false);
-                      },
+                      text: plan.id === 'payg' ? t('plans.startPayg') : t('onboarding.subscribe'),
+                      onPress: () => choose(plan.id),
                     },
                   ]
                 );
@@ -192,26 +192,29 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
                   <Text style={styles.popularText}>{t('onboarding.popular')}</Text>
                 </View>
               )}
-              <View style={[styles.planIconWrap, { backgroundColor: plan.color + '20' }]}>
-                <Ionicons name={plan.icon} size={28} color={plan.color} />
+              <View style={[styles.planIconWrap, { backgroundColor: style.bg }]}>
+                <Ionicons name={style.icon} size={28} color={style.text} />
               </View>
-              <Text style={styles.planName}>{t(`onboarding.plan_${plan.id}`)}</Text>
+              <Text style={styles.planName}>{t(`plan.${plan.id}`)}</Text>
               <Text style={styles.planPrice}>
-                {plan.priceMonth}
-                <Text style={styles.planPricePer}>/{t('onboarding.month')}</Text>
+                {planPrice(plan.id)}
+                <Text style={styles.planPricePer}>
+                  /{plan.id === 'payg' ? t('plans.perBooking') : t('onboarding.month')}
+                </Text>
               </Text>
               <Text style={styles.planYearly}>
-                {plan.priceYear}/{t('onboarding.year')}
+                {plan.id === 'payg' ? t('plans.paygCap') : `€${UNLIMITED_PRICE.yearly}/${t('onboarding.year')}`}
               </Text>
               <View style={styles.planDivider} />
               {plan.features.map((fKey, i) => (
                 <View key={i} style={styles.featureRow}>
-                  <Ionicons name="checkmark-circle" size={16} color={plan.color} />
+                  <Ionicons name="checkmark-circle" size={16} color={style.text} />
                   <Text style={styles.featureText}>{t(fKey)}</Text>
                 </View>
               ))}
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </ScrollView>
       </View>
     );
@@ -264,7 +267,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
               </View>
               <View style={styles.checkRow}>
                 <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                <Text style={styles.checkText}>{t('onboarding.checkPlan', { plan: t(`onboarding.plan_${company.platformPlan || 'starter'}`) })}</Text>
+                <Text style={styles.checkText}>{t('onboarding.checkPlan', { plan: t(`plan.${asPlanId(company.platformPlan)}`) })}</Text>
               </View>
               <View style={styles.checkRow}>
                 <Ionicons name="time-outline" size={18} color="#FFA726" />

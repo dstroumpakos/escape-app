@@ -10,6 +10,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList, MainTabParamList, CompanyTabParamList } from './src/types';
 import { theme } from './src/theme';
 import { convex } from './src/convex';
+import {
+  CompanySessionProvider,
+  saveCompanySession,
+  loadCompanySession,
+  clearCompanySession,
+} from './src/companySession';
 import { UserProvider } from './src/UserContext';
 import { LanguageProvider } from './src/i18n';
 import { registerForPushNotificationsAsync, addNotificationResponseListener } from './src/notifications';
@@ -35,10 +41,8 @@ import DateTimeSelect from './src/screens/DateTimeSelect';
 import Checkout from './src/screens/Checkout';
 import BookingConfirmation from './src/screens/BookingConfirmation';
 import MapViewScreen from './src/screens/MapView';
-import ScanScreen from './src/screens/ScanScreen';
 import SocialScreen from './src/screens/SocialScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
-import PremiumScreen from './src/screens/PremiumScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 
 // Legal & Settings Screens (Apple Guidelines compliance)
@@ -56,7 +60,6 @@ import CompanyBookings from './src/screens/company/CompanyBookings';
 import CompanySettings from './src/screens/company/CompanySettings';
 import CompanyBookingDetail from './src/screens/company/CompanyBookingDetail';
 import CompanyAddBooking from './src/screens/company/CompanyAddBooking';
-import CompanyQRScanner from './src/screens/company/CompanyQRScanner';
 import CompanyOnboarding from './src/screens/company/CompanyOnboarding';
 import CompanyPhotos from './src/screens/company/CompanyPhotos';
 import CompanyBilling from './src/screens/company/CompanyBilling';
@@ -141,6 +144,7 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
 export default function App() {
   const [appState, setAppState] = useState<'splash' | 'login' | 'onboarding' | 'main' | 'company' | 'companyAuth' | 'companyOnboarding' | 'adminReview'>('splash');
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyToken, setCompanyToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Check for existing session on app launch
@@ -185,12 +189,14 @@ export default function App() {
   };
 
   const handleSwitchToCompany = () => {
-    if (companyId) {
+    if (companyId && companyToken) {
       setAppState('company');
     } else {
-      AsyncStorage.getItem('companyId').then((storedId) => {
-        if (storedId) {
-          setCompanyId(storedId);
+      // Logins from before company sessions existed have no token: log in again.
+      loadCompanySession().then((session) => {
+        if (session) {
+          setCompanyId(session.companyId);
+          setCompanyToken(session.token);
           setAppState('company');
         } else {
           setAppState('companyAuth');
@@ -198,6 +204,14 @@ export default function App() {
       });
     }
   };
+
+  // The server rejected the business session (expired or revoked).
+  const handleCompanySessionExpired = React.useCallback(() => {
+    clearCompanySession(false);
+    setCompanyId(null);
+    setCompanyToken(null);
+    setAppState('companyAuth');
+  }, []);
 
   if (appState === 'splash') {
     return (
@@ -260,9 +274,10 @@ export default function App() {
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
           <CompanyAuth
-            onLogin={async (id, onboardingStatus) => {
-              await AsyncStorage.setItem('companyId', id);
+            onLogin={async (id, onboardingStatus, token) => {
+              await saveCompanySession(id, token);
               setCompanyId(id);
+              setCompanyToken(token);
               if (onboardingStatus && onboardingStatus !== 'approved') {
                 setAppState('companyOnboarding');
               } else {
@@ -289,12 +304,14 @@ export default function App() {
       <ConvexProvider client={convex}>
         <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }}>
           <StatusBar style="light" />
+          <CompanySessionProvider token={companyToken} onExpired={handleCompanySessionExpired}>
           <CompanyOnboarding
             companyId={companyId}
             onComplete={() => setAppState('company')}
             onLogout={async () => {
-              await AsyncStorage.removeItem('companyId');
+              await clearCompanySession();
               setCompanyId(null);
+              setCompanyToken(null);
               const storedUserId = await AsyncStorage.getItem('userId');
               if (storedUserId) {
                 setUserId(storedUserId);
@@ -304,6 +321,7 @@ export default function App() {
               }
             }}
           />
+          </CompanySessionProvider>
         </View>
       </ConvexProvider>
       </LanguageProvider>
@@ -398,8 +416,9 @@ export default function App() {
                 }
               }}
               onLogout={async () => {
-                await AsyncStorage.removeItem('companyId');
+                await clearCompanySession();
                 setCompanyId(null);
+                setCompanyToken(null);
                 const storedUserId = await AsyncStorage.getItem('userId');
                 if (storedUserId) {
                   setUserId(storedUserId);
@@ -420,6 +439,7 @@ export default function App() {
     <LanguageProvider>
     <ConvexProvider client={convex}>
       <UserProvider userId={userId} onLogout={handleLogout} onSwitchToCompany={handleSwitchToCompany}>
+      <CompanySessionProvider token={companyToken} onExpired={handleCompanySessionExpired}>
         <View style={{ flex: 1 }}>
           <StatusBar style="light" />
           <NotificationWatcher userId={userId} companyId={companyId} />
@@ -444,9 +464,6 @@ export default function App() {
                   <Stack.Screen name="CompanyAddBooking">
                     {(props) => <CompanyAddBooking {...(props as any)} companyId={companyId} />}
                   </Stack.Screen>
-                  <Stack.Screen name="CompanyQRScanner">
-                    {(props) => <CompanyQRScanner companyId={companyId} onClose={() => (props as any).navigation.goBack()} />}
-                  </Stack.Screen>
                   <Stack.Screen name="CompanyPhotos">
                     {() => <CompanyPhotos companyId={companyId} />}
                   </Stack.Screen>
@@ -466,16 +483,17 @@ export default function App() {
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />
                   <Stack.Screen name="MapView" component={MapViewScreen} />
-                  <Stack.Screen name="Premium" component={PremiumScreen} />
+                  <Stack.Screen name="Premium" getComponent={() => require('./src/screens/PremiumScreen').default} />
                   <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth
-                        onLogin={async (id, onboardingStatus) => {
-                          await AsyncStorage.setItem('companyId', id);
+                        onLogin={async (id, onboardingStatus, token) => {
+                          await saveCompanySession(id, token);
                           setCompanyId(id);
+                          setCompanyToken(token);
                           if (onboardingStatus && onboardingStatus !== 'approved') {
                             setAppState('companyOnboarding');
                           } else {
@@ -491,6 +509,7 @@ export default function App() {
             </Stack.Navigator>
           </NavigationContainer>
         </View>
+      </CompanySessionProvider>
       </UserProvider>
     </ConvexProvider>
     </LanguageProvider>

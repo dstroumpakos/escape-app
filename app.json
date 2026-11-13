@@ -21,7 +21,6 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSCameraUsageDescription": "We need access to your camera to scan QR codes for bookings.",
         "NSLocationWhenInUseUsageDescription": "We use your location to show nearby escape rooms.",
         "NSPhotoLibraryUsageDescription": "Upload photos for your profile and social posts."
       },
@@ -38,7 +37,6 @@
       "versionCode": 1,
       "useNextNotificationsApi": true,
       "permissions": [
-        "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_MEDIA_IMAGES",
@@ -53,12 +51,6 @@
         {
           "icon": "./assets/icon.png",
           "color": "#DC2626"
-        }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Unlocked to access your camera for QR code scanning."
         }
       ],
       [

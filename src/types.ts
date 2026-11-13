@@ -72,7 +72,6 @@ export type RootStackParamList = {
   CompanyAvailability: { roomId: string; roomTitle: string };
   CompanyBookingDetail: { bookingId: string };
   CompanyAddBooking: { companyId: string; roomId?: string; date?: string; time?: string };
-  CompanyQRScanner: { companyId: string };
   CompanyPhotos: { companyId: string };
   CompanyBilling: { companyId: string };
 };

@@ -4,23 +4,12 @@ import {
   Alert, ActivityIndicator, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useAction } from 'convex/react';
+import { useCompanyAction, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
-
-const PLAN_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  starter: { monthly: 29, yearly: 290 },
-  pro: { monthly: 49, yearly: 490 },
-  enterprise: { monthly: 99, yearly: 990 },
-};
-
-const PLAN_COLORS: Record<string, { bg: string; text: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  starter: { bg: 'rgba(76,175,80,0.15)', text: '#4CAF50', icon: 'rocket-outline' },
-  pro: { bg: 'rgba(244,67,54,0.15)', text: '#F44336', icon: 'diamond-outline' },
-  enterprise: { bg: 'rgba(156,39,176,0.2)', text: '#CE93D8', icon: 'trophy-outline' },
-};
+import { PLAN_STYLE, UNLIMITED_PRICE, PAYG_FEE, asPlanId, euros } from './platformPlans';
 
 interface Props {
   companyId: string;
@@ -31,9 +20,10 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
   const { t } = useTranslation();
   const cId = companyId as Id<'companies'>;
 
-  const companyData = useQuery(api.companies.getById, { id: cId });
-  const createPortalSession = useAction(api.stripe.createPortalSession);
-  const getSubscriptionDetails = useAction(api.stripe.getSubscriptionDetails);
+  const companyData = useCompanyQuery(api.companies.getById, { id: cId });
+  const createPortalSession = useCompanyAction(api.stripe.createPortalSession);
+  const getSubscriptionDetails = useCompanyAction(api.stripe.getSubscriptionDetails);
+  const usage = useCompanyQuery(api.billing.getPaygUsage, { companyId: cId });
 
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -74,14 +64,18 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
     }
   };
 
-  const plan = companyData?.platformPlan || 'starter';
+  const plan = asPlanId(companyData?.platformPlan);
   const period = (companyData as any)?.billingPeriod || 'monthly';
   const paymentStatus = (companyData as any)?.stripePaymentStatus || 'pending';
   const subscribedAt = (companyData as any)?.platformSubscribedAt;
   const hasStripeCustomer = !!(companyData as any)?.stripeCustomerId;
 
-  const planStyle = PLAN_COLORS[plan] || PLAN_COLORS.starter;
-  const price = PLAN_PRICES[plan]?.[period as 'monthly' | 'yearly'] ?? 0;
+  const planStyle = PLAN_STYLE[plan];
+  const price = UNLIMITED_PRICE[period === 'yearly' ? 'yearly' : 'monthly'];
+  // A live subscription (Unlimited, or a legacy plan until Stripe ends it)
+  const liveSub =
+    subscription && ['active', 'trialing', 'past_due'].includes(subscription.status) ? subscription : null;
+  const showPayg = plan === 'payg' && !liveSub;
 
   const formatDate = (ts: number) =>
     new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
@@ -137,17 +131,33 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
               <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
                 <Ionicons name={planStyle.icon} size={14} color={planStyle.text} />
                 <Text style={[styles.planBadgeText, { color: planStyle.text }]}>
-                  {plan.charAt(0).toUpperCase() + plan.slice(1)}
+                  {t(`plan.${plan}`)}
                 </Text>
               </View>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-              <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
-              <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
-            </View>
+            {liveSub && (
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+                <Ionicons name={statusConfig.icon} size={14} color={statusConfig.color} />
+                <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Stats Grid */}
+          {showPayg ? (
+            <View>
+              <Text style={styles.manageDesc}>
+                {t('plans.thisMonth')} · {t('plans.bookingsTimesFee', { count: String(usage?.bookingCount ?? 0), fee: `€${PAYG_FEE}` })}
+              </Text>
+              <Text style={styles.statValue}>
+                {euros(usage?.amountCents ?? 0)}
+                <Text style={styles.statPeriod}> {t('plans.ofCap', { cap: euros(usage?.capCents ?? 25000) })}</Text>
+              </Text>
+              {(usage?.amountCents ?? 0) >= (usage?.capCents ?? 25000) && (
+                <Text style={styles.saveBadge}>{t('plans.capReached')}</Text>
+              )}
+              <Text style={[styles.manageDesc, { marginTop: 8 }]}>{t('plans.paygCounted')}</Text>
+            </View>
+          ) : (
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <View style={styles.statIconRow}>
@@ -185,10 +195,34 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
               </Text>
             </View>
           </View>
+          )}
         </View>
 
+        {/* Pay-as-you-go invoices */}
+        {usage && usage.invoices.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="document-text-outline" size={18} color={theme.colors.redPrimary} />
+              <Text style={styles.cardTitle}>{t('plans.invoices')}</Text>
+            </View>
+            {usage.invoices.map((inv) => (
+              <TouchableOpacity
+                key={inv.month}
+                disabled={!inv.hostedInvoiceUrl}
+                onPress={() => inv.hostedInvoiceUrl && Linking.openURL(inv.hostedInvoiceUrl)}
+              >
+                <DetailRow
+                  label={`${inv.month} · ${t('plans.bookingsCount', { count: String(inv.bookingCount) })}`}
+                  value={`${euros(inv.amountCents)} · ${t(`plans.invoice_${inv.status}`)}`}
+                  icon={inv.hostedInvoiceUrl ? 'open-outline' : undefined}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Subscription Details */}
-        {subscription && (
+        {liveSub && (
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
               <Ionicons name="card-outline" size={18} color={theme.colors.redPrimary} />

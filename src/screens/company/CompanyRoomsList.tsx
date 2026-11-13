@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../../../convex/_generated/api';
@@ -18,23 +18,23 @@ interface Props {
   companyId: string;
 }
 
-const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+import { PLAN_STYLE, asPlanId } from './platformPlans';
 
 export default function CompanyRoomsList({ companyId }: Props) {
   const navigation = useNavigation<Nav>();
-  const rooms = useQuery(api.companies.getRooms, {
+  const rooms = useCompanyQuery(api.companies.getRooms, {
     companyId: companyId as Id<"companies">,
   });
-  const dashStats = useQuery(api.companies.getDashboardStats, {
+  const dashStats = useCompanyQuery(api.companies.getDashboardStats, {
     companyId: companyId as Id<"companies">,
   });
-  const deleteRoom = useMutation(api.companies.deleteRoom);
-  const updateRoom = useMutation(api.companies.updateRoom);
+  const deleteRoom = useCompanyMutation(api.companies.deleteRoom);
+  const updateRoom = useCompanyMutation(api.companies.updateRoom);
   const { t } = useTranslation();
 
   const roomCount = dashStats?.totalRooms ?? 0;
   const roomLimit = dashStats?.roomLimit ?? 1;
-  const plan = dashStats?.plan ?? 'starter';
+  const plan = asPlanId(dashStats?.plan);
   const atLimit = roomLimit !== Infinity && roomCount >= roomLimit;
   const limitPct = roomLimit === Infinity ? 0 : Math.min((roomCount / roomLimit) * 100, 100);
   const limitColor = limitPct >= 100 ? '#F44336' : limitPct >= 75 ? '#FFA726' : theme.colors.success;
@@ -82,14 +82,10 @@ export default function CompanyRoomsList({ companyId }: Props) {
           <Text style={styles.limitLabel}>
             {roomCount} / {roomLimit === Infinity ? '∞' : roomLimit} Rooms
           </Text>
-          <View style={[styles.planBadge, { backgroundColor: plan === 'enterprise' ? 'rgba(156,39,176,0.2)' : plan === 'pro' ? 'rgba(244,67,54,0.15)' : 'rgba(76,175,80,0.15)' }]}>
-            <Ionicons
-              name={plan === 'enterprise' ? 'trophy' : plan === 'pro' ? 'diamond' : 'rocket'}
-              size={10}
-              color={plan === 'enterprise' ? '#CE93D8' : plan === 'pro' ? '#F44336' : '#4CAF50'}
-            />
-            <Text style={[styles.planBadgeText, { color: plan === 'enterprise' ? '#CE93D8' : plan === 'pro' ? '#F44336' : '#4CAF50' }]}>
-              {PLAN_LABELS[plan] || 'Starter'}
+          <View style={[styles.planBadge, { backgroundColor: PLAN_STYLE[plan].bg }]}>
+            <Ionicons name={PLAN_STYLE[plan].icon} size={10} color={PLAN_STYLE[plan].text} />
+            <Text style={[styles.planBadgeText, { color: PLAN_STYLE[plan].text }]}>
+              {t(`plan.${plan}`)}
             </Text>
           </View>
         </View>

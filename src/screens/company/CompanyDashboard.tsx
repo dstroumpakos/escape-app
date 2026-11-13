@@ -5,7 +5,7 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from 'convex/react';
+import { useCompanyQuery } from '../../companySession';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { api } from '../../../convex/_generated/api';
@@ -20,12 +20,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const PLAN_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  starter: { bg: 'rgba(76,175,80,0.15)', text: '#4CAF50', icon: 'rocket' },
-  pro: { bg: 'rgba(244,67,54,0.15)', text: '#F44336', icon: 'diamond' },
-  enterprise: { bg: 'rgba(156,39,176,0.2)', text: '#CE93D8', icon: 'trophy' },
-};
-const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', enterprise: 'Enterprise' };
+import { PLAN_STYLE, asPlanId } from './platformPlans';
 
 interface Props {
   companyId: string;
@@ -38,17 +33,17 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-  const company = useQuery(api.companies.getById, {
+  const company = useCompanyQuery(api.companies.getById, {
     id: companyId as Id<"companies">,
   });
-  const stats = useQuery(api.companies.getTodayStats, {
+  const stats = useCompanyQuery(api.companies.getTodayStats, {
     companyId: companyId as Id<"companies">,
     date: dateStr,
   });
-  const overallStats = useQuery(api.companies.getDashboardStats, {
+  const overallStats = useCompanyQuery(api.companies.getDashboardStats, {
     companyId: companyId as Id<"companies">,
   });
-  const bookings = useQuery(api.companies.getBookingsByDate, {
+  const bookings = useCompanyQuery(api.companies.getBookingsByDate, {
     companyId: companyId as Id<"companies">,
     date: dateStr,
   });
@@ -64,8 +59,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
   };
 
   // Plan info
-  const plan = overallStats?.plan ?? 'starter';
-  const planStyle = PLAN_COLORS[plan] || PLAN_COLORS.starter;
+  const plan = asPlanId(overallStats?.plan);
+  const planStyle = PLAN_STYLE[plan];
   const roomCount = overallStats?.totalRooms ?? 0;
   const roomLimit = overallStats?.roomLimit ?? 1;
   const advanced = overallStats?.advanced;
@@ -100,12 +95,6 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder }]}
-            onPress={() => navigation.navigate('CompanyQRScanner', { companyId })}
-          >
-            <Ionicons name="qr-code-outline" size={20} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity
             style={styles.addBtn}
             onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
           >
@@ -125,7 +114,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
           </View>
           <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
             <Ionicons name={planStyle.icon as any} size={10} color={planStyle.text} />
-            <Text style={[styles.planBadgeText, { color: planStyle.text }]}>{PLAN_LABELS[plan] || 'Starter'}</Text>
+            <Text style={[styles.planBadgeText, { color: planStyle.text }]}>{t(`plan.${plan}`)}</Text>
           </View>
         </View>
 
@@ -211,20 +200,6 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
               <MiniStat icon="cash" color="#4CAF50" label="Avg €/Booking" value={`€${advanced.avgRevenuePerBooking}`} />
             </View>
           </>
-        )}
-
-        {/* Starter Upsell */}
-        {plan === 'starter' && (
-          <TouchableOpacity 
-            style={styles.upsellBanner}
-            onPress={() => navigation.navigate('Settings' as any)}
-          >
-            <Ionicons name="rocket-outline" size={20} color="#FFA726" />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.upsellTitle}>Upgrade to Pro</Text>
-              <Text style={styles.upsellText}>Unlock advanced analytics, up to 2 rooms, and featured listings.</Text>
-            </View>
-          </TouchableOpacity>
         )}
 
         {/* Today's Timeline */}

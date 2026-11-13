@@ -20,6 +20,7 @@
 import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { Resend } from "resend";
+import { normalizePlan, planLabel } from "./plans";
 
 // ══════════════════════════════════════════════════════════════
 // Shared helpers
@@ -75,14 +76,6 @@ function paymentLabel(status: string, lang = "en"): string {
   }
 }
 
-function planLabel(plan: string): string {
-  switch (plan) {
-    case "starter": return "Starter";
-    case "pro": return "Pro";
-    case "enterprise": return "Enterprise";
-    default: return plan;
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 // Email i18n — EN / EL translations for player-facing emails
@@ -145,7 +138,7 @@ const emailI18n: Record<Lang, Record<string, string>> = {
     "receipt.paymentType": "Payment Type",
     "receipt.amountCharged": "Amount Charged",
     "receipt.fullPayment": "Full Payment",
-    "receipt.depositPayment": "20% Deposit + Service Fee",
+    "receipt.depositPayment": "Deposit",
     "receipt.payment": "Payment",
     "receipt.notice": "This is an automated payment receipt from UNLOCKED. The charge will appear on your statement as \"UNLOCKED\" or",
     "receipt.questions": "If you have questions about this charge, please contact us.",
@@ -215,7 +208,7 @@ const emailI18n: Record<Lang, Record<string, string>> = {
     "receipt.paymentType": "Τύπος Πληρωμής",
     "receipt.amountCharged": "Ποσό Χρέωσης",
     "receipt.fullPayment": "Πλήρης Πληρωμή",
-    "receipt.depositPayment": "Προκαταβολή 20% + Χρέωση Υπηρεσίας",
+    "receipt.depositPayment": "Προκαταβολή",
     "receipt.payment": "Πληρωμή",
     "receipt.notice": "Αυτή είναι αυτόματη απόδειξη πληρωμής από το UNLOCKED. Η χρέωση θα εμφανιστεί στο statement σου ως \"UNLOCKED\" ή",
     "receipt.questions": "Αν έχεις ερωτήσεις σχετικά με τη χρέωση, επικοινώνησε μαζί μας.",
@@ -596,30 +589,17 @@ export const sendCompanyApproved = internalAction({
     const resend = getResend();
     if (!resend) return;
 
-    const features: Record<string, string[]> = {
-      starter: [
-        "Up to 5 rooms",
-        "Booking management dashboard",
-        "Embeddable booking widget",
-        "Email notifications",
-      ],
-      pro: [
-        "Up to 15 rooms",
-        "Everything in Starter",
-        "Priority support",
-        "Advanced analytics",
-        "Custom branding",
-      ],
-      enterprise: [
-        "Unlimited rooms",
-        "Everything in Pro",
-        "Dedicated account manager",
-        "API access",
-        "Custom integrations",
-      ],
-    };
-
-    const planFeatures = features[args.plan] || features.starter;
+    const everything = [
+      "Unlimited rooms",
+      "Booking management dashboard and full analytics",
+      "Embeddable booking widget",
+      "Online payments into your own Stripe or Viva account",
+      "Featured listings and email notifications",
+    ];
+    const planFeatures =
+      normalizePlan(args.plan) === "unlimited"
+        ? ["€198/month or €1980/year, no per-booking fees", ...everything]
+        : ["€3 per booking made through UNLOCKED, never more than €250 a month", "Invoiced by email at the start of each month", ...everything];
     const featureRows = planFeatures
       .map(f => FR(`<span style="color:#22c55e;margin-right:8px;">✓</span> ${f}`))
       .join("");

@@ -2,24 +2,22 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import Stripe from "stripe";
+import { startCheckoutImpl, retryCheckoutImpl } from "./companyPayments";
+import { UNLIMITED_PRICE_CENTS } from "./plans";
 
-// ── Price IDs — these will map plan + period to Stripe prices
-// We create prices dynamically via the Stripe API on first use
+// The only subscription plan is Unlimited (plans.ts); pay-as-you-go needs no
+// checkout and is invoiced monthly by billingStripe.ts.
 const PLAN_PRICES: Record<string, { monthly: number; yearly: number }> = {
-  starter: { monthly: 5800, yearly: 58000 },   // in cents: €58/mo, €580/yr
-  pro: { monthly: 9800, yearly: 98000 },        // €98/mo, €980/yr
-  enterprise: { monthly: 19800, yearly: 198000 }, // €198/mo, €1980/yr
+  unlimited: UNLIMITED_PRICE_CENTS, // €198/mo, €1980/yr
 };
 
 const PLAN_NAMES: Record<string, string> = {
-  starter: "UNLOCKED Starter",
-  pro: "UNLOCKED Pro",
-  enterprise: "UNLOCKED Enterprise",
+  unlimited: "UNLOCKED Unlimited",
 };
 
-function getStripe() {
+export function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY not set");
   return new Stripe(key, { apiVersion: "2025-02-24.acacia" as any });
@@ -37,10 +35,14 @@ const CARD_ONLY = { payment_method_types: ["card"] } as {};
 export const createCheckoutSession = action({
   args: {
     companyId: v.id("companies"),
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    sessionToken: v.optional(v.string()),
+    // Legacy values are still accepted so old app builds get a clear error.
+    plan: v.union(v.literal("unlimited"), v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
     period: v.union(v.literal("monthly"), v.literal("yearly")),
     successUrl: v.string(),
     cancelUrl: v.string(),
+    // Ignored: the free period comes from the discount code, checked below.
+    // Old clients still send it.
     trialDays: v.optional(v.number()),
     discountCode: v.optional(v.string()),
   },
@@ -48,11 +50,30 @@ export const createCheckoutSession = action({
     const stripe = getStripe();
 
     // Get company details
-    const company = await ctx.runQuery(api.companies.getById, { id: args.companyId });
+    // Throws unless the caller holds a session for this company (see companySession.ts)
+    const companyId = await ctx.runQuery(internal.companySession.resolveForAction, {
+      companyId: args.companyId,
+      sessionToken: args.sessionToken,
+      fn: "stripe:createCheckoutSession",
+    });
+    const company = await ctx.runQuery(internal.companies.getByIdInternal, { id: companyId });
     if (!company) throw new Error("Company not found");
 
     const priceConfig = PLAN_PRICES[args.plan];
-    if (!priceConfig) throw new Error("Invalid plan");
+    if (!priceConfig) {
+      throw new Error("This plan is no longer offered. Please update the app and choose Unlimited or Pay as you go.");
+    }
+    if (company.platformPlan === "unlimited" && company.stripePaymentStatus === "active") {
+      throw new Error("You're already on the Unlimited plan.");
+    }
+
+    // Free period from a discount code, validated here rather than trusted from the client.
+    let trialDays: number | undefined;
+    if (args.discountCode) {
+      const discount = await ctx.runQuery(api.companies.validateDiscountCode, { code: args.discountCode });
+      if (!discount.valid) throw new Error("This discount code isn't valid.");
+      trialDays = (discount.durationMonths || 12) * 30;
+    }
 
     const unitAmount = args.period === "monthly" ? priceConfig.monthly : priceConfig.yearly;
 
@@ -69,7 +90,7 @@ export const createCheckoutSession = action({
       customerId = customer.id;
 
       // Save Stripe customer ID
-      await ctx.runMutation(api.companies.updateStripeCustomer, {
+      await ctx.runMutation(internal.companies.updateStripeCustomer, {
         companyId: args.companyId,
         stripeCustomerId: customerId,
       });
@@ -83,8 +104,8 @@ export const createCheckoutSession = action({
         period: args.period,
       },
     };
-    if (args.trialDays) {
-      subscriptionData.trial_period_days = args.trialDays;
+    if (trialDays) {
+      subscriptionData.trial_period_days = trialDays;
     }
 
     // Build metadata with optional discount code
@@ -126,12 +147,12 @@ export const createCheckoutSession = action({
 
     if (!session.url) throw new Error("Failed to create checkout session");
 
-    // Mark payment as pending
-    await ctx.runMutation(api.companies.updateStripePaymentStatus, {
+    // Mark payment as pending. The plan itself only changes once Stripe confirms
+    // the checkout (webhook), so an abandoned checkout can't take a
+    // pay-as-you-go company off monthly billing.
+    await ctx.runMutation(internal.companies.updateStripePaymentStatus, {
       companyId: args.companyId,
       status: "pending",
-      plan: args.plan,
-      period: args.period,
     });
 
     return session.url;
@@ -145,12 +166,19 @@ export const createCheckoutSession = action({
 export const createPortalSession = action({
   args: {
     companyId: v.id("companies"),
+    sessionToken: v.optional(v.string()),
     returnUrl: v.string(),
   },
   handler: async (ctx, args): Promise<string> => {
     const stripe = getStripe();
 
-    const company = await ctx.runQuery(api.companies.getById, { id: args.companyId });
+    // Throws unless the caller holds a session for this company (see companySession.ts)
+    const companyId = await ctx.runQuery(internal.companySession.resolveForAction, {
+      companyId: args.companyId,
+      sessionToken: args.sessionToken,
+      fn: "stripe:createPortalSession",
+    });
+    const company = await ctx.runQuery(internal.companies.getByIdInternal, { id: companyId });
     if (!company) throw new Error("Company not found");
 
     const customerId = (company as any).stripeCustomerId;
@@ -172,6 +200,7 @@ export const createPortalSession = action({
 export const getSubscriptionDetails = action({
   args: {
     companyId: v.id("companies"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<{
     id: string;
@@ -188,7 +217,13 @@ export const getSubscriptionDetails = action({
   } | null> => {
     const stripe = getStripe();
 
-    const company = await ctx.runQuery(api.companies.getById, { id: args.companyId });
+    // Throws unless the caller holds a session for this company (see companySession.ts)
+    const companyId = await ctx.runQuery(internal.companySession.resolveForAction, {
+      companyId: args.companyId,
+      sessionToken: args.sessionToken,
+      fn: "stripe:getSubscriptionDetails",
+    });
+    const company = await ctx.runQuery(internal.companies.getByIdInternal, { id: companyId });
     if (!company) throw new Error("Company not found");
 
     const subscriptionId = (company as any).stripeSubscriptionId;
@@ -231,18 +266,14 @@ export const getSubscriptionDetails = action({
 });
 
 // ─────────────────────────────────────────────────
-// Player-side Stripe Checkout for room bookings
+// Player-side booking payments
 // ─────────────────────────────────────────────────
+//
+// Player payments now go to each company's OWN Stripe or Viva account
+// (see companyPayments.ts). These two entry points stay because the mobile
+// app calls them; they forward to the new flow. `total` from the client is
+// ignored, the price is computed on the server.
 
-/**
- * Create a Stripe Checkout Session for a player booking.
- * The amount depends on the company's payment terms:
- *  - full: charge 100% of booking total + service fee
- *  - deposit_20: charge 20% of booking total + service fee
- *  - pay_on_arrival: charge only the service fee (no Stripe needed, booking created directly)
- *
- * Returns the checkout URL and bookingId.
- */
 export const createBookingCheckout = action({
   args: {
     userId: v.id("users"),
@@ -259,94 +290,20 @@ export const createBookingCheckout = action({
     cancelUrl: v.string(),
   },
   handler: async (ctx, args): Promise<{ url: string; bookingId: string }> => {
-    const stripe = getStripe();
-
-    // Get room + user info
-    const room = await ctx.runQuery(api.rooms.getById, { id: args.roomId });
-    if (!room) throw new Error("Room not found");
-
-    const user = await ctx.runQuery(api.users.getById, { userId: args.userId });
-    if (!user) throw new Error("User not found");
-
-    // Calculate charge amount
-    const serviceFee = 399; // €3.99 in cents
-    let chargeAmount: number; // in cents
-    let description: string;
-
-    if (args.paymentTerms === "full") {
-      chargeAmount = Math.round(args.total * 100) + serviceFee;
-      description = `Full payment for ${room.title}`;
-    } else {
-      // deposit_20
-      const deposit = Math.round(args.total * 0.2 * 100);
-      chargeAmount = deposit + serviceFee;
-      description = `20% deposit for ${room.title}`;
-    }
-
-    // Create the booking in "pending_payment" state first
-    const { id: bookingId, bookingCode } = await ctx.runMutation(api.bookings.create, {
+    const { url, bookingId } = await startCheckoutImpl(ctx, {
       userId: args.userId,
       roomId: args.roomId,
       date: args.date,
       time: args.time,
       players: args.players,
-      total: args.total,
       paymentTerms: args.paymentTerms,
-      pendingPayment: true,
-    }) as { id: string; bookingCode: string };
-
-    // Create Stripe checkout session (one-time payment)
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      ...CARD_ONLY,
-      customer_email: user.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: room.title,
-              description,
-            },
-            unit_amount: chargeAmount,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        type: "booking",
-        bookingId,
-        bookingCode,
-        paymentTerms: args.paymentTerms,
-        userId: args.userId,
-        roomId: args.roomId,
-      },
-      success_url: args.successUrl,
-      cancel_url: args.cancelUrl,
+      successUrl: args.successUrl,
+      cancelUrl: args.cancelUrl,
     });
-
-    if (!session.url) throw new Error("Failed to create checkout session");
-
-    // Store session ID on the booking
-    await ctx.runMutation(api.bookings.updateStripeSession, {
-      bookingId: bookingId as any,
-      stripeSessionId: session.id,
-    });
-
-    // Schedule auto-cancellation after 30 minutes if payment is not completed
-    await ctx.scheduler.runAfter(30 * 60 * 1000, api.bookings.cancelUnpaidBooking, {
-      bookingId: bookingId as any,
-    });
-
-    return { url: session.url, bookingId };
+    return { url, bookingId };
   },
 });
 
-/**
- * Retry payment for an existing pending_payment booking.
- * Creates a new Stripe checkout session for the same booking.
- * Resets the 30-minute auto-cancellation timer.
- */
 export const retryBookingPayment = action({
   args: {
     bookingId: v.id("bookings"),
@@ -354,83 +311,10 @@ export const retryBookingPayment = action({
     cancelUrl: v.string(),
   },
   handler: async (ctx, args): Promise<{ url: string }> => {
-    const stripe = getStripe();
-
-    // Get the existing booking
-    const booking: any = await ctx.runQuery(api.bookings.getById, { bookingId: args.bookingId });
-    if (!booking) throw new Error("Booking not found");
-    if (booking.status !== "pending_payment") throw new Error("Booking is not pending payment");
-
-    // Get room + user info
-    const room = await ctx.runQuery(api.rooms.getById, { id: booking.roomId });
-    if (!room) throw new Error("Room not found");
-
-    const user = booking.userId
-      ? await ctx.runQuery(api.users.getById, { userId: booking.userId })
-      : null;
-
-    // Calculate charge amount (same logic as createBookingCheckout)
-    const serviceFee = 399; // €3.99 in cents
-    const paymentTerms = booking.paymentTerms || "full";
-    let chargeAmount: number;
-    let description: string;
-
-    if (paymentTerms === "full") {
-      chargeAmount = Math.round(booking.total * 100) + serviceFee;
-      description = `Full payment for ${room.title}`;
-    } else {
-      // deposit_20
-      const deposit = Math.round(booking.total * 0.2 * 100);
-      chargeAmount = deposit + serviceFee;
-      description = `20% deposit for ${room.title}`;
-    }
-
-    // Create a new Stripe checkout session for the same booking
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      ...CARD_ONLY,
-      customer_email: user?.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: room.title,
-              description,
-            },
-            unit_amount: chargeAmount,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        type: "booking",
-        bookingId: args.bookingId,
-        bookingCode: booking.bookingCode,
-        paymentTerms,
-        userId: booking.userId || "",
-        roomId: booking.roomId,
-      },
-      success_url: args.successUrl,
-      cancel_url: args.cancelUrl,
-    });
-
-    if (!session.url) throw new Error("Failed to create checkout session");
-
-    // Update the session ID on the booking
-    await ctx.runMutation(api.bookings.updateStripeSession, {
-      bookingId: args.bookingId,
-      stripeSessionId: session.id,
-    });
-
-    // Schedule new auto-cancellation (30 minutes from now)
-    await ctx.scheduler.runAfter(30 * 60 * 1000, api.bookings.cancelUnpaidBooking, {
-      bookingId: args.bookingId,
-    });
-
-    return { url: session.url };
+    return await retryCheckoutImpl(ctx, args);
   },
 });
+
 
 /**
  * Admin: decline a company and cancel their Stripe subscription if one exists.
@@ -443,7 +327,7 @@ export const declineCompanyWithCancel = action({
   },
   handler: async (ctx, args) => {
     // Get company to check for subscription
-    const company: any = await ctx.runQuery(api.companies.getById, { id: args.companyId });
+    const company: any = await ctx.runQuery(internal.companies.getByIdInternal, { id: args.companyId });
     if (!company) throw new Error("Company not found");
 
     // Cancel Stripe subscription if exists

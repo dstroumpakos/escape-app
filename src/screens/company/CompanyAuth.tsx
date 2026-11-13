@@ -10,7 +10,7 @@ import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 
 interface Props {
-  onLogin: (companyId: string, onboardingStatus?: string) => void;
+  onLogin: (companyId: string, onboardingStatus: string | undefined, sessionToken: string) => void;
   onBack: () => void;
 }
 
@@ -43,9 +43,10 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
       const result = await loginMutation({
         email: email.trim().toLowerCase(),
         password: password.trim(),
+        client: 'app',
       });
       if (result?._id) {
-        onLogin(result._id, result.onboardingStatus);
+        onLogin(result._id, result.onboardingStatus, result.sessionToken);
       }
     } catch (error: any) {
       Alert.alert(t('error'), error.message || t('companyAuth.loginFailed'));
@@ -69,12 +70,13 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
         vatNumber: vatNumber.trim() || undefined,
         description: description.trim(),
         password: password.trim(),
+        client: 'app',
       });
       if (result && 'error' in result) {
         Alert.alert('Error', result.error);
       } else if (result && 'id' in result) {
         Alert.alert(t('success'), t('companyAuth.accountCreated'), [
-          { text: t('ok'), onPress: () => onLogin(result.id, 'pending_terms') },
+          { text: t('ok'), onPress: () => onLogin(result.id, 'pending_terms', result.sessionToken) },
         ]);
       }
     } catch {

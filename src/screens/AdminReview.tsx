@@ -24,9 +24,13 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: string
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  starter: 'Starter — €29/mo',
-  pro: 'Pro — €49/mo',
-  enterprise: 'Enterprise — €99/mo',
+  unlimited: 'Unlimited — €198/mo',
+  payg: 'Pay as you go — €3/booking',
+  // legacy, until billingStripe:migrateLegacyPlans has run
+  free: 'Free (old plan)',
+  starter: 'Starter (old plan)',
+  pro: 'Pro (old plan)',
+  enterprise: 'Enterprise (old plan)',
 };
 
 export default function AdminReview({ onBack }: Props) {

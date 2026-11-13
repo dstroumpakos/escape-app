@@ -1,9 +1,24 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 import { nt } from "./notificationTexts";
+import { clampDepositPercent } from "./companyPaymentsData";
+import { normalizePlan } from "./plans";
+import {
+  sessionTokenV,
+  createCompanySession,
+  findSession,
+  deleteSession,
+  requireCompany,
+  optionalCompany,
+  requireRoomOf,
+  requireBookingOf,
+  SESSION_TTL_MS,
+} from "./companySession";
+
+const clientV = v.optional(v.union(v.literal("web"), v.literal("app")));
 
 // ─── Admin helper: verify the calling user has isAdmin ───
 const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay', 'dstroumpakos@planeraai.app'];
@@ -45,8 +60,9 @@ export const register = mutation({
     vatNumber: v.optional(v.string()),
     description: v.string(),
     password: v.string(),
+    client: clientV,
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { client, ...args }) => {
     // Validate inputs
     requireNonEmpty(args.name, "Company name");
     if (!validateEmail(args.email)) return { error: "Invalid email format" };
@@ -79,7 +95,7 @@ export const register = mutation({
       companyEmail: args.email,
     });
 
-    return { id };
+    return { id, sessionToken: await createCompanySession(ctx, id, client) };
   },
 });
 
@@ -94,9 +110,11 @@ export const registerWithOnboarding = mutation({
     vatNumber: v.optional(v.string()),
     description: v.string(),
     password: v.string(),
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    // Ignored: every new company starts on pay-as-you-go; Unlimited needs a paid checkout.
+    plan: v.optional(v.string()),
+    client: clientV,
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { client, ...args }) => {
     // Validate inputs
     requireNonEmpty(args.name, "Company name");
     if (!validateEmail(args.email)) return { error: "Invalid email format" };
@@ -114,7 +132,8 @@ export const registerWithOnboarding = mutation({
 
     const hashedPw = await hashPassword(args.password);
 
-    const { plan, ...rest } = args;
+    const { plan: _requestedPlan, ...rest } = args;
+    const plan = "payg";
     const id = await ctx.db.insert("companies", {
       ...rest,
       password: hashedPw,
@@ -125,6 +144,7 @@ export const registerWithOnboarding = mutation({
       termsAcceptedAt: Date.now(),
       platformPlan: plan,
       platformSubscribedAt: Date.now(),
+      paygSince: Date.now(),
     });
 
     // Send welcome email with plan info
@@ -134,24 +154,38 @@ export const registerWithOnboarding = mutation({
       plan,
     });
 
-    return { id };
+    return { id, sessionToken: await createCompanySession(ctx, id, client) };
   },
 });
 
 // ─── Company Profile ───
+function safeCompany(company: any) {
+  // Never return the password field
+  const { password: _pw, ...safe } = company;
+  return { ...safe, onboardingStatus: company.onboardingStatus || "approved" };
+}
+
+/** The logged-in company's own profile (portal). */
 export const getById = query({
+  args: { id: v.id("companies"), sessionToken: sessionTokenV },
+  handler: async (ctx, args) => {
+    const company = await requireCompany(ctx, { companyId: args.id, sessionToken: args.sessionToken }, "companies:getById");
+    return safeCompany(company);
+  },
+});
+
+/** Server-side lookup for actions and webhooks. */
+export const getByIdInternal = internalQuery({
   args: { id: v.id("companies") },
   handler: async (ctx, args) => {
     const company = await ctx.db.get(args.id);
-    if (!company) return null;
-    // Never return the password field
-    const { password: _pw, ...safe } = company;
-    return { ...safe, onboardingStatus: company.onboardingStatus || "approved" };
+    return company ? safeCompany(company) : null;
   },
 });
 
 export const updateProfile = mutation({
   args: {
+    sessionToken: sessionTokenV,
     id: v.id("companies"),
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
@@ -164,17 +198,18 @@ export const updateProfile = mutation({
     autoTranslateEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...fields } = args;
-    await ctx.db.patch(id, fields);
+    const { id, sessionToken, ...fields } = args;
+    const company = await requireCompany(ctx, { companyId: id, sessionToken }, "companies:updateProfile");
+    await ctx.db.patch(company._id, fields);
   },
 });
 
 // ─── Dashboard Stats ───
 export const getDashboardStats = query({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
-    const company = await ctx.db.get(args.companyId);
-    const plan = company?.platformPlan || "starter";
+    const company = await requireCompany(ctx, args, "companies:getDashboardStats");
+    const plan = normalizePlan(company?.platformPlan);
     const roomLimit = getRoomLimit(plan);
 
     const rooms = await ctx.db
@@ -220,8 +255,8 @@ export const getDashboardStats = query({
       roomLimit,
     };
 
-    // Advanced stats (pro + enterprise only)
-    const advanced = (plan === "pro" || plan === "enterprise") ? {
+    // Advanced stats (every plan)
+    const advanced = {
       completedBookings,
       cancelledBookings,
       avgRating: Math.round(avgRating * 10) / 10,
@@ -231,11 +266,11 @@ export const getDashboardStats = query({
       avgRevenuePerBooking: completedBookings > 0
         ? Math.round(totalRevenue / completedBookings)
         : 0,
-    } : null;
+    };
 
-    // Full analytics (enterprise only)
+    // Full analytics (every plan)
     let fullAnalytics = null;
-    if (plan === "enterprise") {
+    {
       // Count platform subscribers (app users with isPremium)
       const allUsers = await ctx.db.query("users").collect();
       const premiumUsers = allUsers.filter((u) => u.isPremium === true);
@@ -348,21 +383,16 @@ export const getDashboardStats = query({
 });
 
 // ─── Plan limits helper ───
-const PLAN_ROOM_LIMITS: Record<string, number> = {
-  free: 1,
-  starter: 1,
-  pro: 2,
-  enterprise: Infinity,
-};
-
-function getRoomLimit(plan?: string): number {
-  return PLAN_ROOM_LIMITS[plan || "starter"] || 1;
+// Both plans (unlimited, payg) allow any number of rooms.
+function getRoomLimit(_plan?: string): number {
+  return Infinity;
 }
 
 // ─── Company Rooms ───
 export const getRooms = query({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:getRooms");
     return await ctx.db
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -393,6 +423,7 @@ export const getUrlMutation = mutation({
 
 export const createRoom = mutation({
   args: {
+    sessionToken: sessionTokenV,
     companyId: v.id("companies"),
     title: v.string(),
     location: v.string(),
@@ -413,6 +444,7 @@ export const createRoom = mutation({
     storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     paymentTerms: v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival"))),
+    depositPercent: v.optional(v.number()),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
@@ -423,10 +455,9 @@ export const createRoom = mutation({
     overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
     releaseDate: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, { sessionToken, ...args }) => {
+    const company = await requireCompany(ctx, { companyId: args.companyId, sessionToken }, "companies:createRoom");
     // ── Enforce room limit based on plan ──
-    const company = await ctx.db.get(args.companyId);
-    if (!company) throw new Error("Company not found");
     const limit = getRoomLimit(company.platformPlan);
     const existingRooms = await ctx.db
       .query("rooms")
@@ -434,12 +465,13 @@ export const createRoom = mutation({
       .collect();
     if (existingRooms.length >= limit) {
       throw new Error(
-        `Room limit reached. Your ${company.platformPlan || "starter"} plan allows up to ${limit} rooms. Upgrade your plan to add more.`
+        `Room limit reached. Your plan allows up to ${limit} rooms.`
       );
     }
 
     const id = await ctx.db.insert("rooms", {
       ...args,
+      depositPercent: clampDepositPercent(args.depositPercent),
       rating: 0,
       reviews: 0,
       isNew: true,
@@ -472,6 +504,7 @@ export const createRoom = mutation({
 
 export const updateRoom = mutation({
   args: {
+    sessionToken: sessionTokenV,
     roomId: v.id("rooms"),
     title: v.optional(v.string()),
     location: v.optional(v.string()),
@@ -491,6 +524,7 @@ export const updateRoom = mutation({
     storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
     paymentTerms: v.optional(v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival")))),
+    depositPercent: v.optional(v.number()),
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
@@ -504,32 +538,28 @@ export const updateRoom = mutation({
     releaseDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { roomId, ...fields } = args;
-
-    // Gate featured listing to Pro+ plans
-    if (fields.isFeatured === true) {
-      const room = await ctx.db.get(roomId);
-      if (room) {
-        const company = room.companyId ? await ctx.db.get(room.companyId) : null;
-        const plan = company?.platformPlan || "starter";
-        if (plan === "starter") {
-          throw new Error("Featured listings require a Pro or Enterprise plan. Upgrade to enable this feature.");
-        }
-      }
-    }
+    const { roomId, sessionToken, ...fields } = args;
+    const caller = await optionalCompany(ctx, sessionToken, "companies:updateRoom");
+    const room = await requireRoomOf(ctx, caller, roomId);
 
     // Remove undefined fields
     const updates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
+    // 0 clears the room override (falls back to the company default)
+    if (fields.depositPercent !== undefined) {
+      updates.depositPercent = fields.depositPercent > 0 ? clampDepositPercent(fields.depositPercent) : undefined;
+    }
     await ctx.db.patch(roomId, updates);
   },
 });
 
 export const deleteRoom = mutation({
-  args: { roomId: v.id("rooms") },
+  args: { roomId: v.id("rooms"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    const caller = await optionalCompany(ctx, args.sessionToken, "companies:deleteRoom");
+    await requireRoomOf(ctx, caller, args.roomId);
     // Delete associated time slots
     const slots = await ctx.db
       .query("timeSlots")
@@ -557,6 +587,7 @@ export const getRoomSlots = query({
 
 export const setSlots = mutation({
   args: {
+    sessionToken: sessionTokenV,
     roomId: v.id("rooms"),
     date: v.string(),
     slots: v.array(
@@ -569,6 +600,8 @@ export const setSlots = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const caller = await optionalCompany(ctx, args.sessionToken, "companies:setSlots");
+    await requireRoomOf(ctx, caller, args.roomId);
     // Delete existing slots for this date
     const existing = await ctx.db
       .query("timeSlots")
@@ -592,8 +625,9 @@ export const setSlots = mutation({
 
 // ─── Company Bookings ───
 export const getBookings = query({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:getBookings");
     const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -621,7 +655,7 @@ export const getBookings = query({
 // This mutation properly authenticates business users and returns the
 // company ID + name for session persistence.
 export const loginCompany = mutation({
-  args: { email: v.string(), password: v.string() },
+  args: { email: v.string(), password: v.string(), client: clientV },
   handler: async (ctx, args) => {
     const company = await ctx.db
       .query("companies")
@@ -647,14 +681,49 @@ export const loginCompany = mutation({
       name: company.name,
       onboardingStatus: company.onboardingStatus || "approved",
       platformPlan: company.platformPlan || null,
+      sessionToken: await createCompanySession(ctx, company._id, args.client),
     };
+  },
+});
+
+/**
+ * Called when a portal/app opens with a stored token. Returns the company
+ * (same shape as loginCompany, minus the token) or null if the session is
+ * gone, and slides the expiry forward so active users stay logged in.
+ */
+export const resumeSession = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const session = await findSession(ctx, args.sessionToken);
+    if (!session) return null;
+    const company = await ctx.db.get(session.companyId);
+    if (!company) return null;
+    const now = Date.now();
+    if (session.expiresAt - now < SESSION_TTL_MS - 24 * 60 * 60 * 1000) {
+      await ctx.db.patch(session._id, { expiresAt: now + SESSION_TTL_MS });
+    }
+    return {
+      _id: company._id,
+      name: company.name,
+      email: company.email,
+      onboardingStatus: company.onboardingStatus || "approved",
+      platformPlan: company.platformPlan || null,
+    };
+  },
+});
+
+export const logoutCompany = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    await deleteSession(ctx, args.sessionToken);
   },
 });
 
 // ─── Company Onboarding ───
 export const acceptTerms = mutation({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:acceptTerms");
     await ctx.db.patch(args.companyId, {
       termsAcceptedAt: Date.now(),
       onboardingStatus: "pending_plan",
@@ -665,16 +734,34 @@ export const acceptTerms = mutation({
 export const selectPlan = mutation({
   args: {
     companyId: v.id("companies"),
-    plan: v.union(v.literal("free"), v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
+    sessionToken: sessionTokenV,
+    // Only pay-as-you-go can be chosen here; Unlimited is set by the Stripe
+    // webhook once its checkout is paid. Old clients still send the legacy
+    // names (read as payg) and "unlimited" after paying (ignored).
+    plan: v.union(
+      v.literal("payg"), v.literal("unlimited"),
+      v.literal("free"), v.literal("starter"), v.literal("pro"), v.literal("enterprise")
+    ),
   },
   handler: async (ctx, args) => {
-    const company = await ctx.db.get(args.companyId);
-    if (!company) throw new Error("Company not found");
+    const company = await requireCompany(ctx, args, "companies:selectPlan");
+
+    // "unlimited" is only ever set by the webhook; a client asking for it
+    // (e.g. right after returning from checkout) changes nothing.
+    if (args.plan === "unlimited") return;
+    if (company.platformPlan === "unlimited" && company.stripePaymentStatus === "active") {
+      throw new Error(
+        "Cancel your Unlimited subscription from Billing first. You'll move to pay-as-you-go when it ends."
+      );
+    }
 
     const updates: any = {
-      platformPlan: args.plan,
       platformSubscribedAt: Date.now(),
     };
+    if (company.platformPlan !== "payg") {
+      updates.platformPlan = "payg";
+      updates.paygSince = Date.now();
+    }
 
     if (company.onboardingStatus === "pending_plan") {
       updates.onboardingStatus = "pending_review";
@@ -687,7 +774,7 @@ export const selectPlan = mutation({
       await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
         companyName: company.name,
         companyEmail: company.email,
-        plan: args.plan,
+        plan: "payg",
       });
     }
   },
@@ -717,7 +804,7 @@ export const validateDiscountCode = query({
   },
 });
 
-export const redeemDiscountCode = mutation({
+export const redeemDiscountCode = internalMutation({
   args: {
     code: v.string(),
   },
@@ -783,7 +870,7 @@ export const approveCompany = mutation({
       await ctx.scheduler.runAfter(0, internal.email.sendCompanyApproved, {
         companyName: company.name,
         companyEmail: company.email,
-        plan: company.platformPlan || "starter",
+        plan: normalizePlan(company.platformPlan),
       });
     }
   },
@@ -805,8 +892,9 @@ export const declineCompany = mutation({
 
 // Company: resubmit after decline
 export const resubmitForReview = mutation({
-  args: { companyId: v.id("companies") },
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:resubmitForReview");
     await ctx.db.patch(args.companyId, {
       onboardingStatus: "pending_review",
       adminNotes: undefined,
@@ -854,8 +942,9 @@ async function guardCompanyOwnsBooking(
 // Get all bookings for a company on a specific date, enriched with room
 // info and resolved player names. Used by the Calendar and Today views.
 export const getBookingsByDate = query({
-  args: { companyId: v.id("companies"), date: v.string() },
+  args: { companyId: v.id("companies"), date: v.string(), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:getBookingsByDate");
     const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -890,10 +979,12 @@ export const getBookingsByDate = query({
 
 // Full booking detail with resolved player info. Used by BookingDetail screen.
 export const getBookingDetail = query({
-  args: { bookingId: v.id("bookings") },
+  args: { bookingId: v.id("bookings"), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
-    const booking = await ctx.db.get(args.bookingId);
-    if (!booking) return null;
+    const caller = await optionalCompany(ctx, args.sessionToken, "companies:getBookingDetail");
+    const exists = await ctx.db.get(args.bookingId);
+    if (!exists) return null;
+    const booking = await requireBookingOf(ctx, caller, args.bookingId);
 
     const room = await ctx.db.get(booking.roomId);
     let playerName = booking.playerName;
@@ -917,8 +1008,9 @@ export const getBookingDetail = query({
 
 // Today's stats for the dashboard. Counts bookings, revenue, availability.
 export const getTodayStats = query({
-  args: { companyId: v.id("companies"), date: v.string() },
+  args: { companyId: v.id("companies"), date: v.string(), sessionToken: sessionTokenV },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:getTodayStats");
     const rooms = await ctx.db
       .query("rooms")
       .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
@@ -978,6 +1070,7 @@ export const getTodayStats = query({
 export const createAdminBooking = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     roomId: v.id("rooms"),
     date: v.string(),
     time: v.string(),
@@ -989,6 +1082,7 @@ export const createAdminBooking = mutation({
     total: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:createAdminBooking");
     await guardCompanyOwnsRoom(ctx, args.companyId, args.roomId);
 
     // Prevent double-booking
@@ -1057,6 +1151,7 @@ export const createAdminBooking = mutation({
 export const createExternalBlock = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     roomId: v.id("rooms"),
     date: v.string(),
     time: v.string(),
@@ -1066,6 +1161,7 @@ export const createExternalBlock = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:createExternalBlock");
     await guardCompanyOwnsRoom(ctx, args.companyId, args.roomId);
 
     // Prevent double-booking
@@ -1108,9 +1204,11 @@ export const createExternalBlock = mutation({
 export const adminCancelBooking = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:adminCancelBooking");
     await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
     await ctx.db.patch(args.bookingId, { status: "cancelled" });
   },
@@ -1119,9 +1217,11 @@ export const adminCancelBooking = mutation({
 export const adminCompleteBooking = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:adminCompleteBooking");
     await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
     await ctx.db.patch(args.bookingId, { status: "completed" });
   },
@@ -1130,11 +1230,13 @@ export const adminCompleteBooking = mutation({
 export const adminRescheduleBooking = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
     newDate: v.string(),
     newTime: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:adminRescheduleBooking");
     const booking = await guardCompanyOwnsBooking(
       ctx, args.companyId, args.bookingId
     );
@@ -1164,10 +1266,12 @@ export const adminRescheduleBooking = mutation({
 export const updateBookingNotes = mutation({
   args: {
     companyId: v.id("companies"),
+    sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
     notes: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireCompany(ctx, args, "companies:updateBookingNotes");
     await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
     await ctx.db.patch(args.bookingId, { notes: args.notes });
   },
@@ -1211,11 +1315,12 @@ export const getAdminDashboard = query({
     const declinedCompanies = allCompanies.filter((c) => c.onboardingStatus === "declined");
 
     // Plan breakdown
-    const planCounts = { starter: 0, pro: 0, enterprise: 0, none: 0 };
+    // "legacy" = free/starter/pro/enterprise companies not yet migrated.
+    const planCounts = { unlimited: 0, payg: 0, legacy: 0, none: 0 };
     for (const c of allCompanies) {
-      if (c.platformPlan === "starter") planCounts.starter++;
-      else if (c.platformPlan === "pro") planCounts.pro++;
-      else if (c.platformPlan === "enterprise") planCounts.enterprise++;
+      if (c.platformPlan === "unlimited") planCounts.unlimited++;
+      else if (c.platformPlan === "payg") planCounts.payg++;
+      else if (c.platformPlan) planCounts.legacy++;
       else planCounts.none++;
     }
 
@@ -1343,7 +1448,7 @@ export const getAdminDashboard = query({
 
 // ── Stripe helpers ──────────────────────────────────────────
 
-export const updateStripeCustomer = mutation({
+export const updateStripeCustomer = internalMutation({
   args: {
     companyId: v.id("companies"),
     stripeCustomerId: v.string(),
@@ -1355,51 +1460,50 @@ export const updateStripeCustomer = mutation({
   },
 });
 
-export const updateStripePaymentStatus = mutation({
+export const updateStripePaymentStatus = internalMutation({
   args: {
     companyId: v.id("companies"),
     status: v.union(v.literal("pending"), v.literal("active"), v.literal("cancelled"), v.literal("past_due")),
-    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise"))),
-    period: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
   },
   handler: async (ctx, args) => {
-    const updates: any = { stripePaymentStatus: args.status };
-    if (args.plan) updates.platformPlan = args.plan;
-    if (args.period) updates.billingPeriod = args.period;
-    await ctx.db.patch(args.companyId, updates);
+    await ctx.db.patch(args.companyId, { stripePaymentStatus: args.status });
   },
 });
 
-export const completeStripePayment = mutation({
+export const completeStripePayment = internalMutation({
   args: {
     companyId: v.id("companies"),
     stripeSubscriptionId: v.string(),
-    plan: v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise")),
     period: v.union(v.literal("monthly"), v.literal("yearly")),
   },
   handler: async (ctx, args) => {
     const company = await ctx.db.get(args.companyId);
     if (!company) throw new Error("Company not found");
 
+    // Every subscription checkout is the Unlimited plan. A company that was
+    // already approved (switching from pay-as-you-go) stays approved.
+    const newApplication =
+      company.onboardingStatus !== "approved" && company.onboardingStatus !== "declined";
     await ctx.db.patch(args.companyId, {
       stripeSubscriptionId: args.stripeSubscriptionId,
       stripePaymentStatus: "active",
-      platformPlan: args.plan,
+      platformPlan: "unlimited",
       billingPeriod: args.period,
       platformSubscribedAt: Date.now(),
-      onboardingStatus: "pending_review",
+      ...(newApplication ? { onboardingStatus: "pending_review" as const } : {}),
     });
 
-    // Notify admin of new application
-    await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
-      companyName: company.name,
-      companyEmail: company.email,
-      plan: args.plan,
-    });
+    if (newApplication) {
+      await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
+        companyName: company.name,
+        companyEmail: company.email,
+        plan: "unlimited",
+      });
+    }
   },
 });
 
-export const findCompanyByStripeCustomer = query({
+export const findCompanyByStripeCustomer = internalQuery({
   args: { stripeCustomerId: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -1411,12 +1515,11 @@ export const findCompanyByStripeCustomer = query({
 
 // Called by the customer.subscription.updated webhook
 // Handles plan changes, cancel_at_period_end, and reactivation
-export const handleSubscriptionUpdated = mutation({
+export const handleSubscriptionUpdated = internalMutation({
   args: {
     companyId: v.id("companies"),
     status: v.union(v.literal("pending"), v.literal("active"), v.literal("cancelled"), v.literal("past_due")),
     cancelAtPeriodEnd: v.boolean(),
-    plan: v.optional(v.union(v.literal("starter"), v.literal("pro"), v.literal("enterprise"))),
     period: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
   },
   handler: async (ctx, args) => {
@@ -1431,10 +1534,26 @@ export const handleSubscriptionUpdated = mutation({
       updates.stripePaymentStatus = "past_due";
     }
 
-    // If plan/period changed (upgrade/downgrade via portal)
-    if (args.plan) updates.platformPlan = args.plan;
+    // Billing period changed in the portal
     if (args.period) updates.billingPeriod = args.period;
 
     await ctx.db.patch(args.companyId, updates);
+  },
+});
+
+// customer.subscription.deleted: the subscription is over, so the company is
+// on pay-as-you-go from now on. Ignores a stale event for an older subscription.
+export const handleSubscriptionEnded = internalMutation({
+  args: { companyId: v.id("companies"), stripeSubscriptionId: v.string() },
+  handler: async (ctx, args) => {
+    const company = await ctx.db.get(args.companyId);
+    if (!company) return;
+    if (company.stripeSubscriptionId && company.stripeSubscriptionId !== args.stripeSubscriptionId) return;
+    await ctx.db.patch(args.companyId, {
+      stripePaymentStatus: "cancelled",
+      stripeSubscriptionId: undefined,
+      platformPlan: "payg",
+      paygSince: Date.now(),
+    });
   },
 });

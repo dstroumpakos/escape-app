@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { verifyStripeSignature } from "./stripeSignature";
 
 const http = httpRouter();
 
@@ -45,8 +46,20 @@ const corsHandler = httpAction(async () => {
 const stripeWebhook = httpAction(async (ctx, request) => {
   const body = await request.text();
 
-  // Parse the event — in production with webhook signing secret,
-  // you'd verify the signature here. For now we parse directly.
+  // Only act on events Stripe actually signed. Without this anyone could POST
+  // a fake checkout.session.completed and activate a paid plan.
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    // 500 (not 400) so Stripe keeps retrying until the secret is configured.
+    console.error("[Webhook] STRIPE_WEBHOOK_SECRET is not set; refusing event");
+    return new Response("Webhook secret not configured", { status: 500 });
+  }
+  const valid = await verifyStripeSignature(body, request.headers.get("stripe-signature"), secret);
+  if (!valid) {
+    console.warn("[Webhook] Rejected event with missing or invalid Stripe-Signature");
+    return new Response("Invalid signature", { status: 400 });
+  }
+
   let event: any;
   try {
     event = JSON.parse(body);
@@ -60,57 +73,11 @@ const stripeWebhook = httpAction(async (ctx, request) => {
     const session = event.data.object;
 
     // ── Booking payment checkout ──
+    // Player payments now go to each company's own Stripe/Viva account and are
+    // confirmed by asking the provider (companyPayments.ts), never by this
+    // webhook, which only handles UNLOCKED's own platform billing.
     if (session.metadata?.type === "booking") {
-      const bookingId = session.metadata.bookingId;
-      const bookingCode = session.metadata.bookingCode;
-      const paymentTerms = session.metadata.paymentTerms;
-      const paymentIntentId = session.payment_intent;
-      const userId = session.metadata.userId;
-      const roomId = session.metadata.roomId;
-
-      if (bookingId) {
-        await ctx.runMutation(api.bookings.confirmBookingPayment, {
-          bookingId,
-          paymentTerms: paymentTerms || "full",
-          stripePaymentIntentId: paymentIntentId || undefined,
-        });
-
-        // Send Stripe payment receipt to player
-        if (userId && roomId) {
-          try {
-            const user = await ctx.runQuery(api.users.getById, { userId: userId as any });
-            const room = await ctx.runQuery(api.rooms.getById, { id: roomId as any });
-            if (user && room) {
-              const booking = await ctx.runQuery(api.bookings.getByCode, { bookingCode: bookingCode || "" });
-              const total = booking?.total ?? 0;
-              const serviceFee = 3.99;
-              let amountCharged: number;
-              if (paymentTerms === "deposit_20") {
-                amountCharged = Math.round(total * 0.2 * 100) / 100 + serviceFee;
-              } else {
-                amountCharged = total + serviceFee;
-              }
-
-              await ctx.runAction(internal.email.sendStripeReceipt, {
-                playerName: user.name,
-                playerEmail: user.email,
-                bookingCode: bookingCode || booking?.bookingCode || "",
-                roomTitle: room.title,
-                date: booking?.date || "",
-                time: booking?.time || "",
-                players: booking?.players || 0,
-                total,
-                amountCharged,
-                paymentTerms: paymentTerms || "full",
-                companyName: room.companyName || "Escape Room",
-                lang: (user as any).language || "en",
-              });
-            }
-          } catch (e) {
-            console.error("[Webhook] Failed to send player receipt:", e);
-          }
-        }
-      }
+      console.warn("[Webhook] Ignoring booking checkout event", session.id);
     } else {
       // ── Company subscription checkout ──
       const companyId = session.metadata?.companyId;
@@ -120,10 +87,10 @@ const stripeWebhook = httpAction(async (ctx, request) => {
       const amountTotal = session.amount_total; // in cents
 
       if (companyId && plan && period && subscriptionId) {
-        await ctx.runMutation(api.companies.completeStripePayment, {
+        // Every subscription checkout is the Unlimited plan.
+        await ctx.runMutation(internal.companies.completeStripePayment, {
           companyId,
           stripeSubscriptionId: subscriptionId,
-          plan,
           period,
         });
 
@@ -131,7 +98,7 @@ const stripeWebhook = httpAction(async (ctx, request) => {
         const discountCode = session.metadata?.discountCode;
         if (discountCode) {
           try {
-            await ctx.runMutation(api.companies.redeemDiscountCode, {
+            await ctx.runMutation(internal.companies.redeemDiscountCode, {
               code: discountCode,
             });
           } catch (e) {
@@ -141,12 +108,12 @@ const stripeWebhook = httpAction(async (ctx, request) => {
 
         // Send subscription receipt to company
         try {
-          const company = await ctx.runQuery(api.companies.getById, { id: companyId as any });
+          const company = await ctx.runQuery(internal.companies.getByIdInternal, { id: companyId as any });
           if (company) {
             await ctx.runAction(internal.email.sendSubscriptionReceipt, {
               companyName: company.name,
               companyEmail: company.email,
-              plan,
+              plan: "unlimited",
               period,
               amount: amountTotal ? amountTotal / 100 : 0,
             });
@@ -157,11 +124,11 @@ const stripeWebhook = httpAction(async (ctx, request) => {
       }
     }
   } else if (eventType === "customer.subscription.updated") {
-    // Handles: plan changes, cancel_at_period_end, reactivation from portal
+    // Handles: billing period changes, cancel_at_period_end, reactivation from portal
     const subscription = event.data.object;
     const customerId = subscription.customer;
     if (customerId) {
-      const company = await ctx.runQuery(api.companies.findCompanyByStripeCustomer, {
+      const company = await ctx.runQuery(internal.companies.findCompanyByStripeCustomer, {
         stripeCustomerId: customerId,
       });
       if (company) {
@@ -169,16 +136,13 @@ const stripeWebhook = httpAction(async (ctx, request) => {
         const item = subscription.items?.data?.[0];
         const interval = item?.price?.recurring?.interval; // "month" or "year"
         const period = interval === "year" ? "yearly" : "monthly";
-        // Detect plan from metadata (set during checkout)
-        const plan = subscription.metadata?.plan || undefined;
 
-        await ctx.runMutation(api.companies.handleSubscriptionUpdated, {
+        await ctx.runMutation(internal.companies.handleSubscriptionUpdated, {
           companyId: company._id,
           status: subscription.status === "active" ? "active"
             : subscription.status === "past_due" ? "past_due"
             : "active",
           cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
-          plan,
           period,
         });
       }
@@ -187,27 +151,39 @@ const stripeWebhook = httpAction(async (ctx, request) => {
     const subscription = event.data.object;
     const customerId = subscription.customer;
     if (customerId) {
-      const company = await ctx.runQuery(api.companies.findCompanyByStripeCustomer, {
+      const company = await ctx.runQuery(internal.companies.findCompanyByStripeCustomer, {
         stripeCustomerId: customerId,
       });
       if (company) {
-        await ctx.runMutation(api.companies.updateStripePaymentStatus, {
+        // Subscription over: the company continues on pay-as-you-go.
+        await ctx.runMutation(internal.companies.handleSubscriptionEnded, {
           companyId: company._id,
-          status: "cancelled",
+          stripeSubscriptionId: subscription.id,
         });
       }
     }
+  } else if (eventType === "invoice.paid" || eventType === "invoice.voided") {
+    // Pay-as-you-go fee invoices (billingStripe.ts) carry metadata.type "payg_fee".
+    const invoice = event.data.object;
+    if (invoice.metadata?.type === "payg_fee" && invoice.id) {
+      await ctx.runMutation(internal.billing.setInvoiceStatusByStripeId, {
+        stripeInvoiceId: invoice.id,
+        status: eventType === "invoice.paid" ? "paid" : "void",
+      });
+    }
   } else if (eventType === "invoice.payment_failed") {
     const invoice = event.data.object;
-    const subscriptionId = invoice.subscription;
-    // Try to find company by customer id
+    // Only subscription invoices make the subscription past due; a failed
+    // card attempt on a pay-as-you-go invoice doesn't.
+    const subscriptionId =
+      invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
     const customerId = invoice.customer;
-    if (customerId) {
-      const company = await ctx.runQuery(api.companies.findCompanyByStripeCustomer, {
+    if (customerId && subscriptionId) {
+      const company = await ctx.runQuery(internal.companies.findCompanyByStripeCustomer, {
         stripeCustomerId: customerId,
       });
       if (company) {
-        await ctx.runMutation(api.companies.updateStripePaymentStatus, {
+        await ctx.runMutation(internal.companies.updateStripePaymentStatus, {
           companyId: company._id,
           status: "past_due",
         });

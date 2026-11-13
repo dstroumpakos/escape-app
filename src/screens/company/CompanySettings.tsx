@@ -7,11 +7,13 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
 import CompanyPlanModal from './CompanyPlanModal';
+import { asPlanId } from './platformPlans';
 
 type TabKey = 'profile' | 'early-access' | 'photos' | 'widget';
 
@@ -24,8 +26,8 @@ interface Props {
 }
 
 export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer, onNavigateBilling, onNavigatePhotos }: Props) {
-  const company = useQuery(api.companies.getById, { id: companyId as Id<"companies"> });
-  const updateProfile = useMutation(api.companies.updateProfile);
+  const company = useCompanyQuery(api.companies.getById, { id: companyId as Id<"companies"> });
+  const updateProfile = useCompanyMutation(api.companies.updateProfile);
   const { t, language, setLanguage } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<TabKey>('profile');
@@ -44,7 +46,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
 
   // Photo preset
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
-  const savePreset = useMutation(api.bookingPhotos.savePreset);
+  const savePreset = useCompanyMutation(api.bookingPhotos.savePreset);
   const generateUploadUrl = useMutation(api.companies.generateUploadUrl);
   const getUrlMutation = useMutation(api.companies.getUrlMutation);
   const [presetForm, setPresetForm] = useState({
@@ -344,8 +346,8 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
                   <Text style={styles.menuLabel}>{t('settings.managePlan')}</Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Text style={{ color: theme.colors.textSecondary, fontSize: 14, textTransform: 'capitalize' }}>
-                    {company?.platformPlan || 'Starter'}
+                  <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>
+                    {t(`plan.${asPlanId(company?.platformPlan)}`)}
                   </Text>
                   <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
                 </View>
@@ -750,7 +752,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
         visible={planModalVisible}
         onClose={() => setPlanModalVisible(false)}
         companyId={companyId}
-        currentPlan={company?.platformPlan || 'starter'}
+        currentPlan={asPlanId(company?.platformPlan)}
       />
     </View>
   );

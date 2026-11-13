@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useQuery, useMutation } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -28,14 +28,14 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   const { bookingId } = route.params;
   const { t } = useTranslation();
 
-  const booking = useQuery(api.companies.getBookingDetail, {
+  const booking = useCompanyQuery(api.companies.getBookingDetail, {
     bookingId: bookingId as Id<"bookings">,
   });
 
-  const cancelBooking = useMutation(api.companies.adminCancelBooking);
-  const completeBooking = useMutation(api.companies.adminCompleteBooking);
-  const rescheduleBooking = useMutation(api.companies.adminRescheduleBooking);
-  const updateNotes = useMutation(api.companies.updateBookingNotes);
+  const cancelBooking = useCompanyMutation(api.companies.adminCancelBooking);
+  const completeBooking = useCompanyMutation(api.companies.adminCompleteBooking);
+  const rescheduleBooking = useCompanyMutation(api.companies.adminRescheduleBooking);
+  const updateNotes = useCompanyMutation(api.companies.updateBookingNotes);
 
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -248,7 +248,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
               </View>
             </View>
             {(booking.paymentTerms === 'deposit_20' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('deposit_20'))) && (
-              <Text style={styles.payNote}>{t('bookingDetail.depositNote')}</Text>
+              <Text style={styles.payNote}>{t('bookingDetail.depositNote', { percent: (booking as any).depositPercent ?? 20 })}</Text>
             )}
             {(booking.paymentTerms === 'pay_on_arrival' || (Array.isArray(booking.paymentTerms) && booking.paymentTerms.includes('pay_on_arrival'))) && (
               <Text style={styles.payNote}>{t('bookingDetail.payOnArrivalNote')}</Text>

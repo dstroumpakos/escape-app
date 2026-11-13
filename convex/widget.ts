@@ -237,16 +237,11 @@ export const createGuestBooking = mutation({
       total = room.price * args.players;
     }
 
-    // Determine payment status
-    const paymentTerms = args.paymentTerms || "full";
-    let paymentStatus: "paid" | "deposit" | "unpaid" = "paid";
-    let depositPaid: number | undefined;
-    if (paymentTerms === "deposit_20") {
-      paymentStatus = "deposit";
-      depositPaid = Math.round(total * 0.2 * 100) / 100;
-    } else if (paymentTerms === "pay_on_arrival") {
-      paymentStatus = "unpaid";
-    }
+    // The widget doesn't take payments, so the booking is never marked paid
+    // here: the player pays at the venue.
+    const paymentTerms = "pay_on_arrival" as const;
+    const paymentStatus = "unpaid" as "paid" | "deposit" | "unpaid";
+    const depositPaid: number | undefined = undefined;
 
     // Generate booking code
     const bookingCode = `WEB-${Date.now().toString(36).toUpperCase().slice(-6)}`;

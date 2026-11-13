@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
@@ -36,7 +36,8 @@ async function translateText(
   return null;
 }
 
-export const autoTranslateRoom = action({
+// Internal: nothing calls it from a client, and it writes to any room it is given.
+export const autoTranslateRoom = internalAction({
   args: {
     roomId: v.id("rooms"),
     story: v.string(),

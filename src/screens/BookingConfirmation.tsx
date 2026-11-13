@@ -9,7 +9,6 @@ import { useNavigation, useRoute, RouteProp, CommonActions } from '@react-naviga
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
-import QRCode from 'react-native-qrcode-svg';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
@@ -77,7 +76,6 @@ export default function BookingConfirmation() {
     ? theme.colors.warning
     : '#42A5F5';
 
-  const qrValue = bookingCode || bookingId || 'UNLOCKED';
 
   return (
     <View style={styles.container}>
@@ -152,16 +150,8 @@ export default function BookingConfirmation() {
               </View>
             </View>
 
-            {/* QR Code */}
-            <View style={styles.qrWrap}>
-              <View style={styles.qrBox}>
-                <QRCode
-                  value={qrValue}
-                  size={120}
-                  backgroundColor="transparent"
-                  color={theme.colors.textSecondary}
-                />
-              </View>
+            {/* Booking Code */}
+            <View style={styles.codeWrap}>
               <Text style={styles.bookingId}>{t('confirmation.bookingId', { id: bookingCode })}</Text>
             </View>
           </View>
@@ -385,16 +375,9 @@ const styles = StyleSheet.create({
   paymentDot: { width: 6, height: 6, borderRadius: 3 },
   paymentText: { fontSize: 12, fontWeight: '700' },
 
-  // QR
-  qrWrap: { alignItems: 'center' },
-  qrBox: {
-    width: 150, height: 150, borderRadius: theme.radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
-    marginBottom: 10,
-  },
-  bookingId: { fontSize: 12, color: theme.colors.textMuted, letterSpacing: 1.2, fontWeight: '500' },
+  // Booking code
+  codeWrap: { alignItems: 'center', paddingTop: 4 },
+  bookingId: { fontSize: 18, color: theme.colors.redPrimary, letterSpacing: 1.5, fontWeight: '800' },
 
   // Actions
   actions: {

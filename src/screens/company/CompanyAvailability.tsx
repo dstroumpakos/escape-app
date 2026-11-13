@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useMutation, useQuery } from 'convex/react';
+import { useQuery } from 'convex/react';
+import { useCompanyMutation } from '../../companySession';
 import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -66,7 +67,7 @@ export default function CompanyAvailability() {
     date: dateStr,
   });
 
-  const setSlotsMutation = useMutation(api.companies.setSlots);
+  const setSlotsMutation = useCompanyMutation(api.companies.setSlots);
 
   const [slots, setSlots] = useState<SlotDraft[]>([]);
 

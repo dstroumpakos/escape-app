@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Linking, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import QRCode from 'react-native-qrcode-svg';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
@@ -34,8 +33,6 @@ export default function TicketsScreen() {
   const currentBookings = activeTab === 'upcoming' ? upcomingBookings : pastBookings;
   const isLoading = userId && bookings === undefined;
 
-  // QR modal state
-  const [qrBooking, setQrBooking] = useState<any>(null);
 
   // Countdown timer tick
   const [now, setNow] = useState(Date.now());
@@ -237,10 +234,6 @@ export default function TicketsScreen() {
 
                   {booking.status === 'upcoming' && (
                     <View style={styles.ticketActions}>
-                      <TouchableOpacity style={styles.ticketBtn} onPress={() => setQrBooking(booking)}>
-                        <Ionicons name="qr-code-outline" size={16} color={theme.colors.redPrimary} />
-                        <Text style={styles.ticketBtnText}>{t('tickets.showQR')}</Text>
-                      </TouchableOpacity>
                       <TouchableOpacity style={styles.ticketBtn} onPress={() => {
                         const query = encodeURIComponent(room?.location || '');
                         Linking.openURL(`https://maps.apple.com/?q=${query}`).catch(() => {
@@ -263,59 +256,6 @@ export default function TicketsScreen() {
         )}
       </ScrollView>
 
-      {/* QR Code Modal */}
-      <Modal
-        visible={!!qrBooking}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setQrBooking(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {/* Close button */}
-            <TouchableOpacity style={styles.modalClose} onPress={() => setQrBooking(null)}>
-              <Ionicons name="close" size={22} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-
-            <Text style={styles.modalTitle}>{t('tickets.qrTitle')}</Text>
-            <Text style={styles.modalSubtitle}>{t('tickets.qrScanHint')}</Text>
-
-            {/* QR Code */}
-            <View style={styles.qrWrapper}>
-              <QRCode
-                value={JSON.stringify({
-                  code: qrBooking?.bookingCode || qrBooking?._id,
-                  room: qrBooking?.room?.title,
-                  date: qrBooking?.date,
-                  time: qrBooking?.time,
-                  players: qrBooking?.players,
-                })}
-                size={200}
-                backgroundColor="#fff"
-                color="#1a0d0d"
-              />
-            </View>
-
-            {/* Booking Info */}
-            <Text style={styles.qrCode}>{qrBooking?.bookingCode || ''}</Text>
-            <Text style={styles.qrRoom}>{qrBooking?.room?.title || ''}</Text>
-            <View style={styles.qrDetails}>
-              <View style={styles.qrDetail}>
-                <Ionicons name="calendar-outline" size={14} color={theme.colors.textMuted} />
-                <Text style={styles.qrDetailText}>{formatDisplayDate(qrBooking?.date || '')}</Text>
-              </View>
-              <View style={styles.qrDetail}>
-                <Ionicons name="time-outline" size={14} color={theme.colors.textMuted} />
-                <Text style={styles.qrDetailText}>{qrBooking?.time}</Text>
-              </View>
-              <View style={styles.qrDetail}>
-                <Ionicons name="people-outline" size={14} color={theme.colors.textMuted} />
-                <Text style={styles.qrDetailText}>{qrBooking?.players} {t('players')}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -428,39 +368,4 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(244,67,54,0.25)',
   },
   cancelBtnText: { fontSize: 12, fontWeight: '600', color: '#F44336' },
-
-  // QR Modal
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center', alignItems: 'center',
-    padding: 30,
-  },
-  modalCard: {
-    width: '100%', maxWidth: 340,
-    backgroundColor: theme.colors.bgCardSolid,
-    borderRadius: theme.radius.xl,
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
-    padding: 28, alignItems: 'center',
-  },
-  modalClose: {
-    position: 'absolute', top: 14, right: 14,
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: theme.colors.glass,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  modalSubtitle: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 20, textAlign: 'center' },
-  qrWrapper: {
-    padding: 16, borderRadius: theme.radius.lg,
-    backgroundColor: '#fff',
-    marginBottom: 20,
-  },
-  qrCode: {
-    fontSize: 18, fontWeight: '800', color: theme.colors.redPrimary,
-    letterSpacing: 2, marginBottom: 6,
-  },
-  qrRoom: { fontSize: 15, fontWeight: '600', color: '#fff', marginBottom: 14, textAlign: 'center' },
-  qrDetails: { flexDirection: 'row', gap: 16 },
-  qrDetail: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  qrDetailText: { fontSize: 12, color: theme.colors.textSecondary },
 });

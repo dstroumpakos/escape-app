@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { assertSlotStillBookable } from "./slotRules";
@@ -40,19 +40,12 @@ export const create = mutation({
     // If this booking is pending Stripe payment, mark it as pending
     const isPending = args.pendingPayment === true;
 
-    // Determine payment status based on payment terms
-    const paymentTerms = args.paymentTerms || 'full';
-    let paymentStatus: 'paid' | 'deposit' | 'unpaid' = 'paid';
-    let depositPaid: number | undefined;
-    if (isPending) {
-      // Payment hasn't happened yet — will be updated by Stripe webhook
-      paymentStatus = 'unpaid';
-    } else if (paymentTerms === 'deposit_20') {
-      paymentStatus = 'deposit';
-      depositPaid = Math.round(args.total * 0.2 * 100) / 100;
-    } else if (paymentTerms === 'pay_on_arrival') {
-      paymentStatus = 'unpaid';
-    }
+    // No money moves through this mutation, so it never marks a booking paid.
+    // Online payments go through companyPayments.startCheckout, which marks the
+    // booking paid only after the company's Stripe/Viva account confirms it.
+    const paymentTerms = isPending ? (args.paymentTerms || 'full') : 'pay_on_arrival';
+    const paymentStatus: 'paid' | 'deposit' | 'unpaid' = 'unpaid';
+    const depositPaid: number | undefined = undefined;
 
     const bookingCode = `UNL-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const id = await ctx.db.insert("bookings", {
@@ -262,7 +255,7 @@ export const getBookedTimes = query({
 });
 
 // ── Update booking with Stripe session ID (marks payment as pending) ──
-export const updateStripeSession = mutation({
+export const updateStripeSession = internalMutation({
   args: {
     bookingId: v.id("bookings"),
     stripeSessionId: v.string(),
@@ -276,7 +269,7 @@ export const updateStripeSession = mutation({
 });
 
 // ── Confirm booking payment after Stripe checkout succeeds ──
-export const confirmBookingPayment = mutation({
+export const confirmBookingPayment = internalMutation({
   args: {
     bookingId: v.string(),
     paymentTerms: v.string(),
@@ -332,7 +325,7 @@ export const confirmBookingPayment = mutation({
 });
 
 // ── Cancel booking and refund if it was paid (called if Stripe checkout is abandoned) ──
-export const cancelUnpaidBooking = mutation({
+export const cancelUnpaidBooking = internalMutation({
   args: { bookingId: v.id("bookings") },
   handler: async (ctx, args) => {
     const booking = await ctx.db.get(args.bookingId);

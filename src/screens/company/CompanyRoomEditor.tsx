@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useMutation, useQuery } from 'convex/react';
+import { useCompanyMutation, useCompanyQuery } from '../../companySession';
 import MapView, { Marker, MapPressEvent } from 'react-native-maps';
 import * as ExpoLocation from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,10 +15,11 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
+import { ROOM_THEME_KEYS, ROOM_THEME_VALUES } from '../../roomThemes';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyRoomEditor'>;
 
-const THEMES = ['Horror', 'Sci-Fi', 'Mystery', 'Historical', 'Fantasy', 'Adventure'];
+const THEMES = ROOM_THEME_VALUES;
 const TAG_OPTIONS = [
   'Horror Theme', 'Sci-Fi Theme', 'Mystery Theme', 'Historical Theme',
   'Live Actor', 'Physical Puzzles', 'Multi-room', 'High-Tech Puzzles',
@@ -26,14 +28,7 @@ const TAG_OPTIONS = [
   'Dark Theme', 'Family Friendly', 'VR Enhanced', 'Time Pressure',
 ];
 
-const THEME_KEYS: Record<string, string> = {
-  Horror: 'theme.horror',
-  'Sci-Fi': 'theme.sciFi',
-  Mystery: 'theme.mystery',
-  Historical: 'theme.historical',
-  Fantasy: 'theme.fantasy',
-  Adventure: 'theme.adventure',
-};
+const THEME_KEYS = ROOM_THEME_KEYS;
 
 const TAG_KEYS: Record<string, string> = {
   'Horror Theme': 'tag.horrorTheme',
@@ -73,17 +68,17 @@ export default function CompanyRoomEditor({ companyId }: Props) {
     roomId ? { id: roomId as Id<"rooms"> } : "skip"
   );
 
-  const createRoom = useMutation(api.companies.createRoom);
-  const updateRoom = useMutation(api.companies.updateRoom);
+  const createRoom = useCompanyMutation(api.companies.createRoom);
+  const updateRoom = useCompanyMutation(api.companies.updateRoom);
   const generateUploadUrl = useMutation(api.companies.generateUploadUrl);
   const getUrl = useMutation(api.companies.getUrlMutation);
-  const dashStats = useQuery(api.companies.getDashboardStats, {
+  const dashStats = useCompanyQuery(api.companies.getDashboardStats, {
     companyId: companyId as Id<"companies">,
   });
   const { t } = useTranslation();
 
-  const plan = dashStats?.plan ?? 'starter';
-  const canFeature = plan === 'pro' || plan === 'enterprise';
+  // Every plan can feature rooms now (see platformPlans.ts).
+  const canFeature = true;
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -99,6 +94,11 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [description, setDescription] = useState('');
   const [story, setStory] = useState('');
   const [paymentTerms, setPaymentTerms] = useState<Array<'full' | 'deposit_20' | 'pay_on_arrival'>>(['full']);
+  // Room's own deposit %; empty or 0 = use the company default
+  const [depositPercent, setDepositPercent] = useState('');
+  const paymentSettings = useCompanyQuery(api.companyPaymentsData.getCompanySettings, {
+    companyId: companyId as Id<"companies">,
+  });
   const [termsOfUse, setTermsOfUse] = useState('');
   const [isSubOnly, setIsSubOnly] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
@@ -128,7 +128,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
 
   // ── Photo Branding Preset (company-level) ──
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
-  const savePreset = useMutation(api.bookingPhotos.savePreset);
+  const savePreset = useCompanyMutation(api.bookingPhotos.savePreset);
   const generateUploadUrl2 = useMutation(api.companies.generateUploadUrl);
   const getUrlMutation2 = useMutation(api.companies.getUrlMutation);
   const [photoBrandingOpen, setPhotoBrandingOpen] = useState(false);
@@ -291,6 +291,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       setPaymentTerms(
         Array.isArray(existing) ? existing : existing ? [existing] : ['full']
       );
+      const roomDeposit = (existingRoom as any).depositPercent;
+      setDepositPercent(typeof roomDeposit === 'number' && roomDeposit > 0 ? String(roomDeposit) : '');
       setTermsOfUse(existingRoom.termsOfUse || '');
       setIsSubOnly(existingRoom.isSubscriptionOnly || false);
       setIsFeatured((existingRoom as any).isFeatured || false);
@@ -340,6 +342,13 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       Alert.alert(t('error'), t('roomEditor.paymentRequired'));
       return;
     }
+    // 0 (or empty) clears the room's own value so the company default applies
+    const depositText = depositPercent.trim();
+    const depositValue = depositText === '' ? 0 : Number(depositText);
+    if (!Number.isInteger(depositValue) || depositValue < 0 || depositValue > 99) {
+      Alert.alert(t('error'), t('roomEditor.depositPercentInvalid'));
+      return;
+    }
     setLoading(true);
     try {
       const pMin = parseInt(playersMin) || 2;
@@ -380,6 +389,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           description: description.trim(),
           story: story.trim(),
           paymentTerms,
+          depositPercent: depositValue,
           termsOfUse: termsOfUse.trim(),
           isSubscriptionOnly: isSubOnly,
           isFeatured: canFeature ? isFeatured : undefined,
@@ -412,6 +422,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           description: description.trim(),
           story: story.trim(),
           paymentTerms,
+          depositPercent: depositValue > 0 ? depositValue : undefined,
           termsOfUse: termsOfUse.trim(),
           isSubscriptionOnly: isSubOnly,
           bookingMode,
@@ -981,6 +992,23 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               </TouchableOpacity>
             );
           })}
+          {paymentTerms.includes('deposit_20') && (
+            <View style={{ marginTop: 8 }}>
+              <Text style={styles.label}>{t('roomEditor.depositPercent')}</Text>
+              <TextInput
+                style={styles.input}
+                value={depositPercent}
+                onChangeText={(v) => setDepositPercent(v.replace(/[^0-9]/g, '').slice(0, 2))}
+                placeholder={String(paymentSettings?.depositPercent ?? 20)}
+                placeholderTextColor={theme.colors.textMuted}
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+              <Text style={styles.payDesc}>
+                {t('roomEditor.depositPercentHint', { percent: paymentSettings?.depositPercent ?? 20 })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Terms of Use */}
