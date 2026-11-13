@@ -12,6 +12,7 @@ import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
 import EditProfileModal from './EditProfileModal';
+import ReportsAboutMe from './reports/ReportsAboutMe';
 import type { Id } from '../../convex/_generated/dataModel';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -141,6 +142,9 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
             </View>
           ))}
         </View>
+
+        {/* Reports businesses filed about this player (only while active) */}
+        <ReportsAboutMe userId={userId} />
 
         {/* Badges */}
         {user.badges && user.badges.length > 0 && (

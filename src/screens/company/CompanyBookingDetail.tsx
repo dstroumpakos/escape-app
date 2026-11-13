@@ -15,6 +15,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
+import { PlayerFlagCard, ReportPlayerCard } from './PlayerReportSection';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyBookingDetail'>;
 
@@ -181,6 +182,9 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           </View>
         </View>
 
+        {/* Reports other businesses filed about this player (upcoming bookings only) */}
+        <PlayerFlagCard bookingId={bookingId} />
+
         {/* Room info */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>{t('bookingDetail.room')}</Text>
@@ -283,6 +287,9 @@ export default function CompanyBookingDetail({ companyId }: Props) {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Report the player (within 24h after the game) */}
+        <ReportPlayerCard bookingId={bookingId} />
 
         {/* Reschedule */}
         {!isCancelled && (

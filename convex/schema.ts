@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { playerReportCategoryV, roomReportKindV, roomReportStatusV } from "./reportRules";
 
 export default defineSchema({
   // ─── Company / Business ───
@@ -449,6 +450,44 @@ export default defineSchema({
     .index("by_reporter_post", ["reporterId", "postId"])
     .index("by_reporter_comment", ["reporterId", "commentId"])
     .index("by_status", ["status"]),
+
+  // ─── Room reports: a player reports a room they played (see reports.ts) ───
+  // Only the UNLOCKED team can read these. Never returned to companies.
+  roomReports: defineTable({
+    userId: v.id("users"),
+    bookingId: v.id("bookings"),
+    roomId: v.id("rooms"),
+    companyId: v.optional(v.id("companies")),
+    kind: roomReportKindV,
+    description: v.string(),
+    photoStorageIds: v.array(v.id("_storage")),
+    status: roomReportStatusV,
+    adminNotes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_booking", ["bookingId"])
+    .index("by_user", ["userId"]),
+
+  // ─── Player reports: a business reports a player's behaviour (see reports.ts) ───
+  // companyId is the reporter: never returned to the player or other businesses.
+  playerReports: defineTable({
+    userId: v.id("users"),              // the reported player
+    bookingId: v.id("bookings"),
+    roomId: v.id("rooms"),
+    companyId: v.id("companies"),
+    categories: v.array(playerReportCategoryV),
+    gameEndAt: v.number(),              // used for batching and expiry
+    createdAt: v.number(),
+    reply: v.optional(v.string()),      // the player's answer
+    repliedAt: v.optional(v.number()),
+    voidedAt: v.optional(v.number()),   // set by an admin: report no longer counts
+    voidedNote: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_booking", ["bookingId"])
+    .index("by_company", ["companyId"]),
 
   // ─── Blocked Users (Guideline 1.2 — ability to block abusive users) ───
   blockedUsers: defineTable({

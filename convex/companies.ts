@@ -21,7 +21,7 @@ import {
 const clientV = v.optional(v.union(v.literal("web"), v.literal("app")));
 
 // ─── Admin helper: verify the calling user has isAdmin ───
-const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay', 'dstroumpakos@planeraai.app'];
+export const ADMIN_EMAILS = ['apple_001386.f@private.relay', 'apple_001386.8@private.relay', 'dstroumpakos@planeraai.app'];
 
 async function requireAdmin(ctx: any, userId: string) {
   const user = await ctx.db.get(userId);

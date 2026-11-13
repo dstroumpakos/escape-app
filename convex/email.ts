@@ -930,3 +930,47 @@ export const sendNewApplicationNotification = internalAction({
       .catch(e => console.error("[Email] Admin notification failed:", e));
   },
 });
+
+// ══════════════════════════════════════════════════════════════
+// Admin: a player reported a room (details stay in the admin page)
+// ══════════════════════════════════════════════════════════════
+
+function escHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}
+
+export const sendRoomReportAlert = internalAction({
+  args: {
+    roomTitle: v.string(),
+    companyName: v.string(),
+    kind: v.union(v.literal("safety"), v.literal("behaviour")),
+    photoCount: v.number(),
+  },
+  handler: async (_ctx, d) => {
+    const resend = getResend();
+    if (!resend) return;
+
+    const kindLabel = d.kind === "safety" ? "Safety issue" : "Inappropriate behaviour";
+    const html = shell(
+      "New Room Report",
+      "A player reported a room",
+      `<h2 style="color:#E53E3E; margin:0 0 16px">${kindLabel}</h2>
+<p style="color:#ccc; font-size:15px; margin:0 0 8px">
+  Room: <strong>${escHtml(d.roomTitle)}</strong> (${escHtml(d.companyName)})
+</p>
+<p style="color:#999; font-size:14px; margin:0 0 20px">Photos attached: ${d.photoCount}</p>
+<a href="https://business.unlocked.gr/admin" style="display:inline-block; background:#E53E3E; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
+  Open the reports queue
+</a>`,
+      "You received this email because you are an UNLOCKED admin."
+    );
+
+    await resend.emails.send({
+      from: fromAddr(),
+      to: "dstroumpakos@planeraai.app",
+      subject: `⚠️ Room report (${kindLabel}): ${d.roomTitle}`,
+      html,
+    }).then(r => console.log("[Email] Room report alert sent:", r))
+      .catch(e => console.error("[Email] Room report alert failed:", e));
+  },
+});

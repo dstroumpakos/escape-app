@@ -48,6 +48,17 @@ export default function CompanyBookings({ companyId }: Props) {
     companyId: companyId as Id<"companies">,
   });
 
+  // Upcoming bookings whose player has active reports from businesses.
+  const flagCandidates = (bookings || [])
+    .filter((b: any) => b.userId && (b.status === 'upcoming' || b.status === 'pending_payment'))
+    .map((b: any) => b._id as Id<"bookings">)
+    .sort();
+  const flags = useCompanyQuery(
+    api.reports.flagsForBookings,
+    flagCandidates.length ? { bookingIds: flagCandidates } : 'skip'
+  );
+  const flaggedIds = new Set((flags || []).map((f) => String(f.bookingId)));
+
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
 
@@ -210,7 +221,10 @@ export default function CompanyBookings({ companyId }: Props) {
                                 </Text>
                               </View>
                             </View>
-                            <Text style={styles.slotPlayer}>{booking.playerName}</Text>
+                            <Text style={styles.slotPlayer}>
+                              {booking.playerName}
+                              {flaggedIds.has(String(booking._id)) ? '  ⚠️' : ''}
+                            </Text>
                             <Text style={styles.slotMeta}>
                               {t('companyBookings.playersCount', { n: booking.players })}
                               {booking.source !== 'external' && booking.total > 0

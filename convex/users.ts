@@ -492,6 +492,21 @@ export const deleteAccount = mutation({
       .collect();
     for (const inv of invitesAsInvitee) await ctx.db.delete(inv._id);
 
+    // 9c. Delete reports filed by or about this player (and report photos)
+    const roomReports = await ctx.db
+      .query("roomReports")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const r of roomReports) {
+      for (const sid of r.photoStorageIds) await ctx.storage.delete(sid).catch(() => {});
+      await ctx.db.delete(r._id);
+    }
+    const playerReports = await ctx.db
+      .query("playerReports")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const r of playerReports) await ctx.db.delete(r._id);
+
     // 10. Delete blocked-users entries (as blocker or blocked)
     const blocksAsBlocker = await ctx.db
       .query("blockedUsers")

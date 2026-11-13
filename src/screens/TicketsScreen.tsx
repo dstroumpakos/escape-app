@@ -8,6 +8,9 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
+import { slotStart } from '../slotTime';
+import { ROOM_REPORT_WINDOW_MS } from '../../convex/reportRules';
+import RoomReportModal from './reports/RoomReportModal';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function formatDisplayDate(iso: string): string {
@@ -26,6 +29,11 @@ export default function TicketsScreen() {
     userId ? { userId: userId as Id<"users"> } : 'skip',
   );
   const cancelBooking = useMutation(api.bookings.cancel);
+  const myRoomReports = useQuery(
+    api.reports.myRoomReports,
+    userId ? { userId: userId as Id<"users"> } : 'skip',
+  );
+  const [reporting, setReporting] = useState<any>(null);
 
   const upcomingBookings = (bookings || []).filter((b: any) => b.status === 'upcoming');
   const pastBookings = (bookings || []).filter((b: any) => b.status === 'completed');
@@ -249,6 +257,29 @@ export default function TicketsScreen() {
                       </TouchableOpacity>
                     </View>
                   )}
+
+                  {/* Report a problem with the room (completed games, up to 30 days) */}
+                  {booking.status === 'completed' && (() => {
+                    const sent = (myRoomReports || []).find((r) => r.bookingId === booking._id);
+                    if (sent) {
+                      return (
+                        <View style={styles.countdownRow}>
+                          <Ionicons name="shield-checkmark-outline" size={14} color={theme.colors.textMuted} />
+                          <Text style={styles.reportStatusText}>{t(`reports.room.status_${sent.status}`)}</Text>
+                        </View>
+                      );
+                    }
+                    const end = slotStart(booking.date, booking.time).getTime() + (room?.duration || 60) * 60000;
+                    if (Date.now() > end + ROOM_REPORT_WINDOW_MS) return null;
+                    return (
+                      <View style={styles.ticketActions}>
+                        <TouchableOpacity style={styles.ticketBtn} onPress={() => setReporting(booking)}>
+                          <Ionicons name="shield-outline" size={16} color={theme.colors.redPrimary} />
+                          <Text style={styles.ticketBtnText}>{t('reports.room.button')}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })()}
                 </View>
               </View>
             );
@@ -256,12 +287,25 @@ export default function TicketsScreen() {
         )}
       </ScrollView>
 
+      {userId && (
+        <RoomReportModal
+          visible={!!reporting}
+          userId={userId}
+          booking={reporting}
+          onClose={() => setReporting(null)}
+          onSent={() => {
+            setReporting(null);
+            Alert.alert(t('done'), t('reports.room.sent'));
+          }}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
+  reportStatusText: { fontSize: 13, color: theme.colors.textMuted },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,

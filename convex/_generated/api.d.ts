@@ -28,6 +28,8 @@ import type * as passwordUtils from "../passwordUtils.js";
 import type * as plans from "../plans.js";
 import type * as posts from "../posts.js";
 import type * as premium from "../premium.js";
+import type * as reportRules from "../reportRules.js";
+import type * as reports from "../reports.js";
 import type * as reviews from "../reviews.js";
 import type * as rooms from "../rooms.js";
 import type * as seed from "../seed.js";
@@ -71,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   plans: typeof plans;
   posts: typeof posts;
   premium: typeof premium;
+  reportRules: typeof reportRules;
+  reports: typeof reports;
   reviews: typeof reviews;
   rooms: typeof rooms;
   seed: typeof seed;
