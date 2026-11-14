@@ -51,7 +51,8 @@ export class ErrorBoundary extends Component<Props, State> {
               The app encountered an unexpected error. Please try again.
             </Text>
 
-            {__DEV__ && this.state.error && (
+            {/* Shown in release builds too, so a tester can tell us what broke */}
+            {this.state.error && (
               <ScrollView style={styles.errorScroll}>
                 <Text style={styles.errorText}>{this.state.error.toString()}</Text>
               </ScrollView>

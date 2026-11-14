@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform, TurboModuleRegistry } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { ConvexProvider } from 'convex/react';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList, MainTabParamList, CompanyTabParamList } from './src/types';
@@ -73,14 +72,18 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * iOS uses the system tab bar (UITabBarController), so on iOS 26 it is Apple's
  * Liquid Glass bar and on older versions the standard translucent one.
  * Android keeps the JS tab bar.
+ *
+ * An over-the-air update can land on a build made before the native tab bar
+ * was added (same app version, older binary). Those builds have no native tab
+ * view, so we only use it when its native code is really in the binary and
+ * fall back to the JS tab bar otherwise.
  */
-const NATIVE_TABS = Platform.OS === 'ios';
-const Tab: any = NATIVE_TABS
-  ? createNativeBottomTabNavigator<MainTabParamList>()
-  : createBottomTabNavigator<MainTabParamList>();
-const CompanyTab: any = NATIVE_TABS
-  ? createNativeBottomTabNavigator<CompanyTabParamList>()
-  : createBottomTabNavigator<CompanyTabParamList>();
+const NATIVE_TABS = Platform.OS === 'ios' && TurboModuleRegistry.get('SvgDecoder') != null;
+const createNativeTabs: () => any = NATIVE_TABS
+  ? require('@bottom-tabs/react-navigation').createNativeBottomTabNavigator
+  : createBottomTabNavigator;
+const Tab: any = NATIVE_TABS ? createNativeTabs() : createBottomTabNavigator<MainTabParamList>();
+const CompanyTab: any = NATIVE_TABS ? createNativeTabs() : createBottomTabNavigator<CompanyTabParamList>();
 
 /** Navigator props: the glass bar takes its look from the system, only the tint is ours. */
 const tabNavigatorProps: any = NATIVE_TABS
