@@ -67,6 +67,7 @@ import CompanyPhotos from './src/screens/company/CompanyPhotos';
 import CompanyBilling from './src/screens/company/CompanyBilling';
 import CompanyPayments from './src/screens/company/CompanyPayments';
 import CompanyGuide from './src/screens/company/CompanyGuide';
+import PlayerSettings from './src/screens/PlayerSettings';
 import CompanyNotificationPrefs from './src/screens/company/CompanyNotificationPrefs';
 import CompanySlots from './src/screens/company/CompanySlots';
 import AdminReview from './src/screens/AdminReview';
@@ -564,6 +565,7 @@ export default function App() {
                   <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
+                  <Stack.Screen name="PlayerSettings" component={PlayerSettings} />
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth

@@ -66,6 +66,7 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
   NotificationPrefs: undefined;
+  PlayerSettings: undefined;
   // Company side
   CompanyAuth: undefined;
   CompanyTabs: undefined;
