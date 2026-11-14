@@ -143,6 +143,7 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
         name="Home"
         component={HomeScreen}
         options={{
+          tabBarLabel: t('tabs.home'),
           tabBarIcon: tabIcon('house.fill', 'home'),
         }}
       />
@@ -150,6 +151,7 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
         name="Discover"
         component={DiscoverScreen}
         options={{
+          tabBarLabel: t('tabs.discover'),
           tabBarIcon: tabIcon('map.fill', 'map'),
         }}
       />
@@ -157,6 +159,7 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
         name="Social"
         component={SocialScreen}
         options={{
+          tabBarLabel: t('tabs.social'),
           tabBarIcon: tabIcon('person.2.fill', 'people'),
         }}
       />
@@ -172,6 +175,7 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
       <Tab.Screen
         name="Profile"
         options={{
+          tabBarLabel: t('tabs.profile'),
           tabBarIcon: tabIcon('person.fill', 'person'),
         }}
       >
@@ -403,6 +407,7 @@ export default function App() {
   /* ── Company Tabs Navigator ── */
   function CompanyTabs() {
     const companyNav = useNavigation<any>();
+    const { t } = useTranslation();
     return (
       <CompanyTab.Navigator
         {...tabNavigatorProps}
@@ -410,7 +415,7 @@ export default function App() {
       >
         <CompanyTab.Screen
           name="Today"
-          options={{ tabBarIcon: tabIcon('clock.fill', 'today-outline') }}
+          options={{ tabBarLabel: t('tabs.today'), tabBarIcon: tabIcon('clock.fill', 'today-outline') }}
         >
           {() => <CompanyDashboard companyId={companyId!} onSwitchToPlayer={async () => {
             setCompanyId(null);
@@ -425,19 +430,19 @@ export default function App() {
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Calendar"
-          options={{ tabBarIcon: tabIcon('calendar', 'calendar') }}
+          options={{ tabBarLabel: t('tabs.calendar'), tabBarIcon: tabIcon('calendar', 'calendar') }}
         >
           {() => <CompanyBookings companyId={companyId!} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Rooms"
-          options={{ tabBarIcon: tabIcon('key.fill', 'key') }}
+          options={{ tabBarLabel: t('tabs.rooms'), tabBarIcon: tabIcon('key.fill', 'key') }}
         >
           {() => <CompanyRoomsList companyId={companyId!} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Settings"
-          options={{ tabBarIcon: tabIcon('gearshape.fill', 'settings') }}
+          options={{ tabBarLabel: t('tabs.settings'), tabBarIcon: tabIcon('gearshape.fill', 'settings') }}
         >
           {() => (
             <CompanySettings
