@@ -13,10 +13,55 @@ import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { PLAYER_REPORT_CATEGORIES, type PlayerReportCategory } from '../../../convex/reportRules';
 import { reportErrorText } from '../reports/reportErrors';
+import { LATE_CANCEL_LOOKBACK_DAYS } from '../../../convex/cancelRules';
 
 const AMBER = '#FFB74D';
+const ORANGE = '#FF8A50';
 
+/** Warnings on an upcoming booking: other businesses' reports, then late cancellations. */
 export function PlayerFlagCard({ bookingId }: { bookingId: string }) {
+  return (
+    <>
+      <ReportsFlagCard bookingId={bookingId} />
+      <LateCancelFlagCard bookingId={bookingId} />
+    </>
+  );
+}
+
+/** Shown when the player is over the late-cancellation threshold (convex/cancellations.ts). */
+function LateCancelFlagCard({ bookingId }: { bookingId: string }) {
+  const { t } = useTranslation();
+  const flags = useCompanyQuery(api.cancellations.flagsForBookings, { bookingIds: [bookingId as Id<'bookings'>] });
+  const flag = flags?.[0];
+  if (!flag) return null;
+  const reasons = Object.entries(flag.reasons).filter(([, n]) => n);
+
+  return (
+    <View style={[styles.card, styles.lateCard]}>
+      <View style={styles.titleRow}>
+        <Ionicons name="calendar-clear-outline" size={18} color={ORANGE} />
+        <Text style={[styles.flagTitle, { color: ORANGE }]}>
+          {t('cancelReason.flag.title', { count: flag.count, days: LATE_CANCEL_LOOKBACK_DAYS })}
+        </Text>
+      </View>
+      {reasons.length > 0 && (
+        <View style={styles.chips}>
+          {reasons.map(([r, n]) => (
+            <View key={r} style={[styles.chip, styles.lateChip]}>
+              <Text style={styles.chipText}>
+                {t(`cancelReason.reason.${r}`)}
+                {n! > 1 ? ` ×${n}` : ''}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+      <Text style={[styles.muted, { marginTop: 8 }]}>{t('cancelReason.flag.note')}</Text>
+    </View>
+  );
+}
+
+function ReportsFlagCard({ bookingId }: { bookingId: string }) {
   const { t } = useTranslation();
   const flags = useCompanyQuery(api.reports.flagsForBookings, { bookingIds: [bookingId as Id<'bookings'>] });
   const flag = flags?.[0];
@@ -173,6 +218,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   flagCard: { borderColor: 'rgba(255,183,77,0.4)', backgroundColor: 'rgba(255,183,77,0.08)' },
+  lateCard: { borderColor: 'rgba(255,138,80,0.4)', backgroundColor: 'rgba(255,138,80,0.08)' },
+  lateChip: { backgroundColor: 'rgba(255,138,80,0.15)' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   flagTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: AMBER },
   cardTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.bone, marginBottom: 4 },

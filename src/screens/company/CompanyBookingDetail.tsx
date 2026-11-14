@@ -17,6 +17,14 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
 import { PlayerFlagCard, ReportPlayerCard } from './PlayerReportSection';
 import CompleteBookingModal from './CompleteBookingModal';
+import CancelReasonModal from '../../components/CancelReasonModal';
+import { slotStart } from '../../slotTime';
+import {
+  COMPANY_CANCEL_REASONS,
+  LATE_CANCEL_WINDOW_MS,
+  companyReasonCountsAgainstPlayer,
+  type CancelReason,
+} from '../../../convex/cancelRules';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyBookingDetail'>;
 
@@ -45,6 +53,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
   const [showComplete, setShowComplete] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
 
   useEffect(() => {
     if (booking?.notes) setNotes(booking.notes);
@@ -71,30 +80,24 @@ export default function CompanyBookingDetail({ companyId }: Props) {
     ? { bg: 'rgba(100,100,100,0.2)', text: theme.colors.textMuted }
     : { bg: 'rgba(76,175,80,0.15)', text: theme.colors.success };
 
-  const handleCancel = () => {
-    Alert.alert(
-      t('bookingDetail.cancelBookingTitle'),
-      t('bookingDetail.cancelMessage', { type: isExternal ? t('bookingDetail.externalBlock') : t('bookingDetail.booking') }),
-      [
-        { text: t('bookingDetail.keep'), style: 'cancel' },
-        {
-          text: t('bookingDetail.cancelBookingBtn'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelBooking({
-                companyId: companyId as Id<"companies">,
-                bookingId: bookingId as Id<"bookings">,
-              });
-              Alert.alert(t('done'), t('bookingDetail.bookingCancelled'));
-            } catch (e: any) {
-              Alert.alert(t('error'), e.message || t('bookingDetail.cancelFailed'));
-            }
-          },
-        },
-      ]
-    );
+  const handleCancel = () => setShowCancel(true);
+
+  const confirmCancel = async (reason: CancelReason, note: string) => {
+    const res = await cancelBooking({
+      companyId: companyId as Id<"companies">,
+      bookingId: bookingId as Id<"bookings">,
+      reason,
+      note,
+    });
+    setShowCancel(false);
+    Alert.alert(t('done'), res?.lateCancel ? t('cancelReason.company.doneLate') : t('bookingDetail.bookingCancelled'));
   };
+
+  // Late = less than 24h before the slot (or after it started), for a booking by an UNLOCKED player.
+  const cancelIsLate =
+    !!booking.userId &&
+    booking.status === 'upcoming' &&
+    slotStart(booking.date, booking.time).getTime() - Date.now() < LATE_CANCEL_WINDOW_MS;
 
   const handleComplete = () => {
     // Player bookings record how the team did (that awards badges);
@@ -192,6 +195,26 @@ export default function CompanyBookingDetail({ companyId }: Props) {
 
         {/* Reports other businesses filed about this player (upcoming bookings only) */}
         <PlayerFlagCard bookingId={bookingId} />
+
+        {/* Who cancelled and why */}
+        {isCancelled && (booking.cancelReason || booking.cancelledBy) && (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>
+              {t(
+                booking.cancelledBy === 'player'
+                  ? 'cancelReason.info.byPlayer'
+                  : booking.cancelledBy === 'system'
+                  ? 'cancelReason.info.bySystem'
+                  : 'cancelReason.info.byCompany'
+              )}
+            </Text>
+            {!!booking.cancelReason && (
+              <Text style={styles.cardValue}>{t(`cancelReason.reason.${booking.cancelReason}`)}</Text>
+            )}
+            {!!booking.cancelNote && <Text style={styles.cancelNote}>{booking.cancelNote}</Text>}
+            {!!booking.lateCancel && <Text style={styles.lateText}>{t('cancelReason.info.late')}</Text>}
+          </View>
+        )}
 
         {/* Room info */}
         <View style={styles.card}>
@@ -384,12 +407,26 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           onDone={() => Alert.alert(t('done'), t('complete.done'))}
         />
       )}
+
+      <CancelReasonModal
+        visible={showCancel}
+        title={t('bookingDetail.cancelBookingTitle')}
+        subtitle={`${booking.playerName} · ${booking.roomTitle} · ${booking.date} · ${booking.time}`}
+        reasons={COMPANY_CANCEL_REASONS}
+        reasonHint={(r) =>
+          cancelIsLate && companyReasonCountsAgainstPlayer(r) ? t('cancelReason.company.countsHint') : null
+        }
+        onConfirm={confirmCancel}
+        onClose={() => setShowCancel(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
+  cancelNote: { fontSize: 13, color: theme.colors.bone, fontStyle: 'italic', marginTop: 6 },
+  lateText: { fontSize: 12, color: '#FFB74D', marginTop: 6 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 14,

@@ -56,7 +56,14 @@ export default function CompanyBookings({ companyId }: Props) {
     api.reports.flagsForBookings,
     flagCandidates.length ? { bookingIds: flagCandidates } : 'skip'
   );
-  const flaggedIds = new Set((flags || []).map((f) => String(f.bookingId)));
+  // Players with too many late cancellations get the same marker.
+  const cancelFlags = useCompanyQuery(
+    api.cancellations.flagsForBookings,
+    flagCandidates.length ? { bookingIds: flagCandidates } : 'skip'
+  );
+  const flaggedIds = new Set(
+    [...(flags || []), ...(cancelFlags || [])].map((f) => String(f.bookingId))
+  );
 
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
