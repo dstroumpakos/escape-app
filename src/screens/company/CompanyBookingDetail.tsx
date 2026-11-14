@@ -16,6 +16,7 @@ import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
 import { PlayerFlagCard, ReportPlayerCard } from './PlayerReportSection';
+import CompleteBookingModal from './CompleteBookingModal';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyBookingDetail'>;
 
@@ -43,6 +44,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   const [showReschedule, setShowReschedule] = useState(false);
   const [newDate, setNewDate] = useState('');
   const [newTime, setNewTime] = useState('');
+  const [showComplete, setShowComplete] = useState(false);
 
   useEffect(() => {
     if (booking?.notes) setNotes(booking.notes);
@@ -95,22 +97,28 @@ export default function CompanyBookingDetail({ companyId }: Props) {
   };
 
   const handleComplete = () => {
+    // Player bookings record how the team did (that awards badges);
+    // external blocks have no player, so they're just marked completed.
+    if (!isExternal) {
+      setShowComplete(true);
+      return;
+    }
     Alert.alert(
-      'Mark as Completed',
-      'This booking will be marked as completed.',
+      t('complete.simpleTitle'),
+      t('complete.simpleMessage'),
       [
         { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Complete',
+          text: t('complete.simpleConfirm'),
           onPress: async () => {
             try {
               await completeBooking({
                 companyId: companyId as Id<"companies">,
                 bookingId: bookingId as Id<"bookings">,
               });
-              Alert.alert(t('done'), 'Booking marked as completed.');
+              Alert.alert(t('done'), t('complete.done'));
             } catch (e: any) {
-              Alert.alert(t('error'), e.message || 'Failed to complete booking.');
+              Alert.alert(t('error'), t('complete.failed'));
             }
           },
         },
@@ -350,7 +358,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity style={styles.completeBtn} onPress={handleComplete}>
               <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
-              <Text style={styles.completeText}>Complete</Text>
+              <Text style={styles.completeText}>{t('complete.button')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
               <Ionicons name="close-circle-outline" size={18} color="#F44336" />
@@ -366,6 +374,15 @@ export default function CompanyBookingDetail({ companyId }: Props) {
             <Text style={styles.cancelText}>{t('bookingDetail.cancelBookingBtn')}</Text>
           </TouchableOpacity>
         </View>
+      )}
+
+      {showComplete && (
+        <CompleteBookingModal
+          companyId={companyId}
+          booking={booking as any}
+          onClose={() => setShowComplete(false)}
+          onDone={() => Alert.alert(t('done'), t('complete.done'))}
+        />
       )}
     </View>
   );

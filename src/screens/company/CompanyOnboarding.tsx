@@ -10,6 +10,7 @@ import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { openCheckout, buildDeepLink, isPaymentEnabled } from '../../payments';
+import DiscountCodeBox from './DiscountCodeBox';
 import { PLAN_OPTIONS, PLAN_STYLE, UNLIMITED_PRICE, asPlanId, planPrice, type PlanId } from './platformPlans';
 
 interface Props {
@@ -138,6 +139,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
         {renderSteps()}
         <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 40 }}>
           <Text style={styles.planSubtitle}>{t('onboarding.planSubtitle')}</Text>
+          <DiscountCodeBox companyId={companyId} disabled={loading} />
 
           {PLAN_OPTIONS.map((plan) => {
             const style = PLAN_STYLE[plan.id];

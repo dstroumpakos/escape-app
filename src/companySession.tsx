@@ -81,6 +81,11 @@ export function CompanySessionProvider({
   return <CompanySessionContext.Provider value={value}>{children}</CompanySessionContext.Provider>;
 }
 
+/** The raw session, for the rare call that needs its own wrapper (e.g. optimistic updates). */
+export function useCompanySession() {
+  return useContext(CompanySessionContext);
+}
+
 // ── Session-aware Convex hooks (use for every company-scoped function) ──
 
 type WithoutToken<F extends FunctionReference<any>> = Omit<FunctionArgs<F>, 'sessionToken'>;

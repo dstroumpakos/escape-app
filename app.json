@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A0D0D"
+      "backgroundColor": "#080505"
     },
     "ios": {
       "supportsTablet": true,
@@ -31,11 +31,12 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A0D0D"
+        "backgroundImage": "./assets/adaptive-background.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#C20F1A"
       },
       "package": "com.unlocked.escapeapp",
       "versionCode": 1,
-      "useNextNotificationsApi": true,
       "permissions": [
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -49,8 +50,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#DC2626"
+          "icon": "./assets/notification-icon.png",
+          "color": "#D4141F"
         }
       ],
       [

@@ -75,6 +75,9 @@ export type RootStackParamList = {
   CompanyAddBooking: { companyId: string; roomId?: string; date?: string; time?: string };
   CompanyPhotos: { companyId: string };
   CompanyBilling: { companyId: string };
+  CompanyPayments: { companyId: string };
+  CompanyGuide: undefined;
+  CompanyNotificationPrefs: undefined;
 };
 
 export type MainTabParamList = {
@@ -87,6 +90,7 @@ export type MainTabParamList = {
 
 export type CompanyTabParamList = {
   Today: undefined;
+  Slots: undefined;
   Calendar: undefined;
   Rooms: undefined;
   Settings: undefined;

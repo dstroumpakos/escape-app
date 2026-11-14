@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, ActivityIndicator, Image, Clipboard, Switch,
-  Animated,
+  Animated, Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +14,9 @@ import { useTranslation } from '../../i18n';
 import type { Id } from '../../../convex/_generated/dataModel';
 import CompanyPlanModal from './CompanyPlanModal';
 import { asPlanId } from './platformPlans';
+import { WIDGET_COPIED, setFlag, widgetCode, SUPPORT_EMAIL } from './companyFlags';
 
-type TabKey = 'profile' | 'early-access' | 'photos' | 'widget';
+type TabKey = 'profile' | 'early-access' | 'photos' | 'widget' | 'translations';
 
 interface Props {
   companyId: string;
@@ -23,9 +24,17 @@ interface Props {
   onSwitchToPlayer?: () => void;
   onNavigateBilling?: () => void;
   onNavigatePhotos?: () => void;
+  onNavigatePayments?: () => void;
+  onNavigateNotifPrefs?: () => void;
+  onNavigateGuide?: () => void;
+  onNavigateTerms?: () => void;
+  onNavigatePrivacy?: () => void;
 }
 
-export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer, onNavigateBilling, onNavigatePhotos }: Props) {
+export default function CompanySettings({
+  companyId, onLogout, onSwitchToPlayer, onNavigateBilling, onNavigatePhotos, onNavigatePayments,
+  onNavigateNotifPrefs, onNavigateGuide, onNavigateTerms, onNavigatePrivacy,
+}: Props) {
   const company = useCompanyQuery(api.companies.getById, { id: companyId as Id<"companies"> });
   const updateProfile = useCompanyMutation(api.companies.updateProfile);
   const { t, language, setLanguage } = useTranslation();
@@ -43,6 +52,11 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
   // Early Access
   const [earlyAccessEnabled, setEarlyAccessEnabled] = useState(false);
   const [eaSaving, setEaSaving] = useState(false);
+
+  // Auto-translate
+  const [autoTranslateEnabled, setAutoTranslateEnabled] = useState(false);
+  const [atSaving, setAtSaving] = useState(false);
+  const [atMsg, setAtMsg] = useState('');
 
   // Photo preset
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
@@ -78,6 +92,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
       setVatNumber(company.vatNumber ?? '');
       setDescription(company.description);
       setEarlyAccessEnabled((company as any).subscriptionEnabled || false);
+      setAutoTranslateEnabled((company as any).autoTranslateEnabled || false);
     }
   }, [company]);
 
@@ -222,10 +237,41 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
   };
 
   const handleCopyWidget = () => {
-    const code = `<!-- UNLOCKED Booking Widget -->\n<div id="booking-widget"></div>\n<script\n  src="https://widget.unlocked.gr/booking-widget.js"\n  data-company-id="${companyId}"\n  defer></script>`;
-    Clipboard.setString(code);
+    Clipboard.setString(widgetCode(companyId));
+    setFlag(WIDGET_COPIED);
     setWidgetCopied(true);
     setTimeout(() => setWidgetCopied(false), 2500);
+  };
+
+  const handleEmailDeveloper = () => {
+    setFlag(WIDGET_COPIED);
+    const subject = encodeURIComponent(t('settings.devMailSubject'));
+    const body = encodeURIComponent(`${t('settings.devMailBody')}\n\n${widgetCode(companyId)}`);
+    Linking.openURL(`mailto:?subject=${subject}&body=${body}`).catch(() =>
+      Alert.alert(t('error'), t('settings.noMailApp'))
+    );
+  };
+
+  const handleToggleAutoTranslate = async () => {
+    const newValue = !autoTranslateEnabled;
+    setAutoTranslateEnabled(newValue);
+    setAtSaving(true);
+    setAtMsg('');
+    try {
+      await updateProfile({ id: companyId as Id<"companies">, autoTranslateEnabled: newValue });
+      setAtMsg(newValue ? t('settings.atEnabled') : t('settings.atDisabled'));
+      setTimeout(() => setAtMsg(''), 3000);
+    } catch {
+      setAutoTranslateEnabled(!newValue);
+      Alert.alert(t('error'), t('settings.updateFailed'));
+    }
+    setAtSaving(false);
+  };
+
+  const handleContactSupport = () => {
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() =>
+      Alert.alert(t('settings.supportTitle'), t('settings.supportMessage'))
+    );
   };
 
   const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -233,6 +279,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
     { key: 'early-access', label: t('settings.tabEarlyAccess'), icon: 'flash-outline' },
     { key: 'photos', label: t('settings.tabPhotos'), icon: 'camera-outline' },
     { key: 'widget', label: t('settings.tabWidget'), icon: 'code-slash-outline' },
+    { key: 'translations', label: t('settings.tabTranslations'), icon: 'language-outline' },
   ];
 
   const LOGO_POSITIONS: { key: typeof presetForm.logoPosition; label: string }[] = [
@@ -369,18 +416,45 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
             <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
             <View style={styles.card}>
               {[
-                { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.notifMessage')) },
-                { icon: 'card-outline' as const, label: t('settings.payout'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.payoutMessage')) },
-                { icon: 'document-text-outline' as const, label: t('settings.legal'), action: () => Alert.alert(t('settings.comingSoon'), t('settings.legalMessage')) },
-                { icon: 'help-circle-outline' as const, label: t('settings.helpSupport'), action: () => Alert.alert(t('settings.supportTitle'), t('settings.supportMessage')) },
-                { icon: 'language-outline' as const, label: t('settings.language'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },
-              ].map((item, i) => (
+                { icon: 'wallet-outline' as const, label: t('pay.title'), action: onNavigatePayments },
+                { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: onNavigateNotifPrefs },
+                { icon: 'language-outline' as const, label: t('settings.language'), value: language === 'en' ? 'English' : 'Ελληνικά', action: () => setLanguage(language === 'en' ? 'el' : 'en') },
+              ].filter((item) => !!item.action).map((item, i) => (
                 <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
                   <View style={styles.menuLeft}>
                     <Ionicons name={item.icon} size={20} color={theme.colors.textSecondary} />
                     <Text style={styles.menuLabel}>{item.label}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    {'value' in item && item.value ? (
+                      <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>{item.value}</Text>
+                    ) : null}
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Help & legal */}
+            <Text style={styles.sectionTitle}>{t('settings.helpLegal')}</Text>
+            <View style={styles.card}>
+              {[
+                { icon: 'book-outline' as const, label: t('guide.title'), action: onNavigateGuide },
+                { icon: 'mail-outline' as const, label: t('settings.contactSupport'), value: SUPPORT_EMAIL, action: handleContactSupport },
+                { icon: 'document-text-outline' as const, label: t('settings.termsOfService'), action: onNavigateTerms },
+                { icon: 'lock-closed-outline' as const, label: t('settings.privacyPolicy'), action: onNavigatePrivacy },
+              ].filter((item) => !!item.action).map((item, i) => (
+                <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
+                  <View style={styles.menuLeft}>
+                    <Ionicons name={item.icon} size={20} color={theme.colors.textSecondary} />
+                    <Text style={styles.menuLabel}>{item.label}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+                    {'value' in item && item.value ? (
+                      <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }} numberOfLines={1}>{item.value}</Text>
+                    ) : null}
+                    <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -711,6 +785,11 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
               </View>
 
               <Text style={styles.hintText}>{t('settings.widgetNote')}</Text>
+
+              <TouchableOpacity style={styles.emailDevBtn} onPress={handleEmailDeveloper}>
+                <Ionicons name="mail-outline" size={16} color={theme.colors.bone} />
+                <Text style={styles.emailDevText}>{t('settings.emailDeveloper')}</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Widget Features */}
@@ -743,6 +822,59 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
               <Text style={styles.cardDesc}>{t('settings.widgetCustomDesc')}</Text>
               <Text style={[styles.hintText, { marginTop: 8 }]}>{t('settings.widgetNeedHelp')}</Text>
             </View>
+          </>
+        )}
+
+        {/* ═══════ TRANSLATIONS TAB ═══════ */}
+        {activeTab === 'translations' && (
+          <>
+            <View style={styles.widgetHero}>
+              <View style={styles.eaChip}>
+                <Ionicons name="language" size={12} color={theme.colors.redPrimary} />
+                <Text style={styles.eaChipText}>{t('settings.atBadge')}</Text>
+              </View>
+              <Text style={styles.eaTitle}>{t('settings.atTitle')}</Text>
+              <Text style={styles.eaDesc}>{t('settings.atDescription')}</Text>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.cardTitleText}>{t('settings.atHowTitle')}</Text>
+              {[t('settings.atStep1'), t('settings.atStep2'), t('settings.atStep3')].map((text, i) => (
+                <View key={i} style={styles.eaStepCard}>
+                  <View style={styles.eaStepNum}>
+                    <Text style={styles.eaStepNumText}>{i + 1}</Text>
+                  </View>
+                  <Text style={styles.eaStepText}>{text}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={[styles.card, styles.eaToggleRow]}>
+              <View style={[styles.eaToggleIcon, autoTranslateEnabled && { backgroundColor: 'rgba(66,165,245,0.2)' }]}>
+                <Ionicons name="language" size={22} color={autoTranslateEnabled ? '#42A5F5' : theme.colors.textMuted} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.eaToggleTitle}>
+                  {autoTranslateEnabled ? t('settings.atActive') : t('settings.atInactive')}
+                </Text>
+                <Text style={styles.eaToggleDesc}>
+                  {autoTranslateEnabled ? t('settings.atActiveDesc') : t('settings.atInactiveDesc')}
+                </Text>
+              </View>
+              {atSaving ? (
+                <ActivityIndicator size="small" color={theme.colors.redPrimary} />
+              ) : (
+                <Switch
+                  value={autoTranslateEnabled}
+                  onValueChange={handleToggleAutoTranslate}
+                  trackColor={{ false: theme.colors.glass, true: 'rgba(66,165,245,0.4)' }}
+                  thumbColor={autoTranslateEnabled ? '#42A5F5' : '#ccc'}
+                />
+              )}
+            </View>
+            {atMsg ? <Text style={[styles.hintText, { marginHorizontal: 20, color: theme.colors.success }]}>{atMsg}</Text> : null}
+
+            <Text style={[styles.hintText, { marginHorizontal: 20, marginTop: 8 }]}>{t('settings.atNote')}</Text>
           </>
         )}
 
@@ -997,6 +1129,11 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(244,67,54,0.3)',
   },
   copyBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.redPrimary },
+  emailDevBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 14,
+    paddingVertical: 12, borderRadius: theme.radius.full, borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  emailDevText: { fontSize: 14, fontWeight: '600', color: theme.colors.bone },
   codeBlock: {
     padding: 16, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.bgPrimary,

@@ -14,11 +14,9 @@ import { useTranslation } from '../../i18n';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import Svg, { Circle } from 'react-native-svg';
+import GettingStartedChecklist from './GettingStartedChecklist';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 import { PLAN_STYLE, asPlanId } from './platformPlans';
 
@@ -28,7 +26,7 @@ interface Props {
 }
 
 export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<Nav>();
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -46,6 +44,9 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
   const bookings = useCompanyQuery(api.companies.getBookingsByDate, {
     companyId: companyId as Id<"companies">,
     date: dateStr,
+  });
+  const rooms = useCompanyQuery(api.companies.getRooms, {
+    companyId: companyId as Id<"companies">,
   });
 
   const activeBookings = useMemo(
@@ -68,7 +69,10 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
 
   // Time-aware greeting
   const hour = today.getHours();
-  const greetingText = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+  const greetingText = t(hour < 12 ? 'dashboard.goodMorning' : hour < 18 ? 'dashboard.goodAfternoon' : 'dashboard.goodEvening');
+  const longToday = today.toLocaleDateString(language === 'el' ? 'el-GR' : 'en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
 
   // SVG donut for room capacity
   const DONUT_SIZE = 90;
@@ -108,15 +112,15 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         <View style={styles.dateBanner}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
             <Ionicons name="calendar" size={18} color={theme.colors.redPrimary} />
-            <Text style={styles.dateText}>
-              {DAYS[today.getDay()]}, {MONTHS[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
-            </Text>
+            <Text style={[styles.dateText, { textTransform: 'capitalize' }]}>{longToday}</Text>
           </View>
           <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
             <Ionicons name={planStyle.icon as any} size={10} color={planStyle.text} />
             <Text style={[styles.planBadgeText, { color: planStyle.text }]}>{t(`plan.${plan}`)}</Text>
           </View>
         </View>
+
+        <GettingStartedChecklist companyId={companyId} company={company} rooms={rooms} />
 
         {/* Overview + Room Capacity Row */}
         <Text style={styles.sectionTitle}>{t('dashboard.overview')}</Text>

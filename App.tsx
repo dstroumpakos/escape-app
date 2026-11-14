@@ -65,6 +65,10 @@ import CompanyAddBooking from './src/screens/company/CompanyAddBooking';
 import CompanyOnboarding from './src/screens/company/CompanyOnboarding';
 import CompanyPhotos from './src/screens/company/CompanyPhotos';
 import CompanyBilling from './src/screens/company/CompanyBilling';
+import CompanyPayments from './src/screens/company/CompanyPayments';
+import CompanyGuide from './src/screens/company/CompanyGuide';
+import CompanyNotificationPrefs from './src/screens/company/CompanyNotificationPrefs';
+import CompanySlots from './src/screens/company/CompanySlots';
 import AdminReview from './src/screens/AdminReview';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -432,6 +436,12 @@ export default function App() {
           }} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
+          name="Slots"
+          options={{ tabBarLabel: t('tabs.slots'), tabBarIcon: tabIcon('square.grid.3x3.fill', 'grid-outline') }}
+        >
+          {() => <CompanySlots companyId={companyId!} />}
+        </CompanyTab.Screen>
+        <CompanyTab.Screen
           name="Calendar"
           options={{ tabBarLabel: t('tabs.calendar'), tabBarIcon: tabIcon('calendar', 'calendar') }}
         >
@@ -452,6 +462,11 @@ export default function App() {
               companyId={companyId!}
               onNavigateBilling={() => companyNav.navigate('CompanyBilling', { companyId: companyId! })}
               onNavigatePhotos={() => companyNav.navigate('CompanyPhotos', { companyId: companyId! })}
+              onNavigatePayments={() => companyNav.navigate('CompanyPayments', { companyId: companyId! })}
+              onNavigateNotifPrefs={() => companyNav.navigate('CompanyNotificationPrefs')}
+              onNavigateGuide={() => companyNav.navigate('CompanyGuide')}
+              onNavigateTerms={() => companyNav.navigate('TermsOfService')}
+              onNavigatePrivacy={() => companyNav.navigate('PrivacyPolicy')}
               onSwitchToPlayer={async () => {
                 setCompanyId(null);
                 const storedUserId = await AsyncStorage.getItem('userId');
@@ -516,6 +531,17 @@ export default function App() {
                   </Stack.Screen>
                   <Stack.Screen name="CompanyPhotos">
                     {() => <CompanyPhotos companyId={companyId} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyGuide">
+                    {(props) => <CompanyGuide onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyNotificationPrefs">
+                    {(props) => <CompanyNotificationPrefs onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                  <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+                  <Stack.Screen name="CompanyPayments">
+                    {(props) => <CompanyPayments companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
                   </Stack.Screen>
                   <Stack.Screen name="CompanyBilling">
                     {(props) => <CompanyBilling companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
