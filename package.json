@@ -10,8 +10,9 @@
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy",
     "seed": "npx convex run seed:seed",
-    "ota:prod": "npx eas-cli update --channel production",
-    "ota:preview": "npx eas-cli update --channel preview"
+    "ota:prod": "node scripts/ota-prod.mjs",
+    "ota:preview": "npx eas-cli update --channel preview",
+    "ota:prod:check": "node scripts/ota-prod.mjs --dry-run"
   },
   "dependencies": {
     "@bottom-tabs/react-navigation": "^1.5.0",
