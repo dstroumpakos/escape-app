@@ -489,7 +489,10 @@ export default function App() {
       <CompanySessionProvider token={companyToken} onExpired={handleCompanySessionExpired}>
         <View style={{ flex: 1 }}>
           <StatusBar style="light" />
-          <NotificationWatcher userId={userId} companyId={companyId} />
+          {/* A failing background query here must never take the whole app down */}
+          <ErrorBoundary fallback={null}>
+            <NotificationWatcher userId={userId} companyId={companyId} />
+          </ErrorBoundary>
           <NavigationContainer ref={navigationRef} theme={DarkNavTheme}>
             <Stack.Navigator
               screenOptions={{
