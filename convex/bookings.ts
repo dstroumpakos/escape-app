@@ -1,7 +1,9 @@
 import { query, mutation, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
 import { assertSlotStillBookable } from "./slotRules";
+import { slotStartMs } from "./reportRules";
+import { PLAYER_CANCEL_REASONS, cancelReasonV, cleanCancelNote, isLateCancel } from "./cancelRules";
 
 export const create = mutation({
   args: {
@@ -141,11 +143,42 @@ export const upcoming = query({
   },
 });
 
+// Player cancels their own booking. reason/note/userId are optional so older
+// app builds that only send { id } keep working. Cancelling an upcoming booking
+// less than 24h before it starts is recorded as a late cancellation, which
+// counts against the player (see cancelRules.ts).
 export const cancel = mutation({
-  args: { id: v.id("bookings") },
+  args: {
+    id: v.id("bookings"),
+    userId: v.optional(v.id("users")),
+    reason: v.optional(cancelReasonV),
+    note: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const booking = await ctx.db.get(args.id);
-    await ctx.db.patch(args.id, { status: "cancelled" });
+    if (!booking) return { lateCancel: false };
+    if (args.userId && booking.userId && booking.userId !== args.userId) {
+      throw new ConvexError("This booking belongs to another account");
+    }
+    if (booking.status === "cancelled") return { lateCancel: !!booking.lateCancel };
+    if (booking.status === "completed") throw new ConvexError("This booking was already played");
+    if (args.reason && !(PLAYER_CANCEL_REASONS as readonly string[]).includes(args.reason)) {
+      throw new ConvexError("Pick a reason for cancelling");
+    }
+
+    const now = Date.now();
+    const lateCancel =
+      booking.status === "upcoming" &&
+      !!booking.userId &&
+      isLateCancel(slotStartMs(booking.date, booking.time), now);
+    await ctx.db.patch(args.id, {
+      status: "cancelled",
+      cancelledAt: now,
+      cancelledBy: "player",
+      cancelReason: args.reason,
+      cancelNote: cleanCancelNote(args.note),
+      lateCancel,
+    });
 
     // Check if this was the only active booking for this slot.
     // If so, the slot is now available again — mark slotAlerts as "ready"
@@ -332,7 +365,7 @@ export const cancelUnpaidBooking = internalMutation({
     if (!booking) return;
     // Only cancel if payment hasn't been confirmed yet
     if (booking.paymentStatus === "paid" || booking.paymentStatus === "deposit") return;
-    await ctx.db.patch(args.bookingId, { status: "cancelled" });
+    await ctx.db.patch(args.bookingId, { status: "cancelled", cancelledAt: Date.now(), cancelledBy: "system" });
   },
 });
 

@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { playerReportCategoryV, roomReportKindV, roomReportStatusV } from "./reportRules";
+import { cancelReasonV, cancelledByV } from "./cancelRules";
 
 export default defineSchema({
   // ─── Company / Business ───
@@ -290,6 +291,12 @@ export default defineSchema({
     vivaOrderCode: v.optional(v.string()),    // 16 digits, kept as a string
     paymentReference: v.optional(v.string()), // Stripe payment intent / Viva transaction id
     paidAt: v.optional(v.number()),
+    // ─── Cancellation (see cancelRules.ts) ───
+    cancelledAt: v.optional(v.number()),
+    cancelledBy: v.optional(cancelledByV),
+    cancelReason: v.optional(cancelReasonV),
+    cancelNote: v.optional(v.string()),
+    lateCancel: v.optional(v.boolean()), // true = counts against the player
   })
     .index("by_user", ["userId"])
     .index("by_user_status", ["userId", "status"])

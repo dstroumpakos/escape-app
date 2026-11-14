@@ -13,6 +13,8 @@ import type * as billing from "../billing.js";
 import type * as billingStripe from "../billingStripe.js";
 import type * as bookingPhotos from "../bookingPhotos.js";
 import type * as bookings from "../bookings.js";
+import type * as cancelRules from "../cancelRules.js";
+import type * as cancellations from "../cancellations.js";
 import type * as companies from "../companies.js";
 import type * as companyPayments from "../companyPayments.js";
 import type * as companyPaymentsData from "../companyPaymentsData.js";
@@ -58,6 +60,8 @@ declare const fullApi: ApiFromModules<{
   billingStripe: typeof billingStripe;
   bookingPhotos: typeof bookingPhotos;
   bookings: typeof bookings;
+  cancelRules: typeof cancelRules;
+  cancellations: typeof cancellations;
   companies: typeof companies;
   companyPayments: typeof companyPayments;
   companyPaymentsData: typeof companyPaymentsData;

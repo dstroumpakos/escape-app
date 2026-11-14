@@ -1,6 +1,14 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internal } from "./_generated/api";
+import { slotStartMs } from "./reportRules";
+import {
+  COMPANY_CANCEL_REASONS,
+  cancelReasonV,
+  cleanCancelNote,
+  companyReasonCountsAgainstPlayer,
+  isLateCancel,
+} from "./cancelRules";
 import { hashPassword, verifyPassword } from "./passwordUtils";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 import { nt } from "./notificationTexts";
@@ -1206,11 +1214,33 @@ export const adminCancelBooking = mutation({
     companyId: v.id("companies"),
     sessionToken: sessionTokenV,
     bookingId: v.id("bookings"),
+    // Optional so older app builds that don't send a reason keep working.
+    reason: v.optional(cancelReasonV),
+    note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireCompany(ctx, args, "companies:adminCancelBooking");
-    await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
-    await ctx.db.patch(args.bookingId, { status: "cancelled" });
+    const booking = await guardCompanyOwnsBooking(ctx, args.companyId, args.bookingId);
+    if (booking.status === "cancelled") return { lateCancel: !!booking.lateCancel };
+    if (args.reason && !(COMPANY_CANCEL_REASONS as readonly string[]).includes(args.reason)) {
+      throw new ConvexError("Pick a reason for cancelling");
+    }
+    const now = Date.now();
+    // Only the player's own doing (asked to cancel, didn't show up) counts against them.
+    const lateCancel =
+      booking.status === "upcoming" &&
+      !!booking.userId &&
+      companyReasonCountsAgainstPlayer(args.reason) &&
+      isLateCancel(slotStartMs(booking.date, booking.time), now);
+    await ctx.db.patch(args.bookingId, {
+      status: "cancelled",
+      cancelledAt: now,
+      cancelledBy: "company",
+      cancelReason: args.reason,
+      cancelNote: cleanCancelNote(args.note),
+      lateCancel,
+    });
+    return { lateCancel };
   },
 });
 
