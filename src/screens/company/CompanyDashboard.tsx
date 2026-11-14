@@ -153,7 +153,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
               <Text style={styles.donutVal}>{roomCount}</Text>
               <Text style={styles.donutMax}>/ {roomLimit === Infinity ? '∞' : roomLimit}</Text>
             </View>
-            <Text style={styles.donutLabel}>Rooms</Text>
+            <Text style={styles.donutLabel}>{t('dashboard.rooms')}</Text>
           </View>
         </View>
 
@@ -195,13 +195,49 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         {/* Advanced Analytics — Pro & Enterprise */}
         {advanced && (
           <>
-            <Text style={styles.sectionTitle}>Analytics</Text>
+            <Text style={styles.sectionTitle}>{t('dashboard.analytics')}</Text>
             <View style={styles.analyticsGrid}>
-              <MiniStat icon="checkmark-circle" color="#4CAF50" label="Completed" value={advanced.completedBookings} />
-              <MiniStat icon="close-circle" color="#F44336" label="Cancelled" value={advanced.cancelledBookings} />
-              <MiniStat icon="star" color={theme.colors.gold} label="Avg Rating" value={advanced.avgRating} />
-              <MiniStat icon="trending-up" color="#42A5F5" label="Conversion" value={`${advanced.conversionRate}%`} />
-              <MiniStat icon="cash" color="#4CAF50" label="Avg €/Booking" value={`€${advanced.avgRevenuePerBooking}`} />
+              <MiniStat icon="checkmark-circle" color="#4CAF50" label={t('dashboard.completed')} value={advanced.completedBookings} />
+              <MiniStat icon="close-circle" color="#F44336" label={t('dashboard.cancelled')} value={advanced.cancelledBookings} />
+              <MiniStat icon="star" color={theme.colors.gold} label={t('dashboard.avgRating')} value={advanced.avgRating} />
+              <MiniStat icon="trending-up" color="#42A5F5" label={t('dashboard.conversion')} value={`${advanced.conversionRate}%`} />
+              <MiniStat icon="cash" color="#4CAF50" label={t('dashboard.avgPerBooking')} value={`€${advanced.avgRevenuePerBooking}`} />
+            </View>
+          </>
+        )}
+
+        {/* Enterprise insights */}
+        {fullAnalytics && (
+          <>
+            <Text style={styles.sectionTitle}>{t('dashboard.insights')}</Text>
+            <View style={styles.analyticsGrid}>
+              <MiniStat icon="people" color="#AB47BC" label={t('dashboard.uniquePlayers')} value={fullAnalytics.totalUniquePlayers} />
+              <MiniStat icon="people-outline" color="#42A5F5" label={t('dashboard.totalPlayersServed')} value={fullAnalytics.totalPlayersServed} />
+              <MiniStat icon="person-add-outline" color="#26C6DA" label={t('dashboard.avgGroupSize')} value={fullAnalytics.avgGroupSize} />
+              <MiniStat icon="repeat" color={theme.colors.warning} label={t('dashboard.repeatCustomers')} value={`${fullAnalytics.repeatCustomerRate}%`} />
+              <MiniStat icon="exit-outline" color={theme.colors.success} label={t('dashboard.escapeRate')} value={`${fullAnalytics.escapeRate}%`} />
+              <MiniStat icon="time-outline" color="#FF7043" label={t('dashboard.peakTime')} value={fullAnalytics.peakTime} />
+              <MiniStat icon="calendar-outline" color="#EC407A" label={t('dashboard.peakDay')} value={dayName(fullAnalytics.peakDay, language)} />
+              <MiniStat icon="chatbubble-outline" color={theme.colors.gold} label={t('dashboard.totalReviews')} value={fullAnalytics.totalReviews} />
+              <MiniStat icon="code-slash-outline" color="#26A69A" label={t('dashboard.platformVsWidget')} value={`${fullAnalytics.platformBookings} / ${fullAnalytics.widgetBookings}`} />
+            </View>
+            <View style={styles.analyticsGrid}>
+              <View style={styles.insCard}>
+                <Text style={styles.insBig}>{fullAnalytics.totalSubscribers}</Text>
+                <Text style={styles.insLabel}>{t('dashboard.totalSubscribers')}</Text>
+                <Text style={styles.insSub}>
+                  <Text style={{ color: theme.colors.success }}>● </Text>{t('dashboard.subscribersActive', { n: fullAnalytics.activeSubscribers })}
+                  {'   '}
+                  <Text style={{ color: '#F44336' }}>● </Text>{t('dashboard.subscribersChurned', { n: fullAnalytics.churnedSubscribers })}
+                </Text>
+              </View>
+              {(fullAnalytics.revenuePerRoom || []).slice(0, 2).map((r: any) => (
+                <View key={r.roomId} style={styles.insCard}>
+                  <Text style={[styles.insBig, { color: theme.colors.success }]}>€{r.revenue}</Text>
+                  <Text style={styles.insLabel} numberOfLines={1}>{r.title}</Text>
+                  <Text style={styles.insSub}>{t('dashboard.revenueFromRoom')}</Text>
+                </View>
+              ))}
             </View>
           </>
         )}
@@ -244,7 +280,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
                     <Ionicons name="person-outline" size={12} color={theme.colors.textMuted} />
                     <Text style={styles.bookingMetaText}>{booking.playerName}</Text>
                     <Ionicons name="people-outline" size={12} color={theme.colors.textMuted} />
-                    <Text style={styles.bookingMetaText}>{booking.players} players</Text>
+                    <Text style={styles.bookingMetaText}>{t('companyBookings.playersCount', { n: booking.players })}</Text>
                     {booking.source !== 'external' && booking.total > 0 && (
                       <>
                         <Ionicons name="cash-outline" size={12} color={theme.colors.textMuted} />
@@ -303,9 +339,17 @@ function MiniStat({ icon, color, label, value }: { icon: string; color: string; 
     }}>
       <Ionicons name={icon as any} size={18} color={color} />
       <Text style={{ fontSize: 18, fontWeight: '800', color: theme.colors.bone, marginTop: 4 }}>{value}</Text>
-      <Text style={{ fontSize: 9, color: theme.colors.textMuted, marginTop: 2 }}>{label}</Text>
+      <Text style={{ fontSize: 10, color: theme.colors.textMuted, marginTop: 2, textAlign: 'center', paddingHorizontal: 4 }} numberOfLines={2}>{label}</Text>
     </View>
   );
+}
+
+/** The server sends the busiest weekday in English ("Saturday"); show it in the app's language. */
+function dayName(day: string, language: string) {
+  const i = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(day);
+  if (i < 0) return day;
+  const name = new Date(2024, 0, 7 + i).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-GB', { weekday: 'long' });
+  return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 const styles = StyleSheet.create({
@@ -360,6 +404,14 @@ const styles = StyleSheet.create({
   donutMax: { fontSize: 10, color: theme.colors.textMuted },
   donutLabel: { fontSize: 10, color: theme.colors.textMuted, marginTop: 6 },
 
+  insCard: {
+    flex: 1, minWidth: '45%' as any, padding: 14,
+    borderRadius: theme.radius.lg, backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  insBig: { fontSize: 22, fontWeight: '800', color: theme.colors.bone },
+  insLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  insSub: { fontSize: 11, color: theme.colors.textMuted, marginTop: 8 },
   analyticsGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 10,
     paddingHorizontal: 20, marginBottom: 16,

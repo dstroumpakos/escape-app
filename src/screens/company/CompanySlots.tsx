@@ -29,8 +29,8 @@ import { slotSortKey, slotClosedReason, slotStart, useNow } from '../../slotTime
 
 // ─── Helpers ──────────────────────────────────────────────
 
-type Slot = { time: string; price: number; available: boolean; pricePerGroup?: { players: number; price: number }[] };
-type SlotState = 'open' | 'closed' | 'booked' | 'past' | 'cutoff';
+export type Slot = { time: string; price: number; available: boolean; pricePerGroup?: { players: number; price: number }[] };
+export type SlotState = 'open' | 'closed' | 'booked' | 'past' | 'cutoff';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -38,15 +38,15 @@ export function localDateKey(d: Date = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function addDays(date: string, n: number) {
+export function addDays(date: string, n: number) {
   const d = new Date(date + 'T12:00:00');
   d.setTime(d.getTime() + n * DAY_MS);
   return localDateKey(d);
 }
 
-const byTime = (a: { time: string }, b: { time: string }) => slotSortKey(a.time) - slotSortKey(b.time);
+export const byTime = (a: { time: string }, b: { time: string }) => slotSortKey(a.time) - slotSortKey(b.time);
 
-function effectiveSlots(room: any, custom: any[] | undefined | null): Slot[] {
+export function effectiveSlots(room: any, custom: any[] | undefined | null): Slot[] {
   if (custom && custom.length > 0) {
     return custom
       .map((r) => ({ time: r.time, price: r.price, available: r.available, ...(r.pricePerGroup ? { pricePerGroup: r.pricePerGroup } : {}) }))
@@ -58,12 +58,12 @@ function effectiveSlots(room: any, custom: any[] | undefined | null): Slot[] {
     .sort(byTime);
 }
 
-function isClosedWeekday(room: any, date: string) {
+export function isClosedWeekday(room: any, date: string) {
   const dow = new Date(date + 'T00:00:00').getDay();
   return Array.isArray(room?.operatingDays) && !room.operatingDays.includes(dow);
 }
 
-function toSave(next: Slot[], room: any): Slot[] {
+export function toSave(next: Slot[], room: any): Slot[] {
   const defaults = ((room?.defaultTimeSlots || []) as { time: string; price: number }[]).filter((s) => s.time);
   const same =
     defaults.length > 0 &&
@@ -75,10 +75,10 @@ function toSave(next: Slot[], room: any): Slot[] {
   return same ? [] : next;
 }
 
-const isSlotPast = (date: string, time: string, now: Date) =>
+export const isSlotPast = (date: string, time: string, now: Date) =>
   /^\d{1,2}:\d{2}$/.test(time) && slotStart(date, time).getTime() <= now.getTime();
 
-function errText(err: unknown, fallback: string) {
+export function errText(err: unknown, fallback: string) {
   const data = (err as any)?.data;
   if (typeof data === 'string' && data) return data;
   return fallback;
@@ -102,7 +102,7 @@ function useToast() {
 
 // ─── setSlots with an instant (optimistic) update ─────────
 
-function useSetSlots() {
+export function useSetSlots() {
   const { token, onExpired } = useCompanySession();
   const mutate = useMutation(api.companies.setSlots).withOptimisticUpdate((store, args) => {
     store.setQuery(
@@ -192,7 +192,7 @@ export default function CompanySlots({ companyId }: { companyId: string }) {
                   style={[styles.dayChip, isToday && !selected && styles.dayChipToday, selected && styles.dayChipSelected]}
                 >
                   <Text style={[styles.dayWeek, (selected || isToday) && { color: selected ? '#fff' : theme.colors.redLight }]}>
-                    {isToday ? t('slots.todayShort') : dt.toLocaleDateString(locale, { weekday: 'short' })}
+                    {isToday ? t('slots.todayShort') : stripTonos(dt.toLocaleDateString(locale, { weekday: 'short' }))}
                   </Text>
                   <Text style={[styles.dayNum, selected && { color: '#fff' }]}>{dt.getDate()}</Text>
                   <Text style={[styles.dayMonth, selected && { color: 'rgba(255,255,255,0.8)' }]}>
@@ -946,3 +946,8 @@ const styles = StyleSheet.create({
   checkText: { flex: 1, fontSize: 14, color: theme.colors.bone },
   keptNote: { padding: 10, borderRadius: theme.radius.md, backgroundColor: 'rgba(0,0,0,0.35)', fontSize: 12 },
 });
+
+// Uppercase Greek is written without accents, but textTransform keeps them ("ΤΡΊ").
+export function stripTonos(s: string) {
+  return s.replace(/[άέήίόύώΐΰΆΈΉΊΌΎΏ]/g, (c) => ('αεηιουωϊϋΑΕΗΙΟΥΩ' as string)['άέήίόύώΐΰΆΈΉΊΌΎΏ'.indexOf(c)]);
+}

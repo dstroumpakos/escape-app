@@ -898,7 +898,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   // Tab Bar
-  tabBarScroll: { maxHeight: 48 },
+  tabBarScroll: { flexGrow: 0, flexShrink: 0 },
   tabBar: {
     flexDirection: 'row', gap: 4,
     paddingHorizontal: 20, paddingBottom: 12,

@@ -17,13 +17,9 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
+import BookingCalendar from './BookingCalendar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 interface Props {
   companyId: string;
@@ -31,7 +27,10 @@ interface Props {
 
 export default function CompanyBookings({ companyId }: Props) {
   const navigation = useNavigation<Nav>();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const locale = language === 'el' ? 'el-GR' : 'en-GB';
+  // "schedule" is the rooms x hours calendar (same as the website); "month" picks a day and lists it.
+  const [mode, setMode] = useState<'schedule' | 'month'>('schedule');
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -103,7 +102,26 @@ export default function CompanyBookings({ companyId }: Props) {
         </TouchableOpacity>
       </View>
 
+      <View style={styles.modeRow}>
+        {(['schedule', 'month'] as const).map((m) => (
+          <TouchableOpacity key={m} style={[styles.modeBtn, mode === m && styles.modeBtnActive]} onPress={() => setMode(m)}>
+            <Ionicons
+              name={m === 'schedule' ? 'grid-outline' : 'calendar-outline'}
+              size={14}
+              color={mode === m ? '#fff' : theme.colors.textSecondary}
+            />
+            <Text style={[styles.modeText, mode === m && styles.modeTextActive]}>
+              {t(m === 'schedule' ? 'cal.modeSchedule' : 'cal.modeMonth')}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        {mode === 'schedule' ? (
+          <BookingCalendar companyId={companyId} rooms={rooms} />
+        ) : (
+        <>
         {/* Mini Calendar */}
         <View style={styles.calCard}>
           <View style={styles.calHeader}>
@@ -113,7 +131,9 @@ export default function CompanyBookings({ companyId }: Props) {
             }}>
               <Ionicons name="chevron-back" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
-            <Text style={styles.calMonth}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
+            <Text style={[styles.calMonth, { textTransform: 'capitalize' }]}>
+              {new Date(currentYear, currentMonth, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
+            </Text>
             <TouchableOpacity onPress={() => {
               if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear((y) => y + 1); }
               else setCurrentMonth((m) => m + 1);
@@ -153,8 +173,8 @@ export default function CompanyBookings({ companyId }: Props) {
 
         {/* Date + Count */}
         <View style={styles.dateLabelRow}>
-          <Text style={styles.dateLabel}>
-            {MONTH_NAMES[currentMonth]} {selectedDate}, {currentYear}
+          <Text style={[styles.dateLabel, { textTransform: 'capitalize' }]}>
+            {new Date(currentYear, currentMonth, selectedDate).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
           </Text>
           <Text style={styles.bookingCount}>
             {t('companyBookings.bookings', { n: bookings?.filter((b: any) => b.status !== 'cancelled').length ?? 0 })}
@@ -216,7 +236,7 @@ export default function CompanyBookings({ companyId }: Props) {
                               <View style={[styles.srcBadge, { backgroundColor: sc.bg }]}>
                                 <Text style={[styles.srcBadgeText, { color: sc.text }]}>
                                   {booking.source === 'external'
-                                    ? booking.externalSource || 'External'
+                                    ? booking.externalSource || t('cal.external')
                                     : t('companyBookings.unlocked')}
                                 </Text>
                               </View>
@@ -241,6 +261,8 @@ export default function CompanyBookings({ companyId }: Props) {
               );
             })
         )}
+        </>
+        )}
       </ScrollView>
     </View>
   );
@@ -259,6 +281,19 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     ...theme.shadow.red,
   },
+
+  modeRow: {
+    flexDirection: 'row', gap: 4, marginHorizontal: 20, marginBottom: 12, padding: 3,
+    borderRadius: theme.radius.lg, backgroundColor: theme.colors.bgCardSolid,
+    borderWidth: 1, borderColor: theme.colors.glassBorder,
+  },
+  modeBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: 9, borderRadius: theme.radius.md,
+  },
+  modeBtnActive: { backgroundColor: theme.colors.redPrimary },
+  modeText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  modeTextActive: { color: '#fff' },
 
   calCard: {
     margin: 20, marginBottom: 12, padding: 16, borderRadius: theme.radius.lg,
