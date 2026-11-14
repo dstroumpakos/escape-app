@@ -51,7 +51,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
   const getUrlMutation = useMutation(api.companies.getUrlMutation);
   const [presetForm, setPresetForm] = useState({
     logoPosition: 'bottom-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom-center',
-    brandColor: '#FF1E1E',
+    brandColor: theme.colors.redLight,
     watermarkOpacity: 0.3,
     textTemplate: '',
   });
@@ -85,7 +85,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
     if (photoPreset && !presetLoaded) {
       setPresetForm({
         logoPosition: photoPreset.logoPosition || 'bottom-right',
-        brandColor: photoPreset.brandColor || '#FF1E1E',
+        brandColor: photoPreset.brandColor || theme.colors.redLight,
         watermarkOpacity: photoPreset.watermarkOpacity ?? 0.3,
         textTemplate: photoPreset.textTemplate || '',
       });
@@ -553,7 +553,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
                         style={[styles.opacityBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacityBtnActive]}
                         onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
                       >
-                        <Text style={[styles.opacityBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                        <Text style={[styles.opacityBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: theme.colors.bone }]}>{v}%</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -599,7 +599,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
                       style={[styles.input, { flex: 1 }]}
                       value={presetForm.brandColor}
                       onChangeText={(v) => setPresetForm({ ...presetForm, brandColor: v })}
-                      placeholder="#FF1E1E"
+                      placeholder={theme.colors.redLight}
                       placeholderTextColor={theme.colors.textMuted}
                       autoCapitalize="characters"
                     />
@@ -613,7 +613,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
                         style={[styles.opacityBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacityBtnActive]}
                         onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
                       >
-                        <Text style={[styles.opacityBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                        <Text style={[styles.opacityBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: theme.colors.bone }]}>{v}%</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -638,7 +638,7 @@ export default function CompanySettings({ companyId, onLogout, onSwitchToPlayer,
                 activeOpacity={0.8}
               >
                 {presetSaving ? (
-                  <ActivityIndicator size={16} color="#fff" />
+                  <ActivityIndicator size={16} color={theme.colors.bone} />
                 ) : (
                   <Text style={styles.saveBtnText}>{t('settings.savePhotoPreset')}</Text>
                 )}
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   // Tab Bar
   tabBarScroll: { maxHeight: 48 },
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10,
+    paddingVertical: 8, paddingHorizontal: 14, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.redPrimary,
   },
   tabText: { fontSize: 12, fontWeight: '600', color: theme.colors.textMuted },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: theme.colors.bone },
 
   // Avatar
   avatarSection: { alignItems: 'center', marginBottom: 24 },
@@ -799,14 +799,14 @@ const styles = StyleSheet.create({
   companyEmail: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 8 },
   verifiedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: 5, paddingHorizontal: 12, borderRadius: 20,
+    paddingVertical: 5, paddingHorizontal: 12, borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   verifiedText: { fontSize: 11, fontWeight: '600', color: theme.colors.textMuted },
 
   sectionTitle: {
-    fontSize: 16, fontWeight: '700', color: '#fff',
+    fontSize: 16, fontWeight: '700', color: theme.colors.bone,
     paddingHorizontal: 20, marginBottom: 10, marginTop: 8,
   },
   card: {
@@ -815,7 +815,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  cardTitleText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  cardTitleText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   cardDesc: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20, marginBottom: 8 },
   label: {
     fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary,
@@ -826,7 +826,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14,
+    color: theme.colors.bone, fontSize: 14,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
 
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...theme.shadow.red,
   },
-  saveBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
 
   menuItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -845,7 +845,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuLabel: { fontSize: 15, fontWeight: '500', color: '#fff' },
+  menuLabel: { fontSize: 15, fontWeight: '500', color: theme.colors.bone },
 
   switchBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -873,11 +873,11 @@ const styles = StyleSheet.create({
   eaChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: 'rgba(244,67,54,0.1)', borderWidth: 1, borderColor: 'rgba(244,67,54,0.3)',
-    paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12,
+    paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.lg,
     alignSelf: 'flex-start', marginBottom: 12,
   },
   eaChipText: { fontSize: 10, fontWeight: '700', color: theme.colors.redPrimary, textTransform: 'uppercase', letterSpacing: 1 },
-  eaTitle: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  eaTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 8 },
   eaDesc: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20, marginBottom: 16 },
   eaSteps: { gap: 8, marginBottom: 16 },
   eaStepCard: {
@@ -901,7 +901,7 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
   },
-  eaToggleTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  eaToggleTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   eaToggleDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 
   benefitCard: {
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
   },
-  benefitTitle: { fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 2 },
+  benefitTitle: { fontSize: 14, fontWeight: '600', color: theme.colors.bone, marginBottom: 2 },
   benefitDesc: { fontSize: 11, color: theme.colors.textSecondary, lineHeight: 16 },
   enableEaHint: {
     textAlign: 'center', fontSize: 13, color: theme.colors.textMuted,
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: theme.colors.glassBorder,
   },
   modeOptionActive: { borderColor: theme.colors.redPrimary, backgroundColor: 'rgba(244,67,54,0.08)' },
-  modeLabel: { fontSize: 13, fontWeight: '700', color: '#fff', marginTop: 6 },
+  modeLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.bone, marginTop: 6 },
   modeDesc: { fontSize: 10, color: theme.colors.textMuted, marginTop: 2 },
   modeContent: { marginTop: 8 },
 
@@ -944,17 +944,17 @@ const styles = StyleSheet.create({
 
   positionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   posBtn: {
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8,
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: theme.radius.md,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   posBtnActive: { borderColor: theme.colors.redPrimary, backgroundColor: 'rgba(244,67,54,0.1)' },
   posBtnText: { fontSize: 11, fontWeight: '600', color: theme.colors.textSecondary },
 
-  colorSwatch: { width: 36, height: 36, borderRadius: 8, borderWidth: 2, borderColor: theme.colors.glassBorder },
+  colorSwatch: { width: 36, height: 36, borderRadius: theme.radius.md, borderWidth: 2, borderColor: theme.colors.glassBorder },
 
   opacityBtns: { flexDirection: 'row', gap: 6 },
   opacityBtn: {
-    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8,
+    flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: theme.radius.md,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   opacityBtnActive: { borderColor: theme.colors.redPrimary, backgroundColor: theme.colors.redPrimary },
@@ -972,7 +972,7 @@ const styles = StyleSheet.create({
     marginTop: 12, padding: 14, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  instructionsTitle: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 6 },
+  instructionsTitle: { fontSize: 13, fontWeight: '700', color: theme.colors.bone, marginBottom: 6 },
   instructionsText: { fontSize: 11, color: theme.colors.textMuted, lineHeight: 18 },
 
   goToPhotosBtn: {
@@ -992,7 +992,7 @@ const styles = StyleSheet.create({
   },
   copyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10,
+    paddingVertical: 6, paddingHorizontal: 12, borderRadius: theme.radius.md,
     backgroundColor: 'rgba(244,67,54,0.1)',
     borderWidth: 1, borderColor: 'rgba(244,67,54,0.3)',
   },

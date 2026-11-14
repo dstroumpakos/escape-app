@@ -74,7 +74,7 @@ export default function CompanyPlanModal({ visible, onClose, companyId, currentP
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t('settings.subscriptionPlan')}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color="#fff" />
+            <Ionicons name="close" size={24} color={theme.colors.bone} />
           </TouchableOpacity>
         </View>
 
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16,
     borderBottomWidth: 1, borderBottomColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   closeBtn: { padding: 4 },
   scrollContent: { padding: 20, paddingBottom: 40 },
   subtitle: { fontSize: 16, color: theme.colors.textSecondary, marginBottom: 24, textAlign: 'center' },
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
   },
   periodText: { fontSize: 14, fontWeight: '600', color: theme.colors.textMuted },
-  periodTextActive: { color: '#fff' },
+  periodTextActive: { color: theme.colors.bone },
 
   planCard: {
     backgroundColor: theme.colors.bgCardSolid,
@@ -217,20 +217,20 @@ const styles = StyleSheet.create({
     position: 'absolute', top: -12, right: 20,
     backgroundColor: theme.colors.redPrimary,
     paddingHorizontal: 12, paddingVertical: 4,
-    borderRadius: 12, zIndex: 10,
+    borderRadius: theme.radius.lg, zIndex: 10,
   },
-  popularText: { color: '#fff', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  popularText: { color: theme.colors.bone, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   currentBadge: {
     backgroundColor: theme.colors.success,
     paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
   },
-  currentText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  currentText: { color: theme.colors.bone, fontSize: 12, fontWeight: '700' },
 
   planHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 20 },
   iconBox: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  planName: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  planPrice: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  planName: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 4 },
+  planPrice: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   planPeriod: { fontSize: 14, fontWeight: '500', color: theme.colors.textSecondary },
 
   featuresList: { gap: 12 },
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     marginTop: 20, paddingVertical: 12, borderRadius: theme.radius.md,
     alignItems: 'center',
   },
-  selectBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  selectBtnText: { color: theme.colors.bone, fontSize: 16, fontWeight: '700' },
 
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

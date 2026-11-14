@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { EyeKeyhole } from '../components/EyeKeyhole';
 import { useTranslation } from '../i18n';
 import { Flicker, Heartbeat, Typewriter } from '../components/motion';
 
@@ -49,7 +50,7 @@ export default function SplashScreen({ onComplete }: Props) {
         <Animated.View style={[styles.iconWrap, { opacity: glowAnim }]}>
           <Heartbeat rest={900}>
             <View style={styles.iconCircle}>
-              <Ionicons name="lock-closed-outline" size={48} color={theme.colors.redLight} />
+              <EyeKeyhole size={62} />
             </View>
           </Heartbeat>
         </Animated.View>

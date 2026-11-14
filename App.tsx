@@ -45,6 +45,7 @@ import MapViewScreen from './src/screens/MapView';
 import SocialScreen from './src/screens/SocialScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import LeaderboardScreen from './src/screens/LeaderboardScreen';
 
 // Legal & Settings Screens (Apple Guidelines compliance)
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
@@ -490,6 +491,7 @@ export default function App() {
                   </Stack.Screen>
                   <Stack.Screen name="Notifications" component={NotificationsScreen} />
                   <Stack.Screen name="Friends" component={FriendsScreen} />
+                  <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />

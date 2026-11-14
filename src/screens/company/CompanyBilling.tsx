@@ -109,7 +109,7 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('billing.title')}</Text>
         <Ionicons name="receipt-outline" size={22} color={theme.colors.redPrimary} />
@@ -280,9 +280,9 @@ export default function CompanyBilling({ companyId, onBack }: Props) {
             activeOpacity={0.8}
           >
             {portalLoading ? (
-              <ActivityIndicator size={18} color="#fff" />
+              <ActivityIndicator size={18} color={theme.colors.bone} />
             ) : (
-              <Ionicons name="open-outline" size={18} color="#fff" />
+              <Ionicons name="open-outline" size={18} color={theme.colors.bone} />
             )}
             <Text style={styles.portalBtnText}>{t('billing.manageSubscription')}</Text>
           </TouchableOpacity>
@@ -323,7 +323,7 @@ const detailStyles = StyleSheet.create({
   },
   label: { fontSize: 13, color: theme.colors.textSecondary },
   valueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  value: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  value: { fontSize: 13, fontWeight: '600', color: theme.colors.bone },
   mono: { fontFamily: 'monospace', fontSize: 11, color: theme.colors.textSecondary },
 });
 
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', flex: 1 },
+  headerTitle: { fontSize: 22, fontFamily: theme.fonts.display, color: theme.colors.bone, flex: 1 },
 
   errorCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -364,12 +364,12 @@ const styles = StyleSheet.create({
   cardLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 8 },
   planBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 12,
+    paddingVertical: 6, paddingHorizontal: 14, borderRadius: theme.radius.lg,
   },
   planBadgeText: { fontSize: 16, fontWeight: '800' },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10,
+    paddingVertical: 5, paddingHorizontal: 10, borderRadius: theme.radius.md,
   },
   statusText: { fontSize: 12, fontWeight: '600' },
 
@@ -379,12 +379,12 @@ const styles = StyleSheet.create({
   },
   statIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   statLabel: { fontSize: 10, fontWeight: '600', color: theme.colors.textSecondary, textTransform: 'uppercase', letterSpacing: 1 },
-  statValue: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  statValue: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   statPeriod: { fontSize: 13, fontWeight: '400', color: theme.colors.textSecondary },
   saveBadge: { fontSize: 11, color: '#4CAF50', fontWeight: '600', marginTop: 4 },
 
   cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  cardTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  cardTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.bone },
 
   warningCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary, paddingVertical: 14,
     borderRadius: theme.radius.full, ...theme.shadow.red,
   },
-  portalBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  portalBtnText: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
 
   noCustomerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12,

@@ -56,6 +56,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Notifications: undefined;
   Friends: undefined;
+  Leaderboard: undefined;
   RoomDetails: { id: string };
   DateTimeSelect: { id: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };

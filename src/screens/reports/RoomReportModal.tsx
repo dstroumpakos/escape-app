@@ -102,7 +102,7 @@ export default function RoomReportModal({
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{t('reports.room.title')}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityLabel={t('reports.close')}>
-            <Ionicons name="close" size={22} color="#fff" />
+            <Ionicons name="close" size={22} color={theme.colors.bone} />
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
@@ -154,7 +154,7 @@ export default function RoomReportModal({
                   onPress={() => setPhotos((p) => p.filter((_, j) => j !== i))}
                   accessibilityLabel={t('reports.room.removePhoto')}
                 >
-                  <Ionicons name="close" size={14} color="#fff" />
+                  <Ionicons name="close" size={14} color={theme.colors.bone} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -171,7 +171,7 @@ export default function RoomReportModal({
           </View>
 
           <TouchableOpacity style={[styles.submit, !canSend && { opacity: 0.4 }]} disabled={!canSend} onPress={send}>
-            {sending ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{t('reports.room.submit')}</Text>}
+            {sending ? <ActivityIndicator color={theme.colors.bone} /> : <Text style={styles.submitText}>{t('reports.room.submit')}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: 20, paddingHorizontal: 20, paddingBottom: 8,
   },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: '#fff' },
+  headerTitle: { flex: 1, fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   closeBtn: {
     width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.colors.glass,
   },
   sub: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '700', color: theme.colors.bone, marginBottom: 8 },
   muted: { fontSize: 12, color: theme.colors.textMuted },
   option: {
     flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, marginBottom: 8,
@@ -199,14 +199,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
   },
   optionOn: { borderColor: theme.colors.redPrimary },
-  optionTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  optionTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.bone, marginBottom: 2 },
   input: {
     minHeight: 120, padding: 12, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, textAlignVertical: 'top',
+    color: theme.colors.bone, fontSize: 14, textAlignVertical: 'top',
   },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  photo: { width: 72, height: 72, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.colors.glass },
+  photo: { width: 72, height: 72, borderRadius: theme.radius.md, overflow: 'hidden', backgroundColor: theme.colors.glass },
   photoAdd: {
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderStyle: 'dashed', borderColor: theme.colors.glassBorder,
@@ -223,5 +223,5 @@ const styles = StyleSheet.create({
     marginTop: 20, paddingVertical: 16, borderRadius: theme.radius.full,
     backgroundColor: theme.colors.redPrimary, alignItems: 'center',
   },
-  submitText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 });

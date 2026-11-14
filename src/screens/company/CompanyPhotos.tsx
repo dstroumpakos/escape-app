@@ -244,7 +244,7 @@ export default function CompanyPhotos({ companyId }: Props) {
                       }}
                       disabled={uploading}
                     >
-                      <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
+                      <Ionicons name="cloud-upload-outline" size={16} color={theme.colors.bone} />
                       <Text style={styles.uploadBtnText}>{t('photos.upload')}</Text>
                     </TouchableOpacity>
                     <Ionicons
@@ -294,9 +294,9 @@ export default function CompanyPhotos({ companyId }: Props) {
                             disabled={processing === booking._id}
                           >
                             {processing === booking._id ? (
-                              <ActivityIndicator size={16} color="#fff" />
+                              <ActivityIndicator size={16} color={theme.colors.bone} />
                             ) : (
-                              <Ionicons name="images-outline" size={16} color="#fff" />
+                              <Ionicons name="images-outline" size={16} color={theme.colors.bone} />
                             )}
                             <Text style={styles.processBtnText}>{t('photos.processAll')}</Text>
                           </TouchableOpacity>
@@ -355,7 +355,7 @@ export default function CompanyPhotos({ companyId }: Props) {
             style={styles.previewClose}
             onPress={() => setPreviewUrl(null)}
           >
-            <Ionicons name="close" size={24} color="#fff" />
+            <Ionicons name="close" size={24} color={theme.colors.bone} />
           </TouchableOpacity>
           {previewUrl && (
             <Image
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   subtitle: {
     fontSize: 13, color: theme.colors.textSecondary,
     paddingHorizontal: 20, marginBottom: 16,
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, gap: 12,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptyText: { fontSize: 13, color: theme.colors.textMuted, textAlign: 'center' },
 
   bookingCard: {
@@ -404,9 +404,9 @@ const styles = StyleSheet.create({
   },
   bookingInfo: { flex: 1 },
   bookingTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  bookingRoom: { fontSize: 15, fontWeight: '700', color: '#fff', flexShrink: 1 },
+  bookingRoom: { fontSize: 15, fontWeight: '700', color: theme.colors.bone, flexShrink: 1 },
   photoBadge: {
-    backgroundColor: 'rgba(244,67,54,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: 'rgba(244,67,54,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: theme.radius.md,
   },
   photoBadgeText: { fontSize: 10, fontWeight: '700', color: theme.colors.redPrimary },
   bookingMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary, paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: theme.radius.md,
   },
-  uploadBtnText: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  uploadBtnText: { fontSize: 12, fontWeight: '600', color: theme.colors.bone },
 
   photosSection: {
     borderTopWidth: 1, borderTopColor: theme.colors.glassBorder, padding: 16,
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary, paddingVertical: 12,
     borderRadius: theme.radius.md, marginBottom: 8,
   },
-  processBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  processBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.bone },
 
   allReadyRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center',
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     padding: 32, alignItems: 'center', width: '80%',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  uploadModalText: { fontSize: 16, fontWeight: '600', color: '#fff', marginTop: 16 },
+  uploadModalText: { fontSize: 16, fontWeight: '600', color: theme.colors.bone, marginTop: 16 },
   progressBar: {
     width: '100%', height: 6, borderRadius: 3,
     backgroundColor: theme.colors.glass, marginTop: 16, overflow: 'hidden',

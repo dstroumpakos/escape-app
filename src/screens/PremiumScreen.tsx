@@ -29,11 +29,11 @@ export default function PremiumScreen() {
   const { t } = useTranslation();
 
   const PLAN_BENEFITS = [
-    { icon: 'rocket-outline' as const, title: t('premium.benefitEarlyAccess'), desc: t('premium.benefitEarlyAccessDesc'), color: '#FF1E1E' },
+    { icon: 'rocket-outline' as const, title: t('premium.benefitEarlyAccess'), desc: t('premium.benefitEarlyAccessDesc'), color: theme.colors.redLight },
     { icon: 'diamond-outline' as const, title: t('premium.benefitBadge'), desc: t('premium.benefitBadgeDesc'), color: '#CE93D8' },
     { icon: 'notifications-outline' as const, title: t('premium.benefitNotifications'), desc: t('premium.benefitNotificationsDesc'), color: '#42A5F5' },
     { icon: 'headset-outline' as const, title: t('premium.benefitSupport'), desc: t('premium.benefitSupportDesc'), color: '#4CAF50' },
-    { icon: 'star-outline' as const, title: t('premium.benefitPartners'), desc: t('premium.benefitPartnersDesc'), color: '#FFD700' },
+    { icon: 'star-outline' as const, title: t('premium.benefitPartners'), desc: t('premium.benefitPartnersDesc'), color: theme.colors.gold },
     { icon: 'shield-checkmark-outline' as const, title: t('premium.benefitCommunity'), desc: t('premium.benefitCommunityDesc'), color: '#FFA726' },
   ];
   const navigation = useNavigation();
@@ -191,7 +191,7 @@ export default function PremiumScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('premium.headerTitle')}</Text>
       </View>
@@ -199,7 +199,7 @@ export default function PremiumScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 140 }}>
         {/* Hero */}
         <LinearGradient
-          colors={['rgba(255,30,30,0.15)', 'rgba(255,30,30,0.03)', 'transparent']}
+          colors={['rgba(200, 16, 27, 0.15)', 'rgba(200, 16, 27, 0.03)', 'transparent']}
           style={styles.heroBg}
         >
           <View style={styles.heroIcon}>
@@ -358,10 +358,10 @@ export default function PremiumScreen() {
               style={styles.subscribeBtnGrad}
             >
               {subscribing ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={theme.colors.bone} />
               ) : (
                 <>
-                  <Ionicons name="diamond" size={20} color="#fff" />
+                  <Ionicons name="diamond" size={20} color={theme.colors.bone} />
                   <Text style={styles.subscribeBtnText}>
                     {selectedPlan === 'yearly' ? t('premium.subscribeYearly') : t('premium.subscribeMonthly')}
                   </Text>
@@ -387,18 +387,18 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   // Hero
   heroBg: { paddingTop: 20, paddingBottom: 30, alignItems: 'center' },
   heroIcon: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(255,30,30,0.12)',
+    backgroundColor: 'rgba(200, 16, 27, 0.12)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
-    borderWidth: 1, borderColor: 'rgba(255,30,30,0.2)',
+    borderWidth: 1, borderColor: 'rgba(200, 16, 27, 0.2)',
   },
-  heroTitle: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 8 },
+  heroTitle: { fontSize: 28, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 8 },
   heroSubtitle: {
     fontSize: 15, color: theme.colors.textSecondary, textAlign: 'center',
     paddingHorizontal: 40, lineHeight: 22,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
 
   // Sections
   sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: '#fff',
+    fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone,
     paddingHorizontal: 20, marginBottom: 14, marginTop: 8,
   },
 
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: theme.colors.redSubtle,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,30,30,0.3)',
+    borderWidth: 1, borderColor: 'rgba(200, 16, 27, 0.3)',
     marginRight: 10,
   },
   stepNum: { fontSize: 12, fontWeight: '800', color: theme.colors.redPrimary },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     width: 44, height: 44, borderRadius: 22,
     alignItems: 'center', justifyContent: 'center',
   },
-  perkTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  perkTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   perkDesc: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
 
   // Plans
@@ -473,16 +473,16 @@ const styles = StyleSheet.create({
   },
   planCardActive: {
     borderColor: theme.colors.redPrimary,
-    backgroundColor: 'rgba(255,30,30,0.05)',
+    backgroundColor: 'rgba(200, 16, 27, 0.05)',
   },
   saveBadge: {
     position: 'absolute', top: -10,
     paddingVertical: 3, paddingHorizontal: 10,
-    borderRadius: 10, backgroundColor: '#4CAF50',
+    borderRadius: theme.radius.md, backgroundColor: '#4CAF50',
   },
-  saveText: { fontSize: 9, fontWeight: '800', color: '#fff' },
-  planPrice: { fontSize: 28, fontWeight: '900', color: theme.colors.textSecondary, marginTop: 8 },
-  planPriceActive: { color: '#fff' },
+  saveText: { fontSize: 9, fontWeight: '800', color: theme.colors.bone },
+  planPrice: { fontSize: 28, fontFamily: theme.fonts.display, color: theme.colors.textSecondary, marginTop: 8 },
+  planPriceActive: { color: theme.colors.bone },
   planPeriod: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
   planPerMonth: { fontSize: 11, color: theme.colors.textMuted, marginTop: 6 },
   planRadio: {
@@ -538,6 +538,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     paddingVertical: 18, borderRadius: theme.radius.full,
   },
-  subscribeBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
+  subscribeBtnText: { fontSize: 17, fontWeight: '800', color: theme.colors.bone },
   footerNote: { fontSize: 11, color: theme.colors.textMuted, marginTop: 8 },
 });

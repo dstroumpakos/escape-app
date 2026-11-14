@@ -32,8 +32,18 @@ async function syncLanguageToDB(lang: Language) {
   }
 }
 
+/** First launch: follow the phone. Greek phones get Greek, everyone else English. */
+function deviceLanguage(): Language {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale || '';
+    return locale.toLowerCase().startsWith('el') ? 'el' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<Language>('el');
+  const [language, setLanguageState] = useState<Language>(deviceLanguage);
 
   // Load saved language on mount and sync to DB
   React.useEffect(() => {
@@ -42,7 +52,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLanguageState(saved);
         syncLanguageToDB(saved);
       } else {
-        syncLanguageToDB('el');
+        syncLanguageToDB(deviceLanguage());
       }
     });
   }, []);

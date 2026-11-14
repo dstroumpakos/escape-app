@@ -91,14 +91,14 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
               style={[styles.addBtn, { backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder }]}
               onPress={onSwitchToPlayer}
             >
-              <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
+              <Ionicons name="phone-portrait-outline" size={20} color={theme.colors.bone} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
           >
-            <Ionicons name="add" size={22} color="#fff" />
+            <Ionicons name="add" size={22} color={theme.colors.bone} />
           </TouchableOpacity>
         </View>
       </View>
@@ -195,7 +195,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             <View style={styles.analyticsGrid}>
               <MiniStat icon="checkmark-circle" color="#4CAF50" label="Completed" value={advanced.completedBookings} />
               <MiniStat icon="close-circle" color="#F44336" label="Cancelled" value={advanced.cancelledBookings} />
-              <MiniStat icon="star" color="#FFD700" label="Avg Rating" value={advanced.avgRating} />
+              <MiniStat icon="star" color={theme.colors.gold} label="Avg Rating" value={advanced.avgRating} />
               <MiniStat icon="trending-up" color="#42A5F5" label="Conversion" value={`${advanced.conversionRate}%`} />
               <MiniStat icon="cash" color="#4CAF50" label="Avg €/Booking" value={`€${advanced.avgRevenuePerBooking}`} />
             </View>
@@ -279,7 +279,7 @@ function OverviewLine({ label, value, max, color, noBar }: { label: string; valu
     <View style={{ marginBottom: 10 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 }}>
         <Text style={{ fontSize: 11, color: theme.colors.textMuted }}>{label}</Text>
-        <Text style={{ fontSize: 13, fontWeight: '700', color: '#fff' }}>{value}</Text>
+        <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.bone }}>{value}</Text>
       </View>
       {!noBar && (
         <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.06)' }}>
@@ -298,7 +298,7 @@ function MiniStat({ icon, color, label, value }: { icon: string; color: string; 
       borderWidth: 1, borderColor: theme.colors.glassBorder,
     }}>
       <Ionicons name={icon as any} size={18} color={color} />
-      <Text style={{ fontSize: 18, fontWeight: '800', color: '#fff', marginTop: 4 }}>{value}</Text>
+      <Text style={{ fontSize: 18, fontWeight: '800', color: theme.colors.bone, marginTop: 4 }}>{value}</Text>
       <Text style={{ fontSize: 9, color: theme.colors.textMuted, marginTop: 2 }}>{label}</Text>
     </View>
   );
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
   greeting: { fontSize: 14, color: theme.colors.textSecondary },
-  companyName: { fontSize: 24, fontWeight: '800', color: '#fff', marginTop: 2 },
+  companyName: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone, marginTop: 2 },
   addBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: theme.colors.redPrimary,
@@ -326,10 +326,10 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  dateText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  dateText: { fontSize: 14, fontWeight: '600', color: theme.colors.bone },
   planBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10,
+    paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.md,
   },
   planBadgeText: { fontSize: 10, fontWeight: '700' },
 
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 14, left: 0, right: 0,
     height: 90, alignItems: 'center', justifyContent: 'center',
   },
-  donutVal: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  donutVal: { fontSize: 22, fontFamily: theme.fonts.display, color: theme.colors.bone },
   donutMax: { fontSize: 10, color: theme.colors.textMuted },
   donutLabel: { fontSize: 10, color: theme.colors.textMuted, marginTop: 6 },
 
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: theme.colors.glassBorder,
   },
   insightLabel: { fontSize: 13, color: theme.colors.textMuted },
-  insightVal: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  insightVal: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   upsellBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 20, marginBottom: 20, padding: 16,
@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  statVal: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  statVal: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   statLabel: { fontSize: 10, color: theme.colors.textMuted, marginTop: 2 },
 
   sourceBreakdown: {
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   sourceLabel: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '600' },
 
   sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: '#fff',
+    fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone,
     paddingHorizontal: 20, marginBottom: 14,
   },
 
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder, gap: 8,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptyText: { fontSize: 13, color: theme.colors.textMuted, textAlign: 'center' },
 
   bookingCard: {
@@ -431,10 +431,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 4,
   },
-  bookingTime: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  bookingTime: { fontSize: 16, fontWeight: '800', color: theme.colors.bone },
   sourceBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 3, paddingHorizontal: 8, borderRadius: 10,
+    paddingVertical: 3, paddingHorizontal: 8, borderRadius: theme.radius.md,
   },
   sourceBadgeText: { fontSize: 10, fontWeight: '700' },
   bookingRoom: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 6 },

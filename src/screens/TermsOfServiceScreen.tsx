@@ -25,7 +25,7 @@ export default function TermsOfServiceScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('tos.title')}</Text>
       </View>
@@ -59,11 +59,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   content: { paddingHorizontal: 20, paddingBottom: 60 },
   lastUpdated: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 16 },
   intro: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 22, marginBottom: 24 },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.bone, marginBottom: 8 },
   sectionBody: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 22 },
 });

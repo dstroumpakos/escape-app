@@ -56,7 +56,7 @@ export default function FriendsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('friends.title')}</Text>
         <View style={{ width: 40 }} />
@@ -95,7 +95,7 @@ export default function FriendsScreen() {
                 <Ionicons name="people-outline" size={48} color={theme.colors.textMuted} />
                 <Text style={styles.emptyText}>{t('friends.noFriends')}</Text>
                 <TouchableOpacity style={styles.emptyBtn} onPress={() => setActiveTab('search')}>
-                  <Ionicons name="search" size={16} color="#fff" />
+                  <Ionicons name="search" size={16} color={theme.colors.bone} />
                   <Text style={styles.emptyBtnText}>{t('friends.findFriends')}</Text>
                 </TouchableOpacity>
               </View>
@@ -177,7 +177,7 @@ export default function FriendsScreen() {
                         userId: userId as Id<'users'>,
                       })}
                     >
-                      <Ionicons name="checkmark" size={18} color="#fff" />
+                      <Ionicons name="checkmark" size={18} color={theme.colors.bone} />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.declineBtn}
@@ -274,7 +274,7 @@ export default function FriendsScreen() {
                         }
                       }}
                     >
-                      <Ionicons name="person-add" size={16} color="#fff" />
+                      <Ionicons name="person-add" size={16} color={theme.colors.bone} />
                       <Text style={styles.addBtnText}>{t('friends.addFriend')}</Text>
                     </TouchableOpacity>
                   )}
@@ -295,12 +295,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 16,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40, height: 40, borderRadius: theme.radius.lg,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   // Tabs
   tabs: {
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, borderRadius: 12, gap: 6,
+    paddingVertical: 10, borderRadius: theme.radius.lg, gap: 6,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
@@ -317,20 +317,20 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.redPrimary,
   },
   tabText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: theme.colors.bone },
   badge: {
     minWidth: 18, height: 18, borderRadius: 9,
     backgroundColor: '#FF4444', alignItems: 'center',
     justifyContent: 'center', paddingHorizontal: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
+  badgeText: { fontSize: 10, fontWeight: '800', color: theme.colors.bone },
 
   content: { flex: 1, paddingHorizontal: 20 },
 
   // Cards
   card: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, marginBottom: 10, borderRadius: 16,
+    padding: 14, marginBottom: 10, borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
@@ -339,9 +339,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarInitial: { fontSize: 18, fontWeight: '800', color: theme.colors.redPrimary },
+  avatarInitial: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.redPrimary },
   cardInfo: { flex: 1, gap: 2 },
-  cardName: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  cardName: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
   cardSub: { fontSize: 12, color: theme.colors.textMuted },
 
   // Remove button
@@ -370,18 +370,18 @@ const styles = StyleSheet.create({
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
-    borderRadius: 14, backgroundColor: theme.colors.glass,
+    borderRadius: theme.radius.lg, backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#fff' },
+  searchInput: { flex: 1, fontSize: 15, color: theme.colors.bone },
 
   // Add button
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.redPrimary,
   },
-  addBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  addBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.bone },
 
   // Status badges
   friendsBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   emptyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginTop: 8, paddingHorizontal: 20, paddingVertical: 10,
-    borderRadius: 20, backgroundColor: theme.colors.redPrimary,
+    borderRadius: theme.radius.xl, backgroundColor: theme.colors.redPrimary,
   },
-  emptyBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  emptyBtnText: { fontSize: 13, fontWeight: '700', color: theme.colors.bone },
 });

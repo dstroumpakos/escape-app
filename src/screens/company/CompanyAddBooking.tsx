@@ -162,7 +162,7 @@ export default function CompanyAddBooking() {
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('addBooking.title')}</Text>
       </View>
@@ -372,7 +372,7 @@ export default function CompanyAddBooking() {
         >
           <Ionicons
             name={bookingType === 'external' ? 'ban-outline' : 'checkmark-circle'}
-            size={18} color="#fff" style={{ marginRight: 8 }}
+            size={18} color={theme.colors.bone} style={{ marginRight: 8 }}
           />
           <Text style={styles.saveBtnText}>
             {saving
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   typeToggle: {
     flexDirection: 'row', gap: 10, marginHorizontal: 20, marginBottom: 16,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFA726',
   },
   typeBtnText: { fontSize: 13, fontWeight: '600', color: theme.colors.textMuted },
-  typeBtnTextActive: { color: '#fff' },
+  typeBtnTextActive: { color: theme.colors.bone },
 
   infoBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14,
+    color: theme.colors.bone, fontSize: 14,
   },
   textArea: { minHeight: 70, textAlignVertical: 'top' },
 
@@ -468,7 +468,7 @@ const styles = StyleSheet.create({
   roomCardActive: {
     backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary,
   },
-  roomCardTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },
+  roomCardTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.bone, marginBottom: 2 },
   roomCardTitleActive: { color: theme.colors.redPrimary },
   roomCardMeta: { fontSize: 11, color: theme.colors.textMuted },
 
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary,
   },
   slotChipBooked: { opacity: 0.4 },
-  slotChipText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  slotChipText: { fontSize: 13, fontWeight: '600', color: theme.colors.bone },
   slotChipTextActive: { color: theme.colors.redPrimary },
   slotChipTextBooked: { textDecorationLine: 'line-through' },
   slotBookedLabel: {
@@ -507,5 +507,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
     ...theme.shadow.red,
   },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 });

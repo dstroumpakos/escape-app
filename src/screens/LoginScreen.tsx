@@ -17,6 +17,7 @@ import { useMutation } from 'convex/react';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
+import { EyeKeyhole } from '../components/EyeKeyhole';
 import { useTranslation } from '../i18n';
 
 interface Props {
@@ -133,7 +134,7 @@ export default function LoginScreen({ onLogin }: Props) {
           {/* Logo */}
           <View style={styles.logoSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="lock-closed-outline" size={40} color={theme.colors.redPrimary} />
+              <EyeKeyhole size={52} />
             </View>
             <Text style={styles.appTitle}>{t('login.title')}</Text>
             <Text style={styles.appSubtitle}>
@@ -227,13 +228,13 @@ export default function LoginScreen({ onLogin }: Props) {
                 style={styles.submitGradient}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={theme.colors.bone} />
                 ) : (
                   <>
                     <Text style={styles.submitText}>
                       {isRegister ? t('login.createAccountBtn') : t('login.signIn')}
                     </Text>
-                    <Ionicons name="arrow-forward" size={20} color="#fff" />
+                    <Ionicons name="arrow-forward" size={20} color={theme.colors.bone} />
                   </>
                 )}
               </LinearGradient>
@@ -311,8 +312,8 @@ const styles = StyleSheet.create({
   },
   appTitle: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
+    fontFamily: theme.fonts.display,
+    color: theme.colors.bone,
     letterSpacing: 4,
   },
   appSubtitle: {
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
     paddingHorizontal: 14,
@@ -338,7 +339,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#fff',
+    color: theme.colors.bone,
     fontSize: 15,
   },
   eyeBtn: {
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 8,
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     overflow: 'hidden',
   },
   submitBtnDisabled: {
@@ -369,7 +370,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitText: {
-    color: '#fff',
+    color: theme.colors.bone,
     fontSize: 16,
     fontWeight: '700',
   },

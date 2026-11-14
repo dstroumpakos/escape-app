@@ -134,7 +134,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
                   end={{ x: 1, y: 0 }}
                   style={styles.locationBtnGrad}
                 >
-                  <Ionicons name="navigate" size={18} color="#fff" />
+                  <Ionicons name="navigate" size={18} color={theme.colors.bone} />
                   <Text style={styles.locationBtnText}>{t('onboarding.enableLocation')}</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -146,7 +146,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
             ) : locationStatus === 'granted' ? (
               <View style={styles.locationState}>
                 <View style={styles.locationSuccessCircle}>
-                  <Ionicons name="checkmark" size={28} color="#fff" />
+                  <Ionicons name="checkmark" size={28} color={theme.colors.bone} />
                 </View>
                 <Text style={styles.locationSuccessText}>{cityName}</Text>
                 <Text style={styles.locationStateText}>{t('onboarding.locationHint')}</Text>
@@ -213,7 +213,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
           <Text style={styles.ctaText}>
             {step === TOTAL_STEPS - 1 ? t('onboarding.getStarted') : step === 1 ? (locationStatus === 'idle' ? t('onboarding.skipForNow') : t('onboarding.continue')) : t('onboarding.next')}
           </Text>
-          <Ionicons name="chevron-forward" size={18} color="#fff" />
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.bone} />
         </TouchableOpacity>
         {step < TOTAL_STEPS - 1 && (
           <TouchableOpacity onPress={onComplete}>
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   title: {
-    fontSize: 32, fontWeight: '800', color: '#fff',
+    fontSize: 32, fontFamily: theme.fonts.display, color: theme.colors.bone,
     lineHeight: 40, marginBottom: 12,
   },
   desc: {
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.redPrimary,
   },
   themeEmoji: { fontSize: 28 },
-  themeName: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  themeName: { fontSize: 14, fontWeight: '600', color: theme.colors.bone },
 
   mockCard: {
     backgroundColor: theme.colors.bgCard,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   mockHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     padding: 12, paddingHorizontal: 16,
-    backgroundColor: 'rgba(255,30,30,0.08)',
+    backgroundColor: 'rgba(200, 16, 27, 0.08)',
   },
   mockHeaderText: {
     fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary,
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#3a1a1a',
   },
   mockInfo: { justifyContent: 'center', gap: 2 },
-  mockTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  mockTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
   mockDate: { fontSize: 13, color: theme.colors.textSecondary },
   mockStatus: { fontSize: 13, fontWeight: '600', color: theme.colors.success, marginTop: 2 },
   footer: {
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     ...theme.shadow.red,
   },
-  ctaText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  ctaText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   skipText: { fontSize: 14, color: theme.colors.textMuted },
 
   // Location step
@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(255, 30, 30, 0.1)',
+    backgroundColor: 'rgba(200, 16, 27, 0.1)',
     borderWidth: 2,
-    borderColor: 'rgba(255, 30, 30, 0.3)',
+    borderColor: 'rgba(200, 16, 27, 0.3)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255, 30, 30, 0.05)',
+    backgroundColor: 'rgba(200, 16, 27, 0.05)',
     top: -20,
   },
   locationBtn: {
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   locationBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.bone,
   },
   locationState: {
     alignItems: 'center',
@@ -382,8 +382,8 @@ const styles = StyleSheet.create({
   },
   locationSuccessText: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#fff',
+    fontFamily: theme.fonts.display,
+    color: theme.colors.bone,
   },
   locationHint: {
     fontSize: 12,

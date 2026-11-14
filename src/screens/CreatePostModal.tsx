@@ -190,7 +190,7 @@ export default function CreatePostModal({ visible, onClose }: Props) {
                     <Ionicons
                       name={star <= rating ? 'star' : 'star-outline'}
                       size={28}
-                      color={star <= rating ? '#FFD700' : theme.colors.textMuted}
+                      color={star <= rating ? theme.colors.gold : theme.colors.textMuted}
                     />
                   </TouchableOpacity>
                 ))}
@@ -205,11 +205,11 @@ export default function CreatePostModal({ visible, onClose }: Props) {
                     <Image source={{ uri: m.uri }} style={styles.mediaImage} />
                     {m.type === 'video' && (
                       <View style={styles.videoOverlay}>
-                        <Ionicons name="play-circle" size={28} color="#fff" />
+                        <Ionicons name="play-circle" size={28} color={theme.colors.bone} />
                       </View>
                     )}
                     <TouchableOpacity style={styles.removeMedia} onPress={() => removeMedia(i)}>
-                      <Ionicons name="close-circle" size={22} color="#fff" />
+                      <Ionicons name="close-circle" size={22} color={theme.colors.bone} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -258,13 +258,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.bone },
   cancelText: { fontSize: 15, color: theme.colors.textSecondary },
   postBtnText: { fontSize: 15, fontWeight: '700', color: theme.colors.redPrimary },
   postBtnDisabled: { opacity: 0.4 },
   body: { padding: 20 },
   textInput: {
-    color: '#fff',
+    color: theme.colors.bone,
     fontSize: 16,
     lineHeight: 22,
     minHeight: 100,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   mediaThumb: {
     width: 100,
     height: 100,
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
     marginRight: 10,
     overflow: 'hidden',
   },

@@ -9,12 +9,13 @@ import {
   ScrollView,
   Platform,
   Animated,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { RoomRow } from '../components/RoomCard';
+import { RoomCard, RoomRow } from '../components/RoomCard';
 import { DifficultySkulls, PrimaryButton } from '../components/ui';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -88,7 +89,32 @@ export default function DiscoverScreen() {
   // No saved or device location: frame the rooms themselves instead of a fixed city
   const [locationUnavailable, setLocationUnavailable] = useState(false);
 
-  const filtered = activeFilter === 'All' ? rooms : rooms.filter((r) => r.theme === activeFilter);
+  const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'rating' | 'price' | 'duration'>('rating');
+  const [listMode, setListMode] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  // Same search and sort as the website's Discover page
+  const filtered = React.useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const lowest = (r: any) =>
+      r.pricePerGroup?.length ? Math.min(...r.pricePerGroup.map((g: any) => g.price)) : r.price ?? 0;
+    return rooms
+      .filter((r) => activeFilter === 'All' || r.theme === activeFilter)
+      .filter(
+        (r) =>
+          !q ||
+          r.title?.toLowerCase().includes(q) ||
+          r.location?.toLowerCase().includes(q) ||
+          r.theme?.toLowerCase().includes(q) ||
+          r.companyName?.toLowerCase().includes(q),
+      )
+      .sort((a, b) => {
+        if (sortBy === 'price') return lowest(a) - lowest(b);
+        if (sortBy === 'duration') return (a.duration ?? 0) - (b.duration ?? 0);
+        return (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0);
+      });
+  }, [convexRooms, activeFilter, query, sortBy]);
 
   const filterLabels: Record<string, string> = {
     All: t('discover.all'),
@@ -271,7 +297,10 @@ export default function DiscoverScreen() {
       </MapView>
 
       {/* Header overlay */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View
+        style={[styles.header, { paddingTop: insets.top + 8 }]}
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+      >
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>{t('discover.title')}</Text>
@@ -281,10 +310,40 @@ export default function DiscoverScreen() {
             </View>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerBtn} onPress={handleRecenter}>
-              <Ionicons name="map-outline" size={18} color={theme.colors.bone} />
+            <TouchableOpacity
+              style={styles.headerBtn}
+              onPress={() => {
+                setListMode(!listMode);
+                setSelectedRoom(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={listMode ? t('discover.mapView') : t('discover.listView')}
+            >
+              <Ionicons name={listMode ? 'map-outline' : 'list-outline'} size={18} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={16} color={theme.colors.redLight} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={(v) => {
+              setQuery(v);
+              setSelectedRoom(null);
+            }}
+            placeholder={t('discover.searchPlaceholder')}
+            placeholderTextColor={theme.colors.textMuted}
+            returnKeyType="search"
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('cancel')}>
+              <Ionicons name="close-circle" size={16} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <ScrollView
@@ -318,6 +377,45 @@ export default function DiscoverScreen() {
           </Text>
         </View>
       </View>
+
+      {/* List view: the same rooms as cards, with sorting */}
+      {listMode && (
+        <View style={[styles.listView, { top: headerHeight }]}>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.listContent}
+          >
+            <View style={styles.sortRow}>
+              {(['rating', 'price', 'duration'] as const).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.chip, sortBy === s && styles.chipActive]}
+                  onPress={() => setSortBy(s)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.chipText, sortBy === s && styles.chipTextActive]}>{t('discover.sort_' + s)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {filtered.length === 0 ? (
+              <View style={styles.listEmpty}>
+                <Ionicons name="search-outline" size={30} color={theme.colors.glassBorder} />
+                <Text style={styles.listEmptyText}>{t('discover.noResults')}</Text>
+              </View>
+            ) : (
+              filtered.map((room) => (
+                <RoomCard
+                  key={room.id}
+                  room={room}
+                  earlyLabel={room.isEarlyAccess ? t('home.earlyAccess') : undefined}
+                  onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
+                />
+              ))
+            )}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Map controls */}
       <View style={styles.controls}>
@@ -461,6 +559,22 @@ const styles = StyleSheet.create({
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   locationText: { fontSize: 11, color: theme.colors.textSecondary },
   headerActions: { flexDirection: 'row', gap: 8 },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    marginHorizontal: 20, marginBottom: 10, paddingHorizontal: 12, height: 40,
+    borderRadius: theme.radius.lg,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1, borderColor: 'rgba(200, 16, 27, 0.4)',
+  },
+  searchInput: { flex: 1, fontSize: 14, color: theme.colors.bone, paddingVertical: 0 },
+  listView: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 11,
+    backgroundColor: theme.colors.bgPrimary,
+  },
+  listContent: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 40, gap: 14 },
+  sortRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  listEmpty: { alignItems: 'center', gap: 10, paddingVertical: 50 },
+  listEmptyText: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center' },
   headerBtn: {
     width: 36,
     height: 36,
@@ -507,7 +621,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.redPrimary,
-    shadowColor: '#FF1E1E',
+    shadowColor: theme.colors.redLight,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
@@ -533,7 +647,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: theme.colors.redPrimary,
     marginTop: 2,
-    shadowColor: '#FF1E1E',
+    shadowColor: theme.colors.redLight,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
@@ -598,7 +712,7 @@ const styles = StyleSheet.create({
   cardDetail: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   cardDetailText: { fontSize: 11, color: theme.colors.textSecondary },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  cardPrice: { fontSize: 18, fontWeight: '800', color: theme.colors.bone },
+  cardPrice: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   cardPriceSub: { fontSize: 11, fontWeight: '500', color: theme.colors.textMuted },
 
   listPeek: { position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 10 },

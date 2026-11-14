@@ -58,7 +58,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
           <View style={[styles.stepCircle, i <= stepIndex && styles.stepCircleActive,
             i < stepIndex && styles.stepCircleDone]}>
             {i < stepIndex ? (
-              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Ionicons name="checkmark" size={14} color={theme.colors.bone} />
             ) : (
               <Text style={[styles.stepNum, i <= stepIndex && styles.stepNumActive]}>{i + 1}</Text>
             )}
@@ -120,7 +120,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
               setLoading(false);
             }}
           >
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
+            <Ionicons name="checkmark-circle" size={20} color={theme.colors.bone} />
             <Text style={styles.primaryBtnText}>
               {loading ? t('companyAuth.pleaseWait') : t('onboarding.acceptTerms')}
             </Text>
@@ -247,7 +247,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
                 setLoading(false);
               }}
             >
-              <Ionicons name="refresh" size={18} color="#fff" />
+              <Ionicons name="refresh" size={18} color={theme.colors.bone} />
               <Text style={styles.primaryBtnText}>
                 {loading ? t('companyAuth.pleaseWait') : t('onboarding.resubmit')}
               </Text>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 22, fontFamily: theme.fonts.display, color: theme.colors.bone },
   logoutBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
   stepNum: { fontSize: 12, fontWeight: '700', color: theme.colors.textMuted },
   stepNumActive: { color: theme.colors.redPrimary },
   stepLabel: { fontSize: 11, fontWeight: '600', color: theme.colors.textMuted, marginLeft: 6 },
-  stepLabelActive: { color: '#fff' },
+  stepLabelActive: { color: theme.colors.bone },
   stepLine: {
     width: 30, height: 2, backgroundColor: theme.colors.glassBorder,
     marginHorizontal: 8,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder, marginTop: 8,
   },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 16 },
+  cardTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 16 },
   termsSection: {
     fontSize: 15, fontWeight: '700', color: theme.colors.redPrimary,
     marginTop: 16, marginBottom: 6,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
     ...theme.shadow.red,
   },
-  primaryBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  primaryBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   btnDisabled: { opacity: 0.4 },
 
   // Plans
@@ -376,16 +376,16 @@ const styles = StyleSheet.create({
   planCardPopular: { borderColor: theme.colors.redPrimary, borderWidth: 2 },
   popularBadge: {
     position: 'absolute', top: -12,
-    paddingVertical: 4, paddingHorizontal: 16, borderRadius: 20,
+    paddingVertical: 4, paddingHorizontal: 16, borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.redPrimary,
   },
-  popularText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  popularText: { fontSize: 11, fontWeight: '800', color: theme.colors.bone, letterSpacing: 1 },
   planIconWrap: {
     width: 56, height: 56, borderRadius: 28,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 4,
   },
-  planName: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  planPrice: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  planName: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 4 },
+  planPrice: { fontSize: 28, fontFamily: theme.fonts.display, color: theme.colors.bone },
   planPricePer: { fontSize: 14, fontWeight: '500', color: theme.colors.textMuted },
   planYearly: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 4 },
   planDivider: {
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
     width: 96, height: 96, borderRadius: 48,
     alignItems: 'center', justifyContent: 'center', marginBottom: 20,
   },
-  statusTitle: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  statusTitle: { fontSize: 22, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 8, textAlign: 'center' },
   statusSubtitle: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 20 },
   notesCard: {
     width: '100%', padding: 16, borderRadius: theme.radius.lg,

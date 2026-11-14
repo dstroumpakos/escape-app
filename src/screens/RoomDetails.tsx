@@ -5,14 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
+import type { Id } from '../../convex/_generated/dataModel';
 import { ROOM_THEME_KEYS } from '../roomThemes';
 import { DifficultySkulls, PrimaryButton, TypeLabel } from '../components/ui';
 import { FadeUp } from '../components/motion';
+import { ReviewForm } from '../components/ReviewForm';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RoomDetails'>;
@@ -25,14 +28,18 @@ export default function RoomDetails() {
   const insets = useSafeAreaInsets();
   const roomId = route.params.id;
 
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const convexRooms = useQuery(api.rooms.list);
   const allRooms = (convexRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
   const room = allRooms.find((r: any) => r.id === roomId) || allRooms[0];
   const reviews = useQuery(api.reviews.getByRoom, room ? { roomId: room.id } : 'skip');
 
-  const [liked, setLiked] = useState(false);
+  // The heart saves the room to the player's wishlist (shown on Profile)
+  const { userId } = useUser();
+  const user = useQuery(api.users.getById, userId ? { userId: userId as Id<'users'> } : 'skip');
+  const toggleWishlist = useMutation(api.users.toggleWishlist);
+  const liked = !!room && !!(user as any)?.wishlist?.includes(room.id);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   // Compute release countdown
@@ -97,8 +104,12 @@ export default function RoomDetails() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.squareBtn, { top: insets.top + 8, right: 20 }]}
-            onPress={() => setLiked(!liked)}
+            onPress={() => {
+              if (userId) toggleWishlist({ userId: userId as Id<'users'>, roomId: room.id }).catch(() => {});
+            }}
             accessibilityRole="button"
+            accessibilityLabel={t('profile.wishlist')}
+            accessibilityState={{ selected: liked }}
           >
             <Ionicons
               name={liked ? 'heart' : 'heart-outline'}
@@ -187,7 +198,7 @@ export default function RoomDetails() {
           {!!room.story && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('roomDetails.theStory')}</Text>
-              <Text style={styles.storyText}>{room.story}</Text>
+              <Text style={styles.storyText}>{room.storyTranslations?.[language] || room.story}</Text>
             </View>
           )}
 
@@ -211,6 +222,8 @@ export default function RoomDetails() {
               {t('roomDetails.reviewsSection')}
               {reviews && reviews.length > 0 ? <Text style={styles.reviewCount}>  ({reviews.length})</Text> : null}
             </Text>
+
+            <ReviewForm userId={userId} roomId={room.id} />
 
             {!reviews ? (
               <ActivityIndicator color={theme.colors.redPrimary} style={{ paddingVertical: 20 }} />

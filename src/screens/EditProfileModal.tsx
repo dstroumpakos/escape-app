@@ -178,7 +178,7 @@ export default function EditProfileModal({ visible, onClose, userId, currentName
                 </View>
               )}
               <View style={styles.cameraIcon}>
-                <Ionicons name="camera" size={16} color="#fff" />
+                <Ionicons name="camera" size={16} color={theme.colors.bone} />
               </View>
             </View>
             <Text style={styles.changePhotoText}>{t('editProfile.changePhoto')}</Text>
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.bone,
   },
   cancelText: {
     fontSize: 15,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 32,
-    fontWeight: '800',
+    fontFamily: theme.fonts.display,
     color: theme.colors.redPrimary,
   },
   cameraIcon: {
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
     paddingHorizontal: 14,
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#fff',
+    color: theme.colors.bone,
     fontSize: 16,
   },
 });

@@ -339,7 +339,7 @@ export default function DateTimeSelect() {
         {showOverflow && (
           <View style={styles.overflowSection}>
             <View style={styles.overflowBadge}>
-              <Ionicons name="flash" size={14} color="#FFD700" />
+              <Ionicons name="flash" size={14} color={theme.colors.gold} />
               <Text style={styles.overflowBadgeText}>{t('dateTime.bonusSlot')}</Text>
             </View>
             <Text style={styles.overflowHint}>{t('dateTime.bonusHint')}</Text>
@@ -353,7 +353,7 @@ export default function DateTimeSelect() {
               activeOpacity={0.7}
             >
               <View style={styles.overflowInner}>
-                <Ionicons name="flash" size={16} color="#FFD700" />
+                <Ionicons name="flash" size={16} color={theme.colors.gold} />
                 <Text style={styles.timeVal}>{overflowSlot.time}</Text>
               </View>
               {(() => {
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   playersBtnText: { fontSize: 18, fontWeight: '600', color: theme.colors.bone },
-  playersCount: { fontSize: 18, fontWeight: '700', color: theme.colors.bone, minWidth: 24, textAlign: 'center' },
+  playersCount: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone, minWidth: 24, textAlign: 'center' },
 
   // Time Slots
   timeSectionTitle: { fontFamily: theme.fonts.display, fontSize: 20, color: theme.colors.bone, marginBottom: 14 },
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(255,215,0,0.15)',
+    backgroundColor: 'rgba(201, 154, 46, 0.15)',
     marginBottom: 6,
   },
   overflowBadgeText: { fontSize: 13, fontWeight: '700', color: theme.colors.gold },
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   overflowCard: {
     borderColor: theme.colors.gold, borderWidth: 1,
     width: '100%',
-    backgroundColor: 'rgba(255,215,0,0.08)',
+    backgroundColor: 'rgba(201, 154, 46, 0.08)',
   },
   overflowInner: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 

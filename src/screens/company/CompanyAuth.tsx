@@ -97,7 +97,7 @@ export default function CompanyAuth({ onLogin, onBack }: Props) {
       >
         {/* Back */}
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
 
         {/* Header */}
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: theme.colors.redPrimary,
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  title: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  title: { fontSize: 28, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 6 },
   subtitle: { fontSize: 14, color: theme.colors.textSecondary },
   toggle: {
     flexDirection: 'row', borderRadius: theme.radius.md, overflow: 'hidden',
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
   toggleBtn: { flex: 1, paddingVertical: 12, alignItems: 'center' },
   toggleBtnActive: { backgroundColor: theme.colors.redPrimary },
   toggleText: { fontSize: 14, fontWeight: '600', color: theme.colors.textMuted },
-  toggleTextActive: { color: '#fff' },
+  toggleTextActive: { color: theme.colors.bone },
   label: {
     fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary,
     marginBottom: 6, marginTop: 14,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 15,
+    color: theme.colors.bone, fontSize: 15,
   },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
   submitBtn: {
@@ -269,5 +269,5 @@ const styles = StyleSheet.create({
     ...theme.shadow.red,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 });

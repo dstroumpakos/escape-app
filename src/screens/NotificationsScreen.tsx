@@ -16,9 +16,9 @@ const ICON_MAP: Record<NotifType, { name: keyof typeof Ionicons.glyphMap; color:
   cancelled: { name: 'close-circle', color: '#F44336' },
   promo: { name: 'megaphone', color: '#F59E0B' },
   reminder: { name: 'alarm', color: '#3B82F6' },
-  system: { name: 'information-circle', color: '#8B5CF6' },
+  system: { name: 'information-circle', color: theme.colors.gold },
   slot_available: { name: 'notifications', color: '#4CAF50' },
-  new_room: { name: 'key', color: '#FFD700' },
+  new_room: { name: 'key', color: theme.colors.gold },
   photos_ready: { name: 'camera', color: '#E91E63' },
   friend_request: { name: 'person-add', color: '#42A5F5' },
   friend_accepted: { name: 'people', color: '#4CAF50' },
@@ -77,7 +77,7 @@ export default function NotificationsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#fff" />
+          <Ionicons name="chevron-back" size={24} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
         {unreadCount > 0 ? (
@@ -142,7 +142,7 @@ export default function NotificationsScreen() {
                           }
                         }}
                       >
-                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Ionicons name="checkmark" size={14} color={theme.colors.bone} />
                         <Text style={styles.actionAcceptText}>{t('friends.accept')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -183,7 +183,7 @@ export default function NotificationsScreen() {
                           }
                         }}
                       >
-                        <Ionicons name="checkmark" size={14} color="#fff" />
+                        <Ionicons name="checkmark" size={14} color={theme.colors.bone} />
                         <Text style={styles.actionAcceptText}>{t('friends.accept')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.glass,
@@ -241,8 +241,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#fff',
+    fontFamily: theme.fonts.display,
+    color: theme.colors.bone,
   },
   markAllText: {
     fontSize: 13,
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     marginBottom: 10,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.glass,
     borderWidth: 1,
     borderColor: theme.colors.glassBorder,
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   notifTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.bone,
     flex: 1,
   },
   unreadDot: {
@@ -327,13 +327,13 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.redPrimary,
   },
   actionAcceptText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
+    color: theme.colors.bone,
   },
   actionDecline: {
     flexDirection: 'row',
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.glass,
     borderWidth: 1,
     borderColor: theme.colors.glassBorder,

@@ -217,6 +217,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.awards': 'Awards\nEarned',
     'profile.badges': 'Badges',
     'profile.wishlist': 'Wishlist',
+    'profile.wishlistEmpty': 'Tap the heart on a room to save it here.',
     'profile.wishlistRemoved': '{{title}} removed from wishlist.',
     'profile.editProfile': 'Edit Profile',
     'profile.notifications': 'Notifications',
@@ -358,6 +359,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── DiscoverScreen ── */
     'discover.title': 'Discover',
+    'discover.searchPlaceholder': 'Search rooms, themes or places',
+    'discover.sort_rating': 'Top rated',
+    'discover.sort_price': 'Lowest price',
+    'discover.sort_duration': 'Shortest',
+    'discover.noResults': 'No rooms match your search.',
+    'discover.listView': 'Show as list',
+    'discover.mapView': 'Show on map',
     'discover.locating': 'Locating...',
     'discover.yourArea': 'Your Area',
     'discover.all': 'All',
@@ -1471,6 +1479,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'profile.awards': 'Βραβεία\nΚερδισμένα',
     'profile.badges': 'Σήματα',
     'profile.wishlist': 'Λίστα Επιθυμιών',
+    'profile.wishlistEmpty': 'Πάτησε την καρδιά σε ένα δωμάτιο για να το αποθηκεύσεις εδώ.',
     'profile.wishlistRemoved': 'Το {{title}} αφαιρέθηκε από τη λίστα επιθυμιών.',
     'profile.editProfile': 'Επεξεργασία Προφίλ',
     'profile.notifications': 'Ειδοποιήσεις',
@@ -1612,6 +1621,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── DiscoverScreen ── */
     'discover.title': 'Ανακάλυψε',
+    'discover.searchPlaceholder': 'Αναζήτηση δωματίων, θεμάτων ή περιοχών',
+    'discover.sort_rating': 'Κορυφαία',
+    'discover.sort_price': 'Χαμηλότερη τιμή',
+    'discover.sort_duration': 'Συντομότερα',
+    'discover.noResults': 'Κανένα δωμάτιο δεν ταιριάζει με την αναζήτησή σου.',
+    'discover.listView': 'Προβολή λίστας',
+    'discover.mapView': 'Προβολή χάρτη',
     'discover.locating': 'Εντοπισμός...',
     'discover.yourArea': 'Η Περιοχή σου',
     'discover.all': 'Όλα',

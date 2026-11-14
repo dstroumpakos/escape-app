@@ -71,7 +71,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
             style={styles.addBtn}
             onPress={() => navigation.navigate('CompanyRoomEditor', {})}
           >
-            <Ionicons name="add" size={22} color="#fff" />
+            <Ionicons name="add" size={22} color={theme.colors.bone} />
           </TouchableOpacity>
         )}
       </View>
@@ -118,7 +118,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
                     <View style={styles.statusRow}>
                       {room.isSubscriptionOnly && (
                         <View style={styles.subBadge}>
-                          <Ionicons name="star" size={10} color="#FFD700" />
+                          <Ionicons name="star" size={10} color={theme.colors.gold} />
                           <Text style={styles.subBadgeText}>{t('roomsList.subOnly')}</Text>
                         </View>
                       )}
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   addBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: theme.colors.redPrimary,
@@ -214,10 +214,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 8,
   },
-  limitLabel: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  limitLabel: { fontSize: 13, fontWeight: '700', color: theme.colors.bone },
   planBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10,
+    paddingVertical: 3, paddingHorizontal: 10, borderRadius: theme.radius.md,
   },
   planBadgeText: { fontSize: 10, fontWeight: '700' },
   progressTrack: {
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
 
   empty: { alignItems: 'center', paddingTop: 100, gap: 12 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptyText: { fontSize: 14, color: theme.colors.textMuted },
 
   roomCard: {
@@ -247,20 +247,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 4,
   },
-  roomTitle: { fontSize: 17, fontWeight: '700', color: '#fff', flex: 1 },
+  roomTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.bone, flex: 1 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   subBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    paddingVertical: 2, paddingHorizontal: 8, borderRadius: 10,
-    backgroundColor: 'rgba(255,215,0,0.15)',
+    paddingVertical: 2, paddingHorizontal: 8, borderRadius: theme.radius.md,
+    backgroundColor: 'rgba(201, 154, 46, 0.15)',
   },
-  subBadgeText: { fontSize: 9, fontWeight: '700', color: '#FFD700' },
+  subBadgeText: { fontSize: 9, fontWeight: '700', color: theme.colors.gold },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   roomLocation: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 8 },
   roomMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   roomMetaText: {
     fontSize: 11, fontWeight: '600', color: theme.colors.textSecondary,
-    paddingVertical: 3, paddingHorizontal: 10, borderRadius: 10,
+    paddingVertical: 3, paddingHorizontal: 10, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, overflow: 'hidden',
   },
   roomActions: { flexDirection: 'row', gap: 8 },

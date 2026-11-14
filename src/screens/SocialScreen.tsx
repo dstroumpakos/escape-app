@@ -48,7 +48,7 @@ function StarRating({ rating }: { rating: number }) {
           key={star}
           name={star <= rating ? 'star' : 'star-outline'}
           size={14}
-          color={star <= rating ? '#FFD700' : theme.colors.textMuted}
+          color={star <= rating ? theme.colors.gold : theme.colors.textMuted}
         />
       ))}
     </View>
@@ -246,7 +246,7 @@ function CommentSection({
       <View style={styles.commentHeader}>
         <Text style={styles.commentTitle}>{t('social.comments')}</Text>
         <TouchableOpacity onPress={onClose}>
-          <Ionicons name="close" size={22} color="#fff" />
+          <Ionicons name="close" size={22} color={theme.colors.bone} />
         </TouchableOpacity>
       </View>
 
@@ -460,7 +460,7 @@ export default function SocialScreen() {
           style={styles.newPostBtn}
           onPress={() => setCreateModalVisible(true)}
         >
-          <Ionicons name="add" size={22} color="#fff" />
+          <Ionicons name="add" size={22} color={theme.colors.bone} />
         </TouchableOpacity>
       </View>
 
@@ -505,7 +505,7 @@ export default function SocialScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Ionicons name="add" size={18} color="#fff" />
+                <Ionicons name="add" size={18} color={theme.colors.bone} />
                 <Text style={styles.emptyBtnText}>{t('social.createPost')}</Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -550,7 +550,7 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingBottom: 14,
   },
-  screenTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  screenTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   newPostBtn: {
     width: 38,
     height: 38,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   authorInitials: { fontSize: 14, fontWeight: '800', color: theme.colors.redPrimary },
   authorInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  authorName: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  authorName: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   companyBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -609,8 +609,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingVertical: 5,
     paddingHorizontal: 10,
-    backgroundColor: 'rgba(255, 30, 30, 0.08)',
-    borderRadius: 8,
+    backgroundColor: 'rgba(200, 16, 27, 0.08)',
+    borderRadius: theme.radius.md,
     alignSelf: 'flex-start',
   },
   roomTagText: { fontSize: 12, fontWeight: '600', color: theme.colors.redPrimary },
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   postText: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#fff',
+    color: theme.colors.bone,
     paddingHorizontal: 14,
     marginBottom: 10,
   },
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     width: width - 80,
     height: 220,
     marginHorizontal: 4,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     overflow: 'hidden',
   },
   mediaImage: { width: '100%', height: '100%' },
@@ -664,9 +664,9 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     gap: 10,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptySubtitle: { fontSize: 13, color: theme.colors.textMuted, textAlign: 'center', paddingHorizontal: 40 },
-  emptyBtn: { marginTop: 16, borderRadius: 14, overflow: 'hidden' },
+  emptyBtn: { marginTop: 16, borderRadius: theme.radius.lg, overflow: 'hidden' },
   emptyBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 22,
   },
-  emptyBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  emptyBtnText: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
 
   /* Comment overlay */
   commentOverlay: {
@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  commentTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
+  commentTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.bone },
   commentList: { paddingHorizontal: 16 },
   commentItem: {
     flexDirection: 'row',
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
   },
   commentInitials: { fontSize: 11, fontWeight: '800', color: theme.colors.redPrimary },
   commentContent: { flex: 1 },
-  commentUser: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  commentUser: { fontSize: 13, fontWeight: '700', color: theme.colors.bone },
   commentText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2, lineHeight: 18 },
   commentTime: { fontSize: 11, color: theme.colors.textMuted, marginTop: 4 },
   emptyComments: { paddingVertical: 30, alignItems: 'center' },
@@ -743,10 +743,10 @@ const styles = StyleSheet.create({
   commentInput: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    color: '#fff',
+    color: theme.colors.bone,
     fontSize: 14,
     maxHeight: 80,
   },

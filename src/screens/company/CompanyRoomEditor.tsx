@@ -134,7 +134,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [photoBrandingOpen, setPhotoBrandingOpen] = useState(false);
   const [presetForm, setPresetForm] = useState({
     logoPosition: 'bottom-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom-center',
-    brandColor: '#FF1E1E',
+    brandColor: theme.colors.redLight,
     watermarkOpacity: 0.3,
     textTemplate: '',
   });
@@ -153,7 +153,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
     if (photoPreset && !presetLoaded) {
       setPresetForm({
         logoPosition: photoPreset.logoPosition || 'bottom-right',
-        brandColor: photoPreset.brandColor || '#FF1E1E',
+        brandColor: photoPreset.brandColor || theme.colors.redLight,
         watermarkOpacity: photoPreset.watermarkOpacity ?? 0.3,
         textTemplate: photoPreset.textTemplate || '',
       });
@@ -451,7 +451,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{isEditing ? t('roomEditor.editTitle') : t('roomEditor.addTitle')}</Text>
       </View>
@@ -855,7 +855,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               size={36}
               color={overflowEnabled ? theme.colors.redPrimary : theme.colors.textMuted}
             />
-            <Text style={[styles.overflowToggleLabel, overflowEnabled && { color: '#fff' }]}>
+            <Text style={[styles.overflowToggleLabel, overflowEnabled && { color: theme.colors.bone }]}>
               {overflowEnabled ? t('roomEditor.enabled') : t('roomEditor.disabled')}
             </Text>
           </TouchableOpacity>
@@ -980,7 +980,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 }}
               >
                 <View style={styles.payLeft}>
-                  <Ionicons name={opt.icon} size={20} color="#fff" />
+                  <Ionicons name={opt.icon} size={20} color={theme.colors.bone} />
                   <View>
                     <Text style={styles.payTitle}>{opt.title}</Text>
                     <Text style={styles.payDesc}>{opt.desc}</Text>
@@ -1078,7 +1078,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             onPress={() => setBookingMode('unlocked_primary')}
           >
             <View style={styles.payLeft}>
-              <Ionicons name="lock-open-outline" size={20} color="#fff" />
+              <Ionicons name="lock-open-outline" size={20} color={theme.colors.bone} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.payTitle}>{t('roomEditor.unlockedPrimary')}</Text>
                 <Text style={styles.payDesc}>{t('roomEditor.unlockedPrimaryDesc')}</Text>
@@ -1094,7 +1094,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             onPress={() => setBookingMode('external_primary')}
           >
             <View style={styles.payLeft}>
-              <Ionicons name="swap-horizontal-outline" size={20} color="#fff" />
+              <Ionicons name="swap-horizontal-outline" size={20} color={theme.colors.bone} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.payTitle}>{t('roomEditor.externalPrimary')}</Text>
                 <Text style={styles.payDesc}>{t('roomEditor.externalPrimaryDesc')}</Text>
@@ -1128,9 +1128,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         {/* Release Date */}
         <Text style={styles.sectionTitle}>Release Date</Text>
         <View style={styles.card}>
-          <View style={{ backgroundColor: 'rgba(139,92,246,0.08)', borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
-            <Ionicons name="diamond-outline" size={16} color="#a78bfa" style={{ marginTop: 2 }} />
-            <Text style={{ fontSize: 12, color: '#c4b5fd', flex: 1, lineHeight: 18 }}>
+          <View style={{ backgroundColor: 'rgba(201, 154, 46, 0.08)', borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
+            <Ionicons name="diamond-outline" size={16} color={theme.colors.gold} style={{ marginTop: 2 }} />
+            <Text style={{ fontSize: 12, color: theme.colors.gold, flex: 1, lineHeight: 18 }}>
               Set a future release date to create buzz. UNLOCKED Premium subscribers get early access 3 days before the public launch.
             </Text>
           </View>
@@ -1152,7 +1152,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
                   <Text style={{ fontSize: 12, color: theme.colors.textMuted }}>
                     Early access starts:{' '}
-                    <Text style={{ color: '#a78bfa', fontWeight: '600' }}>
+                    <Text style={{ color: theme.colors.gold, fontWeight: '600' }}>
                       {early.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </Text>
                   </Text>
@@ -1174,7 +1174,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Ionicons name="camera-outline" size={18} color={theme.colors.redPrimary} />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff' }}>{t('roomEditor.photoBranding')}</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: theme.colors.bone }}>{t('roomEditor.photoBranding')}</Text>
           </View>
           <Ionicons name={photoBrandingOpen ? 'chevron-up' : 'chevron-down'} size={18} color={theme.colors.textMuted} />
         </TouchableOpacity>
@@ -1196,14 +1196,14 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                 onPress={() => setUseOverlay(false)}
               >
                 <Ionicons name="cloud-upload-outline" size={16} color={!useOverlay ? '#fff' : theme.colors.textMuted} />
-                <Text style={[styles.photoModeText, !useOverlay && { color: '#fff' }]}>{t('settings.photoModeLogo')}</Text>
+                <Text style={[styles.photoModeText, !useOverlay && { color: theme.colors.bone }]}>{t('settings.photoModeLogo')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.photoModeBtn, useOverlay && styles.photoModeBtnActive]}
                 onPress={() => setUseOverlay(true)}
               >
                 <Ionicons name="layers-outline" size={16} color={useOverlay ? '#fff' : theme.colors.textMuted} />
-                <Text style={[styles.photoModeText, useOverlay && { color: '#fff' }]}>{t('settings.photoModeOverlay')}</Text>
+                <Text style={[styles.photoModeText, useOverlay && { color: theme.colors.bone }]}>{t('settings.photoModeOverlay')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -1232,7 +1232,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                       style={[styles.opacBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacBtnActive]}
                       onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
                     >
-                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: theme.colors.bone }]}>{v}%</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -1264,7 +1264,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                       style={[styles.opacBtn, presetForm.logoPosition === pos.key && styles.opacBtnActive]}
                       onPress={() => setPresetForm({ ...presetForm, logoPosition: pos.key })}
                     >
-                      <Text style={[styles.opacBtnText, presetForm.logoPosition === pos.key && { color: '#fff' }]}>{pos.label}</Text>
+                      <Text style={[styles.opacBtnText, presetForm.logoPosition === pos.key && { color: theme.colors.bone }]}>{pos.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -1276,7 +1276,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                     style={[styles.input, { flex: 1 }]}
                     value={presetForm.brandColor}
                     onChangeText={(v) => setPresetForm({ ...presetForm, brandColor: v })}
-                    placeholder="#FF1E1E"
+                    placeholder={theme.colors.redLight}
                     placeholderTextColor={theme.colors.textMuted}
                     autoCapitalize="characters"
                   />
@@ -1290,7 +1290,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
                       style={[styles.opacBtn, Math.round(presetForm.watermarkOpacity * 100) === v && styles.opacBtnActive]}
                       onPress={() => setPresetForm({ ...presetForm, watermarkOpacity: v / 100 })}
                     >
-                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: '#fff' }]}>{v}%</Text>
+                      <Text style={[styles.opacBtnText, Math.round(presetForm.watermarkOpacity * 100) === v && { color: theme.colors.bone }]}>{v}%</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -1314,7 +1314,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
               activeOpacity={0.8}
             >
               {presetSaving ? (
-                <ActivityIndicator size={16} color="#fff" />
+                <ActivityIndicator size={16} color={theme.colors.bone} />
               ) : (
                 <Text style={styles.saveBtnText}>{t('settings.savePhotoPreset')}</Text>
               )}
@@ -1380,11 +1380,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   scroll: { flex: 1 },
 
   sectionTitle: {
-    fontSize: 16, fontWeight: '700', color: '#fff',
+    fontSize: 16, fontWeight: '700', color: theme.colors.bone,
     paddingHorizontal: 20, marginBottom: 10, marginTop: 8,
   },
   card: {
@@ -1402,7 +1402,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14,
+    color: theme.colors.bone, fontSize: 14,
   },
   textArea: { minHeight: 70, textAlignVertical: 'top' },
   row: { flexDirection: 'row', gap: 12 },
@@ -1418,7 +1418,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
     borderColor: theme.colors.redPrimary,
   },
-  diffText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  diffText: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
 
   chip: {
     paddingVertical: 10, paddingHorizontal: 18, marginRight: 8,
@@ -1452,7 +1452,7 @@ const styles = StyleSheet.create({
   },
   payOptionActive: { borderColor: theme.colors.redPrimary },
   payLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  payTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  payTitle: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   payDesc: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },
   radio: {
     width: 22, height: 22, borderRadius: 11,
@@ -1487,7 +1487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...theme.shadow.red,
   },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 
   // Map
   mapContainer: {
@@ -1517,13 +1517,13 @@ const styles = StyleSheet.create({
     width: 50,
   },
   pricingPlayers: {
-    fontSize: 14, fontWeight: '600', color: '#fff',
+    fontSize: 14, fontWeight: '600', color: theme.colors.bone,
   },
   pricingInput: {
     flex: 1, height: 42, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, paddingHorizontal: 14,
+    color: theme.colors.bone, fontSize: 14, paddingHorizontal: 14,
   },
   pricingCurrency: {
     fontSize: 14, fontWeight: '600', color: theme.colors.textMuted,
@@ -1553,7 +1553,7 @@ const styles = StyleSheet.create({
     fontSize: 12, fontWeight: '700', color: theme.colors.textMuted,
   },
   dayChipTextActive: {
-    color: '#fff',
+    color: theme.colors.bone,
   },
   slotRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -1564,7 +1564,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1,
   },
   slotTime: {
-    fontSize: 14, fontWeight: '600', color: '#fff',
+    fontSize: 14, fontWeight: '600', color: theme.colors.bone,
   },
   slotPriceWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -1576,7 +1576,7 @@ const styles = StyleSheet.create({
     width: 60, height: 36, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, paddingHorizontal: 8, textAlign: 'center',
+    color: theme.colors.bone, fontSize: 14, paddingHorizontal: 8, textAlign: 'center',
   },
   slotRemoveBtn: {
     padding: 4,

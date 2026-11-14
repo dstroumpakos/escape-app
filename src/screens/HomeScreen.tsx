@@ -16,6 +16,7 @@ import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { RoomCard, RoomRow } from '../components/RoomCard';
 import { TypeLabel } from '../components/ui';
+import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
 
 /** Haversine distance in km */
@@ -145,9 +146,12 @@ export default function HomeScreen() {
             ]}
           />
           <View style={styles.topBar}>
-            <Flicker period={7000} delay={1500}>
-              <Text style={styles.wordmark}>UNLOCKED</Text>
-            </Flicker>
+            <View style={styles.brand}>
+              <EyeKeyhole size={30} />
+              <Flicker period={7000} delay={1500}>
+                <Text style={styles.wordmark}>UNLOCKED</Text>
+              </Flicker>
+            </View>
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => navigation.navigate('Notifications')}
@@ -279,6 +283,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 28,
   },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   wordmark: {
     fontFamily: theme.fonts.displayBlack, fontSize: 20, letterSpacing: 4,
     color: theme.colors.redLight,

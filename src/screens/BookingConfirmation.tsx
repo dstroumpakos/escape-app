@@ -261,10 +261,10 @@ export default function BookingConfirmation() {
                         }}
                       >
                         {inviting === friend._id ? (
-                          <ActivityIndicator size="small" color="#fff" />
+                          <ActivityIndicator size="small" color={theme.colors.bone} />
                         ) : (
                           <>
-                            <Ionicons name="paper-plane" size={13} color="#fff" />
+                            <Ionicons name="paper-plane" size={13} color={theme.colors.bone} />
                             <Text style={styles.inviteBtnText}>{t('friends.invite')}</Text>
                           </>
                         )}
@@ -286,7 +286,7 @@ export default function BookingConfirmation() {
               );
             }}
           >
-            <Ionicons name="home-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Ionicons name="home-outline" size={18} color={theme.colors.bone} style={{ marginRight: 8 }} />
             <Text style={styles.homeBtnText}>{t('confirmation.backHome')}</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 6,
+    fontSize: 26, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     ...theme.shadow.card,
   },
-  roomName: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  roomName: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 4 },
   roomLocation: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18 },
   divider: {
     height: StyleSheet.hairlineWidth, backgroundColor: theme.colors.border, marginVertical: 16,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     fontSize: 10, color: theme.colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 1, fontWeight: '600',
   },
-  infoVal: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  infoVal: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
 
   // Payment
   paymentRow: {
@@ -370,14 +370,14 @@ const styles = StyleSheet.create({
   },
   paymentBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: theme.radius.xl,
   },
   paymentDot: { width: 6, height: 6, borderRadius: 3 },
   paymentText: { fontSize: 12, fontWeight: '700' },
 
   // Booking code
   codeWrap: { alignItems: 'center', paddingTop: 4 },
-  bookingId: { fontSize: 18, color: theme.colors.redPrimary, letterSpacing: 1.5, fontWeight: '800' },
+  bookingId: { fontSize: 18, color: theme.colors.redPrimary, letterSpacing: 1.5, fontFamily: theme.fonts.display},
 
   // Actions
   actions: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     ...theme.shadow.red,
   },
-  homeBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  homeBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 
   // Invite friends
   inviteSection: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redSubtle,
     alignItems: 'center', justifyContent: 'center',
   },
-  inviteSectionTitle: { fontSize: 16, fontWeight: '800', color: '#fff', marginBottom: 2 },
+  inviteSectionTitle: { fontSize: 16, fontWeight: '800', color: theme.colors.bone, marginBottom: 2 },
   inviteSectionDesc: { fontSize: 12, color: theme.colors.textMuted },
   inviteCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -437,13 +437,13 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   inviteAvatarInitial: { fontSize: 14, fontWeight: '800', color: theme.colors.redPrimary },
-  inviteName: { flex: 1, fontSize: 14, fontWeight: '600', color: '#fff' },
+  inviteName: { flex: 1, fontSize: 14, fontWeight: '600', color: theme.colors.bone },
   inviteBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 14, paddingVertical: 7,
-    borderRadius: 18, backgroundColor: theme.colors.redPrimary,
+    borderRadius: theme.radius.xl, backgroundColor: theme.colors.redPrimary,
   },
-  inviteBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  inviteBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.bone },
   invitedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   invitedText: { fontSize: 11, fontWeight: '600' },
 });

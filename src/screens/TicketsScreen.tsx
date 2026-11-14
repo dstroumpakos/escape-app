@@ -118,7 +118,7 @@ export default function TicketsScreen() {
             { text: t('cancel'), style: 'cancel' },
           ]);
         }}>
-          <Ionicons name="filter-outline" size={20} color="#fff" />
+          <Ionicons name="filter-outline" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
       </View>
 
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   filterBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
   },
   tabText: { fontSize: 14, fontWeight: '600', color: theme.colors.textMuted },
-  tabTextActive: { color: '#fff' },
+  tabTextActive: { color: theme.colors.bone },
 
   scroll: { flex: 1, paddingHorizontal: 20 },
 
@@ -352,15 +352,15 @@ const styles = StyleSheet.create({
   statusBadge: {
     position: 'absolute', top: 14, right: 14,
     paddingVertical: 4, paddingHorizontal: 12,
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
   },
   statusUpcoming: { backgroundColor: 'rgba(76,175,80,0.8)' },
   statusCompleted: { backgroundColor: 'rgba(100,100,100,0.8)' },
   statusCancelled: { backgroundColor: 'rgba(244,67,54,0.6)' },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  statusText: { fontSize: 11, fontWeight: '700', color: theme.colors.bone },
 
   ticketContent: { padding: 16 },
-  ticketName: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 3 },
+  ticketName: { fontSize: 17, fontWeight: '800', color: theme.colors.bone, marginBottom: 3 },
   ticketLoc: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 6 },
   bookingCodeRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 5,
     alignSelf: 'flex-start',
     paddingVertical: 4, paddingHorizontal: 10,
-    borderRadius: 12, marginTop: 10,
+    borderRadius: theme.radius.lg, marginTop: 10,
   },
   paymentBadgeText: { fontSize: 11, fontWeight: '700' },
 
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     marginTop: 10, paddingVertical: 6, paddingHorizontal: 12,
     alignSelf: 'flex-start',
-    borderRadius: 12,
+    borderRadius: theme.radius.lg,
     backgroundColor: 'rgba(244,67,54,0.1)',
     borderWidth: 1, borderColor: 'rgba(244,67,54,0.2)',
   },

@@ -157,7 +157,7 @@ export default function CompanyBookingDetail({ companyId }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('bookingDetail.title')}</Text>
       </View>
@@ -383,14 +383,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   badgeRow: {
     flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 16,
   },
   badge: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: 5, paddingHorizontal: 12, borderRadius: 12,
+    paddingVertical: 5, paddingHorizontal: 12, borderRadius: theme.radius.lg,
   },
   badgeText: { fontSize: 12, fontWeight: '700' },
 
@@ -404,8 +404,8 @@ const styles = StyleSheet.create({
     fontSize: 11, fontWeight: '600', color: theme.colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6,
   },
-  cardValue: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  cardValueLg: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  cardValue: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
+  cardValueLg: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
 
   row: { flexDirection: 'row', gap: 10 },
   iconRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
@@ -413,18 +413,18 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6,
   },
-  infoText: { fontSize: 15, color: '#fff', fontWeight: '500' },
+  infoText: { fontSize: 15, color: theme.colors.bone, fontWeight: '500' },
 
   payRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  payTotal: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  payBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 10 },
+  payTotal: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
+  payBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.md },
   payBadgeText: { fontSize: 11, fontWeight: '700' },
   payNote: { fontSize: 11, color: theme.colors.textMuted, marginTop: 6 },
 
   codeText: {
-    fontSize: 18, fontWeight: '700', color: theme.colors.redPrimary,
+    fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.redPrimary,
     letterSpacing: 2,
   },
 
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     minHeight: 80, padding: 12, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, textAlignVertical: 'top',
+    color: theme.colors.bone, fontSize: 14, textAlignVertical: 'top',
   },
   notesSaveBtn: {
     marginTop: 10, paddingVertical: 10, borderRadius: theme.radius.md,
@@ -451,13 +451,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 12, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14,
+    color: theme.colors.bone, fontSize: 14,
   },
   reschedBtn: {
     flex: 1, paddingVertical: 10, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.redPrimary, alignItems: 'center',
   },
-  reschedBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  reschedBtnText: { fontSize: 13, fontWeight: '600', color: theme.colors.bone },
 
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

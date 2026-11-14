@@ -85,7 +85,7 @@ export default function NotificationPrefsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('notifPrefs.title')}</Text>
       </View>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   topNote: {
     fontSize: 13, color: theme.colors.textSecondary, lineHeight: 20,
     paddingHorizontal: 20, marginBottom: 20,
@@ -145,6 +145,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
   prefInfo: { flex: 1, marginRight: 16 },
-  prefLabel: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  prefLabel: { fontSize: 15, fontWeight: '600', color: theme.colors.bone },
   prefDesc: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
 });

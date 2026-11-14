@@ -158,7 +158,7 @@ export function ReportPlayerCard({ bookingId }: { bookingId: string }) {
           disabled={picked.length === 0 || saving}
           onPress={submit}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('reports.company.submit')}</Text>}
+          {saving ? <ActivityIndicator color={theme.colors.bone} /> : <Text style={styles.btnText}>{t('reports.company.submit')}</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -175,13 +175,13 @@ const styles = StyleSheet.create({
   flagCard: { borderColor: 'rgba(255,183,77,0.4)', backgroundColor: 'rgba(255,183,77,0.08)' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   flagTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: AMBER },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.bone, marginBottom: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,183,77,0.15)' },
+  chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.lg, backgroundColor: 'rgba(255,183,77,0.15)' },
   chipText: { fontSize: 12, color: '#FFE0B2' },
   muted: { fontSize: 12, color: theme.colors.textMuted },
   reply: {
-    fontSize: 13, color: '#fff', fontStyle: 'italic', marginTop: 4,
+    fontSize: 13, color: theme.colors.bone, fontStyle: 'italic', marginTop: 4,
     paddingLeft: 8, borderLeftWidth: 2, borderLeftColor: 'rgba(255,183,77,0.4)',
   },
   actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -192,13 +192,13 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   optionOn: { borderColor: theme.colors.redPrimary, backgroundColor: 'rgba(229,57,53,0.1)' },
-  optionText: { flex: 1, fontSize: 14, color: '#fff' },
+  optionText: { flex: 1, fontSize: 14, color: theme.colors.bone },
   btnRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
   btn: {
     flex: 1, paddingVertical: 12, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.redPrimary, alignItems: 'center', justifyContent: 'center',
   },
-  btnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  btnText: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   btnGhost: { backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder },
   btnGhostText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
 });

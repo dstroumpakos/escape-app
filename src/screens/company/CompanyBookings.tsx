@@ -99,7 +99,7 @@ export default function CompanyBookings({ companyId }: Props) {
           style={styles.addBtn}
           onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
         >
-          <Ionicons name="add" size={22} color="#fff" />
+          <Ionicons name="add" size={22} color={theme.colors.bone} />
         </TouchableOpacity>
       </View>
 
@@ -111,14 +111,14 @@ export default function CompanyBookings({ companyId }: Props) {
               if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear((y) => y - 1); }
               else setCurrentMonth((m) => m - 1);
             }}>
-              <Ionicons name="chevron-back" size={18} color="#fff" />
+              <Ionicons name="chevron-back" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
             <Text style={styles.calMonth}>{MONTH_NAMES[currentMonth]} {currentYear}</Text>
             <TouchableOpacity onPress={() => {
               if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear((y) => y + 1); }
               else setCurrentMonth((m) => m + 1);
             }}>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
           <View style={styles.calWeekdays}>
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 24, fontFamily: theme.fonts.display, color: theme.colors.bone },
   addBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: theme.colors.redPrimary,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 16,
   },
-  calMonth: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  calMonth: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   calWeekdays: { flexDirection: 'row', marginBottom: 8 },
   calWeekday: {
     flex: 1, textAlign: 'center', fontSize: 12,
@@ -278,14 +278,14 @@ const styles = StyleSheet.create({
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calDay: {
     width: '14.28%', aspectRatio: 1,
-    alignItems: 'center', justifyContent: 'center', borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius.md,
   },
   calDaySelected: { backgroundColor: theme.colors.redPrimary },
   calDayToday: {
     borderWidth: 1, borderColor: theme.colors.redPrimary,
   },
   calDayEmpty: { opacity: 0 },
-  calDayText: { fontSize: 14, fontWeight: '500', color: '#fff' },
+  calDayText: { fontSize: 14, fontWeight: '500', color: theme.colors.bone },
   calDayTextSel: { fontWeight: '700' },
   calDayTextToday: { color: theme.colors.redPrimary },
 
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, marginBottom: 14,
   },
-  dateLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  dateLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   bookingCount: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '600' },
 
   loading: { paddingTop: 60, alignItems: 'center' },
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder, gap: 8,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptyText: { fontSize: 13, color: theme.colors.textMuted },
 
   roomSection: {
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, paddingHorizontal: 14,
     borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  roomName: { fontSize: 15, fontWeight: '700', color: '#fff', flex: 1 },
+  roomName: { fontSize: 15, fontWeight: '700', color: theme.colors.bone, flex: 1 },
   roomCount: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
 
   noBookings: {
@@ -337,9 +337,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 2,
   },
-  slotTime: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  slotTime: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   srcBadge: {
-    paddingVertical: 2, paddingHorizontal: 8, borderRadius: 8,
+    paddingVertical: 2, paddingHorizontal: 8, borderRadius: theme.radius.md,
   },
   srcBadgeText: { fontSize: 9, fontWeight: '700' },
   slotPlayer: { fontSize: 12, color: theme.colors.textSecondary },

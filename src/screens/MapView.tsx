@@ -87,7 +87,7 @@ export default function MapView() {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={theme.colors.redPrimary} />
-        <Text style={{ color: '#fff', marginTop: 12, fontSize: 14 }}>{t('map.loadingLocation')}</Text>
+        <Text style={{ color: theme.colors.bone, marginTop: 12, fontSize: 14 }}>{t('map.loadingLocation')}</Text>
       </View>
     );
   }
@@ -110,8 +110,8 @@ export default function MapView() {
           <Circle
             center={userLoc}
             radius={RADIUS_M}
-            strokeColor="rgba(255,30,30,0.4)"
-            fillColor="rgba(255,30,30,0.06)"
+            strokeColor="rgba(200, 16, 27, 0.4)"
+            fillColor="rgba(200, 16, 27, 0.06)"
             strokeWidth={1.5}
           />
         )}
@@ -144,7 +144,7 @@ export default function MapView() {
 
       {/* Back Button */}
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-        <Ionicons name="arrow-back" size={20} color="#fff" />
+        <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
       </TouchableOpacity>
 
       {/* Controls */}
@@ -219,19 +219,19 @@ const styles = StyleSheet.create({
   markerWrap: { alignItems: 'center' },
   markerBubble: {
     paddingVertical: 4, paddingHorizontal: 10,
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
     backgroundColor: theme.colors.redPrimary,
     marginBottom: 4,
-    shadowColor: '#FF1E1E', shadowOpacity: 0.5, shadowRadius: 6,
+    shadowColor: theme.colors.redLight, shadowOpacity: 0.5, shadowRadius: 6,
     elevation: 4,
   },
   markerBubbleActive: { backgroundColor: '#fff' },
-  markerPrice: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  markerPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.bone },
   markerPriceActive: { color: theme.colors.redPrimary },
   markerDot: {
     width: 12, height: 12, borderRadius: 6,
     backgroundColor: theme.colors.redPrimary,
-    shadowColor: '#FF1E1E', shadowOpacity: 0.6, shadowRadius: 6, elevation: 4,
+    shadowColor: theme.colors.redLight, shadowOpacity: 0.6, shadowRadius: 6, elevation: 4,
   },
   markerDotActive: { width: 16, height: 16, borderRadius: 8 },
 
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 56, right: 20, zIndex: 5, gap: 8,
   },
   ctrlBtn: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40, height: 40, borderRadius: theme.radius.lg,
     backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
@@ -257,11 +257,11 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 56, left: 72, zIndex: 5,
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingVertical: 8, paddingHorizontal: 14,
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
     backgroundColor: 'rgba(0,0,0,0.7)',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  badgeText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  badgeText: { fontSize: 13, fontWeight: '600', color: theme.colors.bone },
 
   // Bottom card
   bottomCard: {
@@ -274,10 +274,10 @@ const styles = StyleSheet.create({
   },
   cardImg: { width: 90, height: 90, borderRadius: theme.radius.md },
   cardInfo: { flex: 1, justifyContent: 'center', gap: 4 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardRating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardRatingText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  cardRatingText: { fontSize: 13, fontWeight: '600', color: theme.colors.bone },
   cardPrice: { fontSize: 13, color: theme.colors.textSecondary },
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   distText: { fontSize: 12, color: theme.colors.textSecondary },
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16, borderRadius: theme.radius.full,
     backgroundColor: theme.colors.redPrimary, ...theme.shadow.red,
   },
-  bookBtnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  bookBtnText: { fontSize: 13, fontWeight: '700', color: theme.colors.bone },
 
   // Empty state
   emptyWrap: {
@@ -301,6 +301,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     maxWidth: 280,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: '#fff', textAlign: 'center' },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.bone, textAlign: 'center' },
   emptyDesc: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center' },
 });

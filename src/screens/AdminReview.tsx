@@ -111,7 +111,7 @@ export default function AdminReview({ onBack }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('admin.title')}</Text>
         {pendingCount > 0 && (
@@ -210,7 +210,7 @@ export default function AdminReview({ onBack }: Props) {
                       style={styles.approveBtn}
                       onPress={() => handleApprove(c._id, c.name)}
                     >
-                      <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                      <Ionicons name="checkmark-circle" size={18} color={theme.colors.bone} />
                       <Text style={styles.approveBtnText}>{t('admin.approve')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -281,13 +281,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff', flex: 1 },
+  headerTitle: { fontSize: 22, fontFamily: theme.fonts.display, color: theme.colors.bone, flex: 1 },
   badge: {
     minWidth: 24, height: 24, borderRadius: 12,
     backgroundColor: theme.colors.redPrimary,
     alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6,
   },
-  badgeText: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  badgeText: { fontSize: 12, fontWeight: '800', color: theme.colors.bone },
 
   filterRow: {
     flexDirection: 'row', paddingHorizontal: 20, gap: 8, marginBottom: 12,
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
 
   scroll: { flex: 1, paddingHorizontal: 20 },
   emptyWrap: { alignItems: 'center', marginTop: 80, gap: 10 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#fff' },
+  emptyTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone },
   emptySubtitle: { fontSize: 14, color: theme.colors.textMuted, textAlign: 'center' },
 
   companyCard: {
@@ -313,11 +313,11 @@ const styles = StyleSheet.create({
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between' },
   cardInfo: { flex: 1, marginRight: 10 },
-  companyName: { fontSize: 17, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  companyName: { fontSize: 17, fontWeight: '800', color: theme.colors.bone, marginBottom: 4 },
   companyDetail: { fontSize: 13, color: theme.colors.textSecondary, marginBottom: 2 },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 4, paddingHorizontal: 10, borderRadius: 16,
+    paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.lg,
     alignSelf: 'flex-start',
   },
   statusText: { fontSize: 11, fontWeight: '700' },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12, borderRadius: theme.radius.full,
     backgroundColor: '#4CAF50',
   },
-  approveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  approveBtnText: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
   declineBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 12, borderRadius: theme.radius.full,
@@ -364,13 +364,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  modalTitle: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.bone, marginBottom: 6 },
   modalSubtitle: { fontSize: 13, color: theme.colors.textMuted, marginBottom: 16 },
   modalInput: {
     minHeight: 100, padding: 14, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, textAlignVertical: 'top',
+    color: theme.colors.bone, fontSize: 14, textAlignVertical: 'top',
   },
   modalActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
   modalCancel: {
@@ -383,5 +383,5 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 12, borderRadius: theme.radius.full,
     backgroundColor: '#F44336', alignItems: 'center',
   },
-  modalDeclineText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  modalDeclineText: { fontSize: 14, fontWeight: '700', color: theme.colors.bone },
 });

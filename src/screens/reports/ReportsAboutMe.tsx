@@ -83,7 +83,7 @@ function ReportRow({ userId, report }: { userId: string; report: { _id: string; 
               <Text style={styles.btnGhostText}>{t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={save} disabled={saving} style={styles.btn}>
-              {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.btnText}>{t('reports.me.replySave')}</Text>}
+              {saving ? <ActivityIndicator color={theme.colors.bone} size="small" /> : <Text style={styles.btnText}>{t('reports.me.replySave')}</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,183,77,0.4)', backgroundColor: 'rgba(255,183,77,0.06)',
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
-  title: { fontSize: 16, fontWeight: '800', color: '#fff' },
+  title: { fontSize: 16, fontWeight: '800', color: theme.colors.bone },
   body: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18 },
   expiry: { fontSize: 13, color: '#FFE0B2', marginTop: 8, marginBottom: 4 },
   muted: { fontSize: 12, color: theme.colors.textMuted },
@@ -121,19 +121,19 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid, borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
-  chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, backgroundColor: 'rgba(255,183,77,0.15)' },
+  chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.radius.lg, backgroundColor: 'rgba(255,183,77,0.15)' },
   chipText: { fontSize: 12, color: '#FFE0B2' },
   input: {
     minHeight: 70, padding: 10, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14, textAlignVertical: 'top',
+    color: theme.colors.bone, fontSize: 14, textAlignVertical: 'top',
   },
   btnRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
   btn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: theme.radius.md, backgroundColor: theme.colors.redPrimary },
-  btnText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  btnText: { fontSize: 13, fontWeight: '700', color: theme.colors.bone },
   btnGhost: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: theme.radius.md, backgroundColor: theme.colors.glass },
   btnGhostText: { fontSize: 13, color: theme.colors.textSecondary },
-  replyText: { fontSize: 14, color: '#fff', marginTop: 2 },
+  replyText: { fontSize: 14, color: theme.colors.bone, marginTop: 2 },
   replyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   link: { fontSize: 13, fontWeight: '600', color: theme.colors.redPrimary, marginTop: 4 },
 });

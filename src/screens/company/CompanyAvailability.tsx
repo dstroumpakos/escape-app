@@ -216,7 +216,7 @@ export default function CompanyAvailability() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{t('availability.title')}</Text>
@@ -232,14 +232,14 @@ export default function CompanyAvailability() {
               if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear((y) => y - 1); }
               else setCurrentMonth((m) => m - 1);
             }}>
-              <Ionicons name="chevron-back" size={18} color="#fff" />
+              <Ionicons name="chevron-back" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
             <Text style={styles.calMonth}>{monthNames[currentMonth]} {currentYear}</Text>
             <TouchableOpacity onPress={() => {
               if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear((y) => y + 1); }
               else setCurrentMonth((m) => m + 1);
             }}>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
 
@@ -282,7 +282,7 @@ export default function CompanyAvailability() {
         {/* Overflow indicator */}
         {slots.length > 0 && slots.every((s) => !s.available) && room?.overflowSlot && (
           <View style={styles.overflowBanner}>
-            <Ionicons name="flash" size={16} color="#FFD700" />
+            <Ionicons name="flash" size={16} color={theme.colors.gold} />
             <Text style={styles.overflowBannerText}>
               {t('availability.overflowBanner', { time: room.overflowSlot.time, price: room.overflowSlot.price })}
             </Text>
@@ -378,7 +378,7 @@ export default function CompanyAvailability() {
           onPress={handleSave}
           activeOpacity={0.8}
         >
-          <Ionicons name="save-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+          <Ionicons name="save-outline" size={18} color={theme.colors.bone} style={{ marginRight: 8 }} />
           <Text style={styles.saveBtnText}>{saving ? t('saving') : t('availability.saveSlots')}</Text>
         </TouchableOpacity>
       </View>
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontSize: 20, fontFamily: theme.fonts.display, color: theme.colors.bone },
   headerSub: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 
   calCard: {
@@ -409,24 +409,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 16,
   },
-  calMonth: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  calMonth: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   calWeekdays: { flexDirection: 'row', marginBottom: 8 },
   calWeekday: { flex: 1, textAlign: 'center', fontSize: 12, color: theme.colors.textMuted, fontWeight: '600' },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   calDay: {
     width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
   },
   calDaySelected: { backgroundColor: theme.colors.redPrimary },
   calDayEmpty: { opacity: 0 },
-  calDayText: { fontSize: 14, fontWeight: '500', color: '#fff' },
+  calDayText: { fontSize: 14, fontWeight: '500', color: theme.colors.bone },
   calDayTextSel: { fontWeight: '700' },
 
   slotsHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, marginBottom: 12,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   addSlotBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
@@ -442,12 +442,12 @@ const styles = StyleSheet.create({
   },
   slotToggle: { width: 28 },
   slotToggleOff: { opacity: 0.5 },
-  slotTime: { flex: 1, fontSize: 14, fontWeight: '600', color: '#fff' },
+  slotTime: { flex: 1, fontSize: 14, fontWeight: '600', color: theme.colors.bone },
   slotTimeOff: { color: theme.colors.textMuted, textDecorationLine: 'line-through' },
   slotPriceWrap: { flexDirection: 'row', alignItems: 'center' },
   slotDollar: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
   slotPriceInput: {
-    width: 50, fontSize: 14, fontWeight: '600', color: '#fff',
+    width: 50, fontSize: 14, fontWeight: '600', color: theme.colors.bone,
     paddingVertical: 4, paddingHorizontal: 4,
     borderBottomWidth: 1, borderBottomColor: theme.colors.glassBorder,
   },
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   discountWrap: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: theme.radius.md,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
@@ -523,10 +523,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 20, marginBottom: 12,
     padding: 12, borderRadius: theme.radius.md,
-    backgroundColor: 'rgba(255,215,0,0.1)',
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
+    backgroundColor: 'rgba(201, 154, 46, 0.1)',
+    borderWidth: 1, borderColor: 'rgba(201, 154, 46, 0.3)',
   },
-  overflowBannerText: { flex: 1, fontSize: 12, fontWeight: '600', color: '#FFD700' },
+  overflowBannerText: { flex: 1, fontSize: 12, fontWeight: '600', color: theme.colors.gold },
 
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -540,5 +540,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
     ...theme.shadow.red,
   },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 });
