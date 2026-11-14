@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -49,10 +49,8 @@ function SectionHeader({
   const accent = gold ? theme.colors.gold : theme.colors.redLight;
   return (
     <View style={styles.sectionHeader}>
-      <View style={{ flex: 1 }}>
-        {!!tag && <TypeLabel color={accent}>{tag}</TypeLabel>}
-        <Text style={[styles.sectionTitle, gold && { color: theme.colors.gold }]}>{title}</Text>
-      </View>
+      {!!tag && <TypeLabel color={accent}>{tag}</TypeLabel>}
+      <Text style={[styles.sectionTitle, gold && { color: theme.colors.gold }]}>{title}</Text>
       {onSeeAll && (
         <TouchableOpacity style={styles.seeAll} onPress={onSeeAll} hitSlop={10}>
           <Text style={[styles.seeAllText, { color: accent }]}>{t('seeAll')}</Text>
@@ -67,7 +65,19 @@ export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const tabNavigation = useNavigation<TabNav>();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { t } = useTranslation();
+  // Carousel cards snap to the middle of the screen.
+  const cardWidth = Math.min(280, width - 72);
+  const cardGap = 14;
+  const carouselSide = Math.max(20, (width - cardWidth) / 2);
+  const carouselProps = {
+    horizontal: true,
+    showsHorizontalScrollIndicator: false,
+    snapToInterval: cardWidth + cardGap,
+    decelerationRate: 'fast' as const,
+    contentContainerStyle: [styles.carousel, { paddingHorizontal: carouselSide, gap: cardGap }],
+  };
   const { userId } = useUser();
   const unreadCount = useQuery(
     api.notifications.unreadCount,
@@ -139,13 +149,15 @@ export default function HomeScreen() {
           {/* Eyes in the dark */}
           <WatchingEyes
             pairs={[
-              // Kept to the empty strips (top bar gap, below the search) so they never sit behind text
-              { x: 56, y: 15, size: 13, delay: 1800, tilt: 8 },
+              // Kept to the empty strips (left of the logo, below the search) so they never sit behind text
+              { x: 6, y: 13, size: 13, delay: 1800, tilt: 8 },
               { x: 8, y: 93, size: 12, delay: 3200, tilt: -6 },
               { x: 70, y: 94, size: 10, delay: 4600 },
             ]}
           />
           <View style={styles.topBar}>
+            {/* Same width as the bell, so the logo sits in the exact middle */}
+            <View style={styles.topBarSpacer} />
             <View style={styles.brand}>
               <EyeKeyhole size={30} />
               <Flicker period={7000} delay={1500}>
@@ -203,12 +215,12 @@ export default function HomeScreen() {
         {premiumStatus?.isPremium && earlyAccessRooms && earlyAccessRooms.length > 0 && (
           <>
             <SectionHeader gold title={t('home.earlyAccess')} onSeeAll={() => navigation.navigate('Premium')} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+            <ScrollView {...carouselProps}>
               {earlyAccessRooms.map((room: any) => (
                 <RoomCard
                   key={room._id}
                   room={room}
-                  style={styles.carouselCard}
+                  style={{ width: cardWidth }}
                   earlyLabel={
                     room.daysUntilRelease != null
                       ? t('home.earlyDays', { n: room.daysUntilRelease })
@@ -229,9 +241,9 @@ export default function HomeScreen() {
               title={t('home.featured')}
               onSeeAll={() => tabNavigation.navigate('Discover')}
             />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+            <ScrollView {...carouselProps}>
               {featured.map((room) => (
-                <RoomCard key={room.id} room={room} style={styles.carouselCard} onPress={() => openRoom(room.id)} />
+                <RoomCard key={room.id} room={room} style={{ width: cardWidth }} onPress={() => openRoom(room.id)} />
               ))}
             </ScrollView>
           </>
@@ -261,12 +273,13 @@ export default function HomeScreen() {
             activeOpacity={0.85}
             accessibilityRole="button"
           >
-            <Ionicons name="diamond" size={22} color={theme.colors.gold} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.premiumTitle}>{t('premium.headerTitle')}</Text>
-              <Text style={styles.premiumDesc}>{t('home.premiumDesc')}</Text>
+            <Ionicons name="diamond" size={24} color={theme.colors.gold} />
+            <Text style={styles.premiumTitle}>{t('premium.headerTitle')}</Text>
+            <Text style={styles.premiumDesc}>{t('home.premiumDesc')}</Text>
+            <View style={styles.premiumCta}>
+              <Text style={styles.premiumCtaText}>{t('home.premiumCta')}</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.colors.gold} />
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.colors.gold} />
           </TouchableOpacity>
         )}
         </FadeUp>
@@ -283,7 +296,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 28,
   },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  topBarSpacer: { width: 40, height: 40 },
+  brand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   wordmark: {
     fontFamily: theme.fonts.displayBlack, fontSize: 20, letterSpacing: 4,
     color: theme.colors.redLight,
@@ -299,19 +313,21 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: theme.fonts.displayBlack, fontSize: 31, lineHeight: 37,
-    color: theme.colors.bone,
+    color: theme.colors.bone, textAlign: 'center',
   },
   heroTitleRed: {
     color: theme.colors.redLight,
     textShadowColor: 'rgba(255, 20, 30, 0.5)', textShadowRadius: 16, textShadowOffset: { width: 0, height: 0 },
   },
   // Hangs from the baseline of the red line, over the gap before the subtitle
-  heroDrips: { top: '92%', left: '4%', right: '30%' },
+  heroDrips: { top: '92%', left: '18%', right: '18%' },
   heroSubtitle: {
     fontSize: 15, lineHeight: 22, color: theme.colors.textSecondary,
-    marginTop: 16, marginBottom: 22,
+    marginTop: 16, marginBottom: 22, textAlign: 'center',
+    alignSelf: 'center', maxWidth: 520,
   },
   searchBar: {
+    width: '100%', maxWidth: 560, alignSelf: 'center',
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingLeft: 14, height: 52,
     borderRadius: theme.radius.lg, overflow: 'hidden',
@@ -322,28 +338,30 @@ const styles = StyleSheet.create({
   searchGo: { width: 54, height: '100%', alignItems: 'center', justifyContent: 'center' },
 
   sectionHeader: {
-    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-    paddingHorizontal: 20, marginTop: 18, marginBottom: 14, gap: 12,
+    alignItems: 'center',
+    paddingHorizontal: 20, marginTop: 22, marginBottom: 14,
   },
   sectionTitle: {
     fontFamily: theme.fonts.display, fontSize: 24, lineHeight: 30,
-    color: theme.colors.bone, marginTop: 2,
+    color: theme.colors.bone, marginTop: 2, textAlign: 'center',
   },
-  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingBottom: 5 },
+  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 6 },
   seeAllText: { fontSize: 13, fontWeight: '600' },
 
-  carousel: { paddingHorizontal: 20, gap: 14, paddingBottom: 10 },
-  carouselCard: { width: 280 },
+  carousel: { paddingBottom: 10 },
 
-  nearList: { paddingHorizontal: 20, gap: 10 },
+  nearList: { paddingHorizontal: 20, gap: 10, width: '100%', maxWidth: 640, alignSelf: 'center' },
 
   premiumUpsell: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 20, marginTop: 26, padding: 16,
+    alignItems: 'center', gap: 6,
+    marginHorizontal: 20, marginTop: 26, paddingVertical: 20, paddingHorizontal: 18,
+    alignSelf: 'center', maxWidth: 560,
     borderRadius: theme.radius.lg,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderWidth: 1, borderColor: 'rgba(201, 154, 46, 0.45)',
   },
-  premiumTitle: { fontFamily: theme.fonts.display, fontSize: 15, color: theme.colors.gold },
-  premiumDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  premiumTitle: { fontFamily: theme.fonts.display, fontSize: 17, color: theme.colors.gold, textAlign: 'center' },
+  premiumDesc: { fontSize: 13, lineHeight: 18, color: theme.colors.textSecondary, textAlign: 'center' },
+  premiumCta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
+  premiumCtaText: { fontSize: 13, fontWeight: '700', color: theme.colors.gold },
 });
