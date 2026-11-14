@@ -2,11 +2,10 @@
   "expo": {
     "name": "Unlocked",
     "slug": "escape-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "scheme": "unlocked",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -66,7 +65,8 @@
           "photosPermission": "Allow Unlocked to access your photos for your profile and social posts."
         }
       ],
-      "react-native-iap"
+      "react-native-iap",
+      "expo-font"
     ],
     "platforms": [
       "ios",

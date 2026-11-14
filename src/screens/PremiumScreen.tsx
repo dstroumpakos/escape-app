@@ -36,7 +36,7 @@ export default function PremiumScreen() {
     { icon: 'star-outline' as const, title: t('premium.benefitPartners'), desc: t('premium.benefitPartnersDesc'), color: theme.colors.gold },
     { icon: 'shield-checkmark-outline' as const, title: t('premium.benefitCommunity'), desc: t('premium.benefitCommunityDesc'), color: '#FFA726' },
   ];
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { userId } = useUser();
   const [selectedPlan, setSelectedPlan] = useState<'yearly' | 'monthly'>('yearly');
   const [subscribing, setSubscribing] = useState(false);
@@ -278,7 +278,7 @@ export default function PremiumScreen() {
                   <Text style={styles.saveText}>{t('premium.save50')}</Text>
                 </View>
                 <Text style={[styles.planPrice, selectedPlan === 'yearly' && styles.planPriceActive]}>
-                  {products.find(p => p.productId === IAP_PRODUCT_IDS.yearly)?.localizedPrice ?? '€29.99'}
+                  {products.find(p => p.id === IAP_PRODUCT_IDS.yearly)?.displayPrice ?? '€29.99'}
                 </Text>
                 <Text style={styles.planPeriod}>{t('premium.perYear')}</Text>
                 <Text style={styles.planPerMonth}>{t('premium.monthlyRate')}</Text>
@@ -293,7 +293,7 @@ export default function PremiumScreen() {
                 onPress={() => setSelectedPlan('monthly')}
               >
                 <Text style={[styles.planPrice, selectedPlan === 'monthly' && styles.planPriceActive]}>
-                  {products.find(p => p.productId === IAP_PRODUCT_IDS.monthly)?.localizedPrice ?? '€4.99'}
+                  {products.find(p => p.id === IAP_PRODUCT_IDS.monthly)?.displayPrice ?? '€4.99'}
                 </Text>
                 <Text style={styles.planPeriod}>{t('premium.perMonth')}</Text>
                 <Text style={styles.planPerMonth}>{t('premium.billedMonthly')}</Text>
