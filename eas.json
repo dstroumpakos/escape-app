@@ -10,6 +10,7 @@
       "ios": {
         "simulator": true
       },
+      "channel": "development",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "development"
       }
@@ -19,12 +20,14 @@
       "ios": {
         "simulator": false
       },
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "preview"
       }
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_APP_ENV": "production"
       }
