@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { ConvexProvider } from 'convex/react';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeBottomTabNavigator } from '@bottom-tabs/react-navigation';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList, MainTabParamList, CompanyTabParamList } from './src/types';
@@ -68,8 +69,54 @@ import CompanyBilling from './src/screens/company/CompanyBilling';
 import AdminReview from './src/screens/AdminReview';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
-const CompanyTab = createBottomTabNavigator<CompanyTabParamList>();
+/**
+ * iOS uses the system tab bar (UITabBarController), so on iOS 26 it is Apple's
+ * Liquid Glass bar and on older versions the standard translucent one.
+ * Android keeps the JS tab bar.
+ */
+const NATIVE_TABS = Platform.OS === 'ios';
+const Tab: any = NATIVE_TABS
+  ? createNativeBottomTabNavigator<MainTabParamList>()
+  : createBottomTabNavigator<MainTabParamList>();
+const CompanyTab: any = NATIVE_TABS
+  ? createNativeBottomTabNavigator<CompanyTabParamList>()
+  : createBottomTabNavigator<CompanyTabParamList>();
+
+/** Navigator props: the glass bar takes its look from the system, only the tint is ours. */
+const tabNavigatorProps: any = NATIVE_TABS
+  ? {
+      translucent: true,
+      hapticFeedbackEnabled: true,
+      tabBarActiveTintColor: theme.colors.redLight,
+      tabBarInactiveTintColor: theme.colors.textMuted,
+    }
+  : {};
+
+const tabScreenOptions: any = NATIVE_TABS
+  ? {
+      tabBarActiveTintColor: theme.colors.redLight,
+      sceneStyle: { backgroundColor: theme.colors.bgPrimary },
+    }
+  : {
+      headerShown: false,
+      tabBarStyle: {
+        backgroundColor: theme.colors.bgBar,
+        borderTopColor: theme.colors.border,
+        borderTopWidth: 1,
+        height: 88,
+        paddingBottom: 28,
+        paddingTop: 10,
+      },
+      tabBarActiveTintColor: theme.colors.redLight,
+      tabBarInactiveTintColor: theme.colors.textMuted,
+      tabBarLabelStyle: { fontSize: 10, fontWeight: '600' as const },
+    };
+
+/** SF Symbol on iOS, Ionicon on Android. */
+function tabIcon(sfSymbol: string, ionicon: React.ComponentProps<typeof Ionicons>['name']): any {
+  if (NATIVE_TABS) return () => ({ sfSymbol });
+  return ({ color, size }: { color: string; size: number }) => <Ionicons name={ionicon} size={size} color={color} />;
+}
 
 const DarkNavTheme = {
   ...DefaultTheme,
@@ -88,53 +135,41 @@ const DarkNavTheme = {
 function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () => void; onAdminReview: () => void }) {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.colors.bgBar,
-          borderTopColor: theme.colors.border,
-          borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
-          paddingTop: 10,
-        },
-        tabBarActiveTintColor: theme.colors.redLight,
-        tabBarInactiveTintColor: theme.colors.textMuted,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' as const },
-      }}
+      {...tabNavigatorProps}
+      screenOptions={tabScreenOptions}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarIcon: tabIcon('house.fill', 'home'),
         }}
       />
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} />,
+          tabBarIcon: tabIcon('map.fill', 'map'),
         }}
       />
       <Tab.Screen
         name="Social"
         component={SocialScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+          tabBarIcon: tabIcon('person.2.fill', 'people'),
         }}
       />
       <Tab.Screen
         name="Tickets"
         component={TicketsScreen}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="ticket" size={size} color={color} />,
+          tabBarIcon: tabIcon('ticket.fill', 'ticket'),
         }}
       />
       <Tab.Screen
         name="Profile"
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+          tabBarIcon: tabIcon('person.fill', 'person'),
         }}
       >
         {() => <ProfileScreen onSwitchToCompany={onSwitchToCompany} onAdminReview={onAdminReview} />}
@@ -367,24 +402,12 @@ export default function App() {
     const companyNav = useNavigation<any>();
     return (
       <CompanyTab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: theme.colors.bgBar,
-            borderTopColor: theme.colors.border,
-            borderTopWidth: 1,
-            height: 88,
-            paddingBottom: 28,
-            paddingTop: 10,
-          },
-          tabBarActiveTintColor: theme.colors.redLight,
-          tabBarInactiveTintColor: theme.colors.textMuted,
-          tabBarLabelStyle: { fontSize: 10, fontWeight: '600' as const },
-        }}
+        {...tabNavigatorProps}
+        screenOptions={tabScreenOptions}
       >
         <CompanyTab.Screen
           name="Today"
-          options={{ tabBarIcon: ({ color, size }) => <Ionicons name="today-outline" size={size} color={color} /> }}
+          options={{ tabBarIcon: tabIcon('clock.fill', 'today-outline') }}
         >
           {() => <CompanyDashboard companyId={companyId!} onSwitchToPlayer={async () => {
             setCompanyId(null);
@@ -399,19 +422,19 @@ export default function App() {
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Calendar"
-          options={{ tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} /> }}
+          options={{ tabBarIcon: tabIcon('calendar', 'calendar') }}
         >
           {() => <CompanyBookings companyId={companyId!} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Rooms"
-          options={{ tabBarIcon: ({ color, size }) => <Ionicons name="key" size={size} color={color} /> }}
+          options={{ tabBarIcon: tabIcon('key.fill', 'key') }}
         >
           {() => <CompanyRoomsList companyId={companyId!} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
           name="Settings"
-          options={{ tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} /> }}
+          options={{ tabBarIcon: tabIcon('gearshape.fill', 'settings') }}
         >
           {() => (
             <CompanySettings
