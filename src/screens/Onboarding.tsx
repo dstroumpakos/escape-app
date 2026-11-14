@@ -87,7 +87,7 @@ export default function Onboarding({ onComplete, userId }: Props) {
   ];
 
   return (
-    <LinearGradient colors={['#2a0f0f', '#1A0D0D']} style={styles.container}>
+    <LinearGradient colors={['#1D1010', '#080505']} style={styles.container}>
       {/* Dots */}
       <View style={styles.dots}>
         {Array.from({ length: TOTAL_STEPS }).map((_, i) => (

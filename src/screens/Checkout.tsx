@@ -337,7 +337,7 @@ export default function Checkout() {
                 disabled={checking}
                 onPress={() => checkPayment(true)}
               >
-                <Ionicons name="refresh" size={18} color="#fff" style={{ marginRight: 8 }} />
+                <Ionicons name="refresh" size={18} color={theme.colors.bone} style={{ marginRight: 8 }} />
                 <Text style={styles.confirmText}>{t('checkout.checkPayment')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.secondaryBtn, { marginTop: 12 }]} onPress={reopenPayment}>
@@ -373,7 +373,7 @@ export default function Checkout() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('checkout.title')}</Text>
       </View>
@@ -484,7 +484,7 @@ export default function Checkout() {
                 }}
               >
                 {savingPhone ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={theme.colors.bone} />
                 ) : (
                   <Text style={styles.promoBtnText}>{t('save')}</Text>
                 )}
@@ -513,7 +513,7 @@ export default function Checkout() {
                   onPress={() => setSelectedTerm(term)}
                 >
                   <View style={styles.payRow}>
-                    <Ionicons name={icon as any} size={22} color="#fff" />
+                    <Ionicons name={icon as any} size={22} color={theme.colors.bone} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.payText}>{label}</Text>
                       <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>{desc}</Text>
@@ -550,7 +550,7 @@ export default function Checkout() {
             <Text style={styles.cardTitle}>{t('checkout.paymentMethod')}</Text>
             <View style={[styles.payOption, styles.payOptionActive]}>
               <View style={styles.payRow}>
-                <Ionicons name="card-outline" size={22} color="#fff" />
+                <Ionicons name="card-outline" size={22} color={theme.colors.bone} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.payText}>{t('checkout.creditCard')}</Text>
                   <Text style={{ fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 }}>
@@ -603,10 +603,10 @@ export default function Checkout() {
           onPress={onConfirm}
         >
           {isSubmitting ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={theme.colors.bone} />
           ) : (
             <>
-              <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color="#fff" style={{ marginRight: 8 }} />
+              <Ionicons name={isPayOnArrival ? 'checkmark-circle' : 'lock-closed'} size={18} color={theme.colors.bone} style={{ marginRight: 8 }} />
               <Text style={styles.confirmText}>{isPayOnArrival ? t('checkout.confirmReservation') : t('checkout.confirmPay', { amount: payNow.toFixed(2) })}</Text>
             </>
           )}
@@ -623,11 +623,11 @@ const styles = StyleSheet.create({
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 40, height: 40, borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontFamily: theme.fonts.display, fontSize: 22, color: theme.colors.bone },
   scroll: { flex: 1, paddingHorizontal: 20 },
 
   // Cards
@@ -637,8 +637,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     marginBottom: 16,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 14 },
-  roomName: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 12 },
+  cardTitle: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.colors.bone, marginBottom: 14 },
+  roomName: { fontFamily: theme.fonts.display, fontSize: 21, color: theme.colors.bone, marginBottom: 12 },
 
   // Terms
   termsFrom: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 12 },
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   },
   termsText: { fontSize: 13, lineHeight: 19, color: theme.colors.textSecondary },
   termsAcceptRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 14 },
-  termsAcceptText: { flex: 1, fontSize: 13, lineHeight: 19, color: '#fff' },
+  termsAcceptText: { flex: 1, fontSize: 13, lineHeight: 19, color: theme.colors.bone },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   detailText: { fontSize: 14, color: theme.colors.textSecondary },
 
@@ -660,13 +660,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   priceLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  priceVal: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  priceVal: { fontSize: 14, fontWeight: '600', color: theme.colors.bone },
   totalRow: {
     borderTopWidth: 1, borderTopColor: theme.colors.border,
     marginTop: 8, paddingTop: 14,
   },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: '#fff' },
-  totalVal: { fontSize: 20, fontWeight: '800', color: theme.colors.redPrimary },
+  totalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
+  totalVal: { fontFamily: theme.fonts.display, fontSize: 22, color: theme.colors.redLight },
 
   // Promo
   promoRow: { flexDirection: 'row', gap: 10 },
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 12, paddingHorizontal: 16,
     backgroundColor: theme.colors.glass, borderRadius: theme.radius.md,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
-    color: '#fff', fontSize: 14,
+    color: theme.colors.bone, fontSize: 14,
   },
   promoBtn: {
     paddingVertical: 12, paddingHorizontal: 20,
@@ -683,7 +683,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     justifyContent: 'center',
   },
-  promoBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.redPrimary },
+  promoBtnText: { fontSize: 14, fontWeight: '600', color: theme.colors.redLight },
 
   // Payment
   payOption: {
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   },
   payOptionActive: { borderColor: theme.colors.redPrimary },
   payRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  payText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  payText: { fontSize: 15, fontWeight: '600', color: theme.colors.bone },
   radio: {
     width: 22, height: 22, borderRadius: 11,
     borderWidth: 2, borderColor: theme.colors.textMuted,
@@ -711,21 +711,22 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
-    backgroundColor: 'rgba(26,13,13,0.95)',
+    backgroundColor: theme.colors.bgBar,
     borderTopWidth: 1, borderTopColor: theme.colors.border,
   },
   confirmBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    paddingVertical: 16, borderRadius: theme.radius.full,
+    paddingVertical: 16, borderRadius: theme.radius.lg,
+    borderWidth: 1, borderColor: 'rgba(255, 42, 54, 0.4)',
     backgroundColor: theme.colors.redPrimary,
     ...theme.shadow.red,
   },
-  confirmText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  confirmText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
   secondaryBtn: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    paddingVertical: 14, borderRadius: theme.radius.full,
+    paddingVertical: 14, borderRadius: theme.radius.lg,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     backgroundColor: theme.colors.glass,
   },
-  secondaryText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  secondaryText: { fontSize: 15, fontWeight: '600', color: theme.colors.bone },
 });

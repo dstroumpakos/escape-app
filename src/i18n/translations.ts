@@ -55,7 +55,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── Onboarding ── */
     'onboarding.discoverTitle': 'Discover top-rated\nescape rooms\nnear you.',
-    'onboarding.discoverDesc': 'Explore hundreds of immersive experiences curated just for you.',
+    'onboarding.discoverDesc': 'Explore immersive experiences, wherever you are.',
     'onboarding.locationTitle': 'Where are you\nlocated?',
     'onboarding.locationDesc': "We'll show escape rooms near you on the map. You can always browse anywhere.",
     'onboarding.enableLocation': 'Enable Location',
@@ -81,6 +81,14 @@ export const translations: Record<Language, Record<string, string>> = {
     /* ── HomeScreen ── */
     'home.title': 'Unlocked',
     'home.searchPlaceholder': 'Find your next escape...',
+    'home.heroTitle1': 'Find & Book the Best',
+    'home.heroTitle2': 'Escape Rooms Near You',
+    'home.heroSubtitle': 'Discover top-rated escape rooms, book instantly, and challenge your team.',
+    'home.featuredTag': 'Doors that should have stayed shut',
+    'home.nearYouTag': 'Closer than you think',
+    'home.earlyAccess': 'Early Access',
+    'home.earlyDays': '{{n}}d early',
+    'home.premiumDesc': 'Book rooms before anyone else',
     'home.featured': 'Featured Rooms',
     'home.nearYou': 'Near You',
     'home.trending': 'Trending Now',
@@ -292,7 +300,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'checkout.bookingFailed': 'Something went wrong. Please try again.',
     'checkout.phoneRequired': 'Phone Number Required',
     'checkout.phoneRequiredDesc': 'A phone number is required to complete your booking. The escape room needs to be able to contact you.',
-    'checkout.phonePlaceholder': 'e.g. +30 6912345678',
+    'checkout.phonePlaceholder': 'With country code, e.g. +44 7700 900123',
     'checkout.payNow': 'Pay now',
     'checkout.payAtVenue': 'Pay at the venue',
     'checkout.onlineUnavailable': 'This escape room takes payment at the venue.',
@@ -407,7 +415,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'editProfile.nameEmpty': 'Name cannot be empty',
     'editProfile.failed': 'Failed to update profile',
     'editProfile.phone': 'Phone Number',
-    'editProfile.phonePlaceholder': 'e.g. +30 6912345678',
+    'editProfile.phonePlaceholder': 'With country code, e.g. +44 7700 900123',
 
     /* ── Themes ── */
     'theme.horror': 'Horror',
@@ -702,7 +710,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'addBooking.email': 'Email *',
     'addBooking.emailPlaceholder': 'player@email.com',
     'addBooking.phoneField': 'Phone *',
-    'addBooking.phonePlaceholder': '+30 6XX XXX XXXX',
+    'addBooking.phonePlaceholder': 'With country code',
     'addBooking.enterEmail': 'Enter the player email.',
     'addBooking.enterPhone': 'Enter the player phone number.',
     'addBooking.players': 'Players',
@@ -1301,7 +1309,7 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── Onboarding ── */
     'onboarding.discoverTitle': 'Ανακάλυψε κορυφαία\nescape rooms\nκοντά σου.',
-    'onboarding.discoverDesc': 'Εξερεύνησε εκατοντάδες καθηλωτικές εμπειρίες ειδικά για εσένα.',
+    'onboarding.discoverDesc': 'Εξερεύνησε καθηλωτικές εμπειρίες, όπου κι αν βρίσκεσαι.',
     'onboarding.locationTitle': 'Πού βρίσκεσαι;',
     'onboarding.locationDesc': 'Θα σου δείξουμε escape rooms κοντά σου στον χάρτη. Μπορείς πάντα να περιηγηθείς οπουδήποτε.',
     'onboarding.enableLocation': 'Ενεργοποίηση Τοποθεσίας',
@@ -1327,6 +1335,14 @@ export const translations: Record<Language, Record<string, string>> = {
     /* ── HomeScreen ── */
     'home.title': 'Unlocked',
     'home.searchPlaceholder': 'Βρες το επόμενο escape σου...',
+    'home.heroTitle1': 'Βρες & Κλείσε τα Καλύτερα',
+    'home.heroTitle2': 'Escape Rooms Κοντά Σου',
+    'home.heroSubtitle': 'Ανακάλυψε κορυφαία escape rooms, κλείσε αμέσως και προκάλεσε την ομάδα σου.',
+    'home.featuredTag': 'Πόρτες που έπρεπε να μείνουν κλειστές',
+    'home.nearYouTag': 'Πιο κοντά απ’ όσο νομίζεις',
+    'home.earlyAccess': 'Πρώιμη Πρόσβαση',
+    'home.earlyDays': '{{n}}μ νωρίτερα',
+    'home.premiumDesc': 'Κλείσε δωμάτια πριν από όλους',
     'home.featured': 'Προτεινόμενα Δωμάτια',
     'home.nearYou': 'Κοντά Σου',
     'home.trending': 'Δημοφιλή Τώρα',
@@ -1538,7 +1554,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'checkout.bookingFailed': 'Κάτι πήγε στραβά. Δοκίμασε ξανά.',
     'checkout.phoneRequired': 'Απαιτείται Τηλέφωνο',
     'checkout.phoneRequiredDesc': 'Απαιτείται αριθμός τηλεφώνου για την ολοκλήρωση της κράτησης. Το escape room πρέπει να μπορεί να επικοινωνήσει μαζί σας.',
-    'checkout.phonePlaceholder': 'π.χ. +30 6912345678',
+    'checkout.phonePlaceholder': 'Με κωδικό χώρας, π.χ. +30 6912345678',
     'checkout.payNow': 'Πληρωμή τώρα',
     'checkout.payAtVenue': 'Πληρωμή στον χώρο',
     'checkout.onlineUnavailable': 'Αυτό το escape room δέχεται πληρωμή στον χώρο.',
@@ -1653,7 +1669,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'editProfile.nameEmpty': 'Το όνομα δεν μπορεί να είναι κενό',
     'editProfile.failed': 'Αποτυχία ενημέρωσης προφίλ',
     'editProfile.phone': 'Τηλέφωνο',
-    'editProfile.phonePlaceholder': 'π.χ. +30 6912345678',
+    'editProfile.phonePlaceholder': 'Με κωδικό χώρας, π.χ. +30 6912345678',
 
     /* ── Themes ── */
     'theme.horror': 'Τρόμος',
@@ -1948,7 +1964,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'addBooking.email': 'Email *',
     'addBooking.emailPlaceholder': 'player@email.com',
     'addBooking.phoneField': 'Τηλέφωνο *',
-    'addBooking.phonePlaceholder': '+30 6XX XXX XXXX',
+    'addBooking.phonePlaceholder': 'Με κωδικό χώρας, π.χ. +30 6XX XXX XXXX',
     'addBooking.enterEmail': 'Εισάγετε το email του παίκτη.',
     'addBooking.enterPhone': 'Εισάγετε τον αριθμό τηλεφώνου.',
     'addBooking.players': 'Παίκτες',

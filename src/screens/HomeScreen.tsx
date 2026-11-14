@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import * as Location from 'expo-location';
@@ -13,6 +14,9 @@ import { RootStackParamList, MainTabParamList } from '../types';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
+import { RoomCard, RoomRow } from '../components/RoomCard';
+import { TypeLabel } from '../components/ui';
+import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -26,16 +30,34 @@ function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const { width } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type TabNav = NavigationProp<MainTabParamList>;
 
-function DifficultyDots({ filled, total }: { filled: number; total: number }) {
+function SectionHeader({
+  tag,
+  title,
+  onSeeAll,
+  gold,
+}: {
+  tag?: string;
+  title: string;
+  onSeeAll?: () => void;
+  gold?: boolean;
+}) {
+  const { t } = useTranslation();
+  const accent = gold ? theme.colors.gold : theme.colors.redLight;
   return (
-    <View style={styles.diffDots}>
-      {Array.from({ length: total }).map((_, i) => (
-        <View key={i} style={[styles.diffDot, i < filled && styles.diffDotFilled]} />
-      ))}
+    <View style={styles.sectionHeader}>
+      <View style={{ flex: 1 }}>
+        {!!tag && <TypeLabel color={accent}>{tag}</TypeLabel>}
+        <Text style={[styles.sectionTitle, gold && { color: theme.colors.gold }]}>{title}</Text>
+      </View>
+      {onSeeAll && (
+        <TouchableOpacity style={styles.seeAll} onPress={onSeeAll} hitSlop={10}>
+          <Text style={[styles.seeAllText, { color: accent }]}>{t('seeAll')}</Text>
+          <Ionicons name="chevron-forward" size={14} color={accent} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -43,6 +65,7 @@ function DifficultyDots({ filled, total }: { filled: number; total: number }) {
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const tabNavigation = useNavigation<TabNav>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { userId } = useUser();
   const unreadCount = useQuery(
@@ -76,15 +99,6 @@ export default function HomeScreen() {
 
   const featured = (featuredRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
 
-  // Trending Now: top-rated rooms sorted by star rating (then review count)
-  const trending = React.useMemo(() => {
-    if (!allRooms) return [];
-    return [...allRooms]
-      .map((r: any) => ({ ...r, id: r._id }))
-      .sort((a, b) => b.rating - a.rating || b.reviews - a.reviews)
-      .slice(0, 5);
-  }, [allRooms]);
-
   // Near You: rooms that have coordinates, sorted by distance from user
   const nearYou = React.useMemo(() => {
     if (!allRooms) return [];
@@ -111,77 +125,127 @@ export default function HomeScreen() {
     );
   }
 
+  const openRoom = (id: string) => navigation.navigate('RoomDetails', { id });
+
   return (
     <View style={styles.container}>
-      {/* Top Bar */}
-      <View style={styles.topBar}>
-        <View style={{ width: 40 }} />
-        <Text style={styles.topTitle}>{t('home.title')}</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Notifications')}>
-          <Ionicons name={unreadCount > 0 ? 'notifications' : 'notifications-outline'} size={22} color="#fff" />
-          {unreadCount > 0 && <View style={styles.notifDot} />}
-        </TouchableOpacity>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+        {/* Hero: the wall, lit from above */}
+        <LinearGradient
+          colors={['#1D1010', '#0D0707', theme.colors.bgPrimary]}
+          style={[styles.hero, { paddingTop: insets.top + 8 }]}
+        >
+          {/* Eyes in the dark */}
+          <WatchingEyes
+            pairs={[
+              // Kept to the empty strips (top bar gap, below the search) so they never sit behind text
+              { x: 56, y: 15, size: 13, delay: 1800, tilt: 8 },
+              { x: 8, y: 93, size: 12, delay: 3200, tilt: -6 },
+              { x: 70, y: 94, size: 10, delay: 4600 },
+            ]}
+          />
+          <View style={styles.topBar}>
+            <Flicker period={7000} delay={1500}>
+              <Text style={styles.wordmark}>UNLOCKED</Text>
+            </Flicker>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('Notifications')}
+              accessibilityRole="button"
+              accessibilityLabel={t('home.notifTitle')}
+            >
+              <Ionicons
+                name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+                size={20}
+                color={theme.colors.bone}
+              />
+              {unreadCount > 0 && <View style={styles.notifDot} />}
+            </TouchableOpacity>
+          </View>
 
-      {/* Search */}
-      <TouchableOpacity style={styles.searchBar} activeOpacity={0.7} onPress={() => tabNavigation.navigate('Discover')}>
-        <Ionicons name="search" size={18} color={theme.colors.textMuted} />
-        <Text style={styles.searchText}>{t('home.searchPlaceholder')}</Text>
-      </TouchableOpacity>
+          <FadeUp delay={100}>
+            <Text style={styles.heroTitle}>{t('home.heroTitle1')}</Text>
+          </FadeUp>
+          <FadeUp delay={300}>
+            <Text style={[styles.heroTitle, styles.heroTitleRed]}>{t('home.heroTitle2')}</Text>
+            <BloodDrips count={7} seed={2} maxLength={30} style={styles.heroDrips} />
+          </FadeUp>
+          <FadeUp delay={500}>
+            <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
+          </FadeUp>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <FadeUp delay={650}>
+          <TouchableOpacity
+            style={styles.searchBar}
+            activeOpacity={0.8}
+            onPress={() => tabNavigation.navigate('Discover')}
+            accessibilityRole="search"
+            accessibilityLabel={t('home.searchPlaceholder')}
+          >
+            <Ionicons name="search" size={18} color={theme.colors.redLight} />
+            <Text style={styles.searchText} numberOfLines={1}>
+              {t('home.searchPlaceholder')}
+            </Text>
+            <LinearGradient colors={theme.buttonGradient} style={styles.searchGo}>
+              <Ionicons name="arrow-forward" size={18} color={theme.colors.bone} />
+            </LinearGradient>
+          </TouchableOpacity>
+          </FadeUp>
+        </LinearGradient>
+
+        <FadeUp delay={800}>
+
         {/* Early Access Rooms (Premium only) */}
         {premiumStatus?.isPremium && earlyAccessRooms && earlyAccessRooms.length > 0 && (
           <>
-            <View style={styles.sectionHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="diamond" size={18} color="#FFD700" />
-                <Text style={[styles.sectionTitle, { color: '#FFD700' }]}>Early Access</Text>
-              </View>
-              <TouchableOpacity style={styles.seeAll} onPress={() => navigation.navigate('Premium')}>
-                <Text style={[styles.seeAllText, { color: '#FFD700' }]}>View All</Text>
-                <Ionicons name="chevron-forward" size={14} color="#FFD700" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+            <SectionHeader gold title={t('home.earlyAccess')} onSeeAll={() => navigation.navigate('Premium')} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
               {earlyAccessRooms.map((room: any) => (
-                <TouchableOpacity
+                <RoomCard
                   key={room._id}
-                  style={[styles.featuredCard, { borderColor: 'rgba(255, 215, 0, 0.3)' }]}
-                  activeOpacity={0.8}
-                  onPress={() => navigation.navigate('RoomDetails', { id: room._id })}
-                >
-                  <View style={styles.featuredImgWrap}>
-                    <Image source={{ uri: room.image }} style={styles.featuredImg} />
-                    <View style={styles.featuredOverlay} />
-                    <View style={styles.earlyAccessTag}>
-                      <Ionicons name="diamond" size={10} color="#1A0D2E" />
-                      <Text style={styles.earlyAccessTagText}>
-                        {room.daysUntilRelease != null ? `${room.daysUntilRelease}d early` : 'Early Access'}
-                      </Text>
-                    </View>
-                    <View style={styles.ratingBadge}>
-                      <Ionicons name="star" size={12} color={theme.colors.gold} />
-                      <Text style={styles.ratingText}>{room.rating}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.featuredInfo}>
-                    <Text style={styles.featuredTitle} numberOfLines={1}>{room.title}</Text>
-                    <View style={styles.featuredMeta}>
-                      <View style={styles.metaItem}>
-                        <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
-                        <Text style={styles.metaText}>{room.duration}{t('min')}</Text>
-                      </View>
-                      <DifficultyDots filled={room.difficulty} total={room.maxDifficulty} />
-                      <View style={styles.metaItem}>
-                        <Ionicons name="people-outline" size={12} color={theme.colors.textSecondary} />
-                        <Text style={styles.metaText}>{room.players}</Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  room={room}
+                  style={styles.carouselCard}
+                  earlyLabel={
+                    room.daysUntilRelease != null
+                      ? t('home.earlyDays', { n: room.daysUntilRelease })
+                      : t('home.earlyAccess')
+                  }
+                  onPress={() => openRoom(room._id)}
+                />
               ))}
             </ScrollView>
+          </>
+        )}
+
+        {/* Featured */}
+        {featured.length > 0 && (
+          <>
+            <SectionHeader
+              tag={t('home.featuredTag')}
+              title={t('home.featured')}
+              onSeeAll={() => tabNavigation.navigate('Discover')}
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+              {featured.map((room) => (
+                <RoomCard key={room.id} room={room} style={styles.carouselCard} onPress={() => openRoom(room.id)} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* Near You */}
+        {nearYou.length > 0 && (
+          <>
+            <SectionHeader
+              tag={t('home.nearYouTag')}
+              title={t('home.nearYou')}
+              onSeeAll={() => navigation.navigate('MapView')}
+            />
+            <View style={styles.nearList}>
+              {nearYou.map((room) => (
+                <RoomRow key={room.id} room={room} distanceKm={room._dist} onPress={() => openRoom(room.id)} />
+              ))}
+            </View>
           </>
         )}
 
@@ -191,269 +255,90 @@ export default function HomeScreen() {
             style={styles.premiumUpsell}
             onPress={() => navigation.navigate('Premium')}
             activeOpacity={0.85}
+            accessibilityRole="button"
           >
-            <LinearGradient
-              colors={['#2D1B4E', '#1A0D2E']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.premiumUpsellGradient}
-            >
-              <Ionicons name="diamond" size={24} color="#FFD700" />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={{ color: '#FFD700', fontSize: 14, fontWeight: '800' }}>UNLOCKED Premium</Text>
-                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>Book rooms before anyone else</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#FFD700" />
-            </LinearGradient>
+            <Ionicons name="diamond" size={22} color={theme.colors.gold} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.premiumTitle}>{t('premium.headerTitle')}</Text>
+              <Text style={styles.premiumDesc}>{t('home.premiumDesc')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.gold} />
           </TouchableOpacity>
         )}
-
-        {/* Featured */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('home.featured')}</Text>
-          <TouchableOpacity style={styles.seeAll} onPress={() => tabNavigation.navigate('Discover')}>
-            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
-            <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
-          {featured.map(room => (
-            <TouchableOpacity
-              key={room.id}
-              style={styles.featuredCard}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
-            >
-              <View style={styles.featuredImgWrap}>
-                <Image source={{ uri: room.image }} style={styles.featuredImg} />
-                <View style={styles.featuredOverlay} />
-                {room.isNew && (
-                  <View style={styles.newTag}>
-                    <Text style={styles.newTagText}>{t('home.newArrival')}</Text>
-                  </View>
-                )}
-                <View style={styles.ratingBadge}>
-                  <Ionicons name="star" size={12} color={theme.colors.gold} />
-                  <Text style={styles.ratingText}>{room.rating}</Text>
-                </View>
-              </View>
-              <View style={styles.featuredInfo}>
-                <Text style={styles.featuredTitle} numberOfLines={1}>{room.title}</Text>
-                <View style={styles.featuredMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={12} color={theme.colors.textSecondary} />
-                    <Text style={styles.metaText}>{room.duration}{t('min')}</Text>
-                  </View>
-                  <DifficultyDots filled={room.difficulty} total={room.maxDifficulty} />
-                  <View style={styles.metaItem}>
-                    <Ionicons name="people-outline" size={12} color={theme.colors.textSecondary} />
-                    <Text style={styles.metaText}>{room.players}</Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Near You */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('home.nearYou')}</Text>
-          <TouchableOpacity style={styles.seeAll} onPress={() => navigation.navigate('MapView')}>
-            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
-            <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.nearGrid}>
-          {nearYou.map(room => (
-            <TouchableOpacity
-              key={room.id}
-              style={styles.nearCard}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
-            >
-              <View style={styles.nearImgWrap}>
-                <Image source={{ uri: room.image }} style={styles.nearImg} />
-                <View style={styles.nearOverlay} />
-                <View style={styles.nearRating}>
-                  <Ionicons name="star" size={10} color={theme.colors.gold} />
-                  <Text style={styles.nearRatingText}>{room.rating}</Text>
-                </View>
-              </View>
-              <Text style={styles.nearTitle} numberOfLines={1}>{room.title}</Text>
-              <Text style={styles.nearLoc} numberOfLines={1}>
-                {room._dist != null ? `${room._dist.toFixed(1)} km · ` : ''}{room.location}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Trending */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('home.trending')}</Text>
-          <TouchableOpacity style={styles.seeAll} onPress={() => tabNavigation.navigate('Discover')}>
-            <Text style={styles.seeAllText}>{t('seeAll')}</Text>
-            <Ionicons name="chevron-forward" size={14} color={theme.colors.redPrimary} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.trendingList}>
-          {trending.map(room => (
-            <TouchableOpacity
-              key={room.id}
-              style={styles.trendingCard}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
-            >
-              <Image source={{ uri: room.image }} style={styles.trendingImg} />
-              <View style={styles.trendingInfo}>
-                <Text style={styles.trendingTitle} numberOfLines={1}>{room.title}</Text>
-                <Text style={styles.trendingDesc} numberOfLines={2}>{room.description}</Text>
-                <View style={styles.trendingMeta}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="star" size={12} color={theme.colors.gold} />
-                    <Text style={styles.metaTextBold}>{room.rating}</Text>
-                  </View>
-                  <DifficultyDots filled={room.difficulty} total={room.maxDifficulty} />
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        </FadeUp>
       </ScrollView>
     </View>
   );
 }
 
-const CARD_W = 260;
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
+
+  hero: { paddingHorizontal: 20, paddingBottom: 44, marginBottom: 0 },
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 56, paddingBottom: 12,
+    marginBottom: 28,
+  },
+  wordmark: {
+    fontFamily: theme.fonts.displayBlack, fontSize: 20, letterSpacing: 4,
+    color: theme.colors.redLight,
+    textShadowColor: 'rgba(255, 30, 40, 0.55)', textShadowRadius: 12, textShadowOffset: { width: 0, height: 0 },
   },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: theme.radius.lg, alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder,
-  },
-  topTitle: {
-    fontSize: 22, fontWeight: '800', color: theme.colors.redPrimary,
   },
   notifDot: {
     position: 'absolute', top: 8, right: 8, width: 8, height: 8,
-    borderRadius: 4, backgroundColor: theme.colors.redPrimary,
+    borderRadius: 4, backgroundColor: theme.colors.redLight,
+  },
+  heroTitle: {
+    fontFamily: theme.fonts.displayBlack, fontSize: 31, lineHeight: 37,
+    color: theme.colors.bone,
+  },
+  heroTitleRed: {
+    color: theme.colors.redLight,
+    textShadowColor: 'rgba(255, 20, 30, 0.5)', textShadowRadius: 16, textShadowOffset: { width: 0, height: 0 },
+  },
+  // Hangs from the baseline of the red line, over the gap before the subtitle
+  heroDrips: { top: '92%', left: '4%', right: '30%' },
+  heroSubtitle: {
+    fontSize: 15, lineHeight: 22, color: theme.colors.textSecondary,
+    marginTop: 16, marginBottom: 22,
   },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 20, marginBottom: 16, padding: 14, paddingHorizontal: 16,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.glass,
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
+    paddingLeft: 14, height: 52,
+    borderRadius: theme.radius.lg, overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    borderWidth: 1, borderColor: 'rgba(200, 16, 27, 0.45)',
   },
-  searchText: { fontSize: 14, color: theme.colors.textMuted },
-  scroll: { flex: 1 },
+  searchText: { flex: 1, fontSize: 14, color: theme.colors.textSecondary },
+  searchGo: { width: 54, height: '100%', alignItems: 'center', justifyContent: 'center' },
+
   sectionHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, marginBottom: 14,
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
+    paddingHorizontal: 20, marginTop: 18, marginBottom: 14, gap: 12,
   },
-  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
-  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  seeAllText: { fontSize: 13, color: theme.colors.redPrimary, fontWeight: '600' },
+  sectionTitle: {
+    fontFamily: theme.fonts.display, fontSize: 24, lineHeight: 30,
+    color: theme.colors.bone, marginTop: 2,
+  },
+  seeAll: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingBottom: 5 },
+  seeAllText: { fontSize: 13, fontWeight: '600' },
 
-  // Featured
-  featuredScroll: { paddingHorizontal: 20, gap: 14, marginBottom: 28 },
-  featuredCard: {
-    width: CARD_W, borderRadius: theme.radius.lg, overflow: 'hidden',
-    backgroundColor: theme.colors.bgCardSolid,
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
-  },
-  featuredImgWrap: { height: 150, overflow: 'hidden' },
-  featuredImg: { width: '100%', height: '100%' },
-  featuredOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-  },
-  newTag: {
-    position: 'absolute', top: 10, left: 10,
-    paddingVertical: 4, paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: theme.colors.redPrimary,
-  },
-  newTagText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  ratingBadge: {
-    position: 'absolute', top: 10, right: 10,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 4, paddingHorizontal: 8, borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  ratingText: { fontSize: 12, fontWeight: '600', color: '#fff' },
-  featuredInfo: { padding: 14 },
-  featuredTitle: { fontSize: 15, fontWeight: '700', color: '#fff', marginBottom: 8 },
-  featuredMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 12, color: theme.colors.textSecondary },
-  metaTextBold: { fontSize: 12, fontWeight: '600', color: '#fff' },
+  carousel: { paddingHorizontal: 20, gap: 14, paddingBottom: 10 },
+  carouselCard: { width: 280 },
 
-  // Difficulty dots
-  diffDots: { flexDirection: 'row', gap: 3 },
-  diffDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.15)' },
-  diffDotFilled: { backgroundColor: theme.colors.redPrimary },
+  nearList: { paddingHorizontal: 20, gap: 10 },
 
-  // Near You
-  nearGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 12,
-    paddingHorizontal: 20, marginBottom: 28,
-  },
-  nearCard: {
-    width: (width - 52) / 2, borderRadius: theme.radius.lg, overflow: 'hidden',
-    backgroundColor: theme.colors.bgCardSolid,
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
-  },
-  nearImgWrap: { height: 110, overflow: 'hidden' },
-  nearImg: { width: '100%', height: '100%' },
-  nearOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  nearRating: {
-    position: 'absolute', bottom: 8, right: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    paddingVertical: 3, paddingHorizontal: 7, borderRadius: theme.radius.full,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  nearRatingText: { fontSize: 11, fontWeight: '600', color: '#fff' },
-  nearTitle: { fontSize: 13, fontWeight: '700', color: '#fff', paddingHorizontal: 10, paddingTop: 10 },
-  nearLoc: { fontSize: 11, color: theme.colors.textSecondary, paddingHorizontal: 10, paddingBottom: 12 },
-
-  // Trending
-  trendingList: { paddingHorizontal: 20, gap: 12, marginBottom: 28 },
-  trendingCard: {
-    flexDirection: 'row', gap: 14, padding: 12, borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.bgCardSolid,
-    borderWidth: 1, borderColor: theme.colors.glassBorder,
-  },
-  trendingImg: { width: 80, height: 80, borderRadius: theme.radius.md },
-  trendingInfo: { flex: 1, justifyContent: 'center' },
-  trendingTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  trendingDesc: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 8, lineHeight: 17 },
-  trendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-
-  // Early Access
-  earlyAccessTag: {
-    position: 'absolute', top: 10, left: 10,
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingVertical: 4, paddingHorizontal: 10,
-    borderRadius: theme.radius.full,
-    backgroundColor: '#FFD700',
-  },
-  earlyAccessTagText: { fontSize: 11, fontWeight: '700', color: '#1A0D2E' },
-
-  // Premium Upsell
   premiumUpsell: {
-    marginHorizontal: 20, marginBottom: 20, borderRadius: theme.radius.lg, overflow: 'hidden',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 20, marginTop: 26, padding: 16,
+    borderRadius: theme.radius.lg,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1, borderColor: 'rgba(201, 154, 46, 0.45)',
   },
-  premiumUpsellGradient: {
-    flexDirection: 'row', alignItems: 'center',
-    padding: 16, borderRadius: theme.radius.lg,
-    borderWidth: 1, borderColor: 'rgba(255, 215, 0, 0.2)',
-  },
+  premiumTitle: { fontFamily: theme.fonts.display, fontSize: 15, color: theme.colors.gold },
+  premiumDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 });

@@ -205,7 +205,7 @@ export default function DateTimeSelect() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('dateTime.title')}</Text>
       </View>
@@ -218,14 +218,14 @@ export default function DateTimeSelect() {
               if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); }
               else setCurrentMonth(m => m - 1);
             }}>
-              <Ionicons name="chevron-back" size={18} color="#fff" />
+              <Ionicons name="chevron-back" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
             <Text style={styles.calMonth}>{monthNames[currentMonth]} {currentYear}</Text>
             <TouchableOpacity style={styles.calNavBtn} onPress={() => {
               if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); }
               else setCurrentMonth(m => m + 1);
             }}>
-              <Ionicons name="chevron-forward" size={18} color="#fff" />
+              <Ionicons name="chevron-forward" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
 
@@ -315,7 +315,7 @@ export default function DateTimeSelect() {
                     <Ionicons
                       name={isAlerted ? 'notifications' : 'notifications-outline'}
                       size={16}
-                      color={isAlerted ? '#FFD700' : theme.colors.textMuted}
+                      color={isAlerted ? theme.colors.gold : theme.colors.textMuted}
                     />
                   </TouchableOpacity>
                 )}
@@ -403,11 +403,11 @@ const styles = StyleSheet.create({
     paddingTop: 56, paddingHorizontal: 20, paddingBottom: 16,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 40, height: 40, borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { fontFamily: theme.fonts.display, fontSize: 22, color: theme.colors.bone },
   scroll: { flex: 1, paddingHorizontal: 20 },
 
   // Calendar
@@ -421,10 +421,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20,
   },
   calNavBtn: {
-    width: 32, height: 32, borderRadius: 8,
+    width: 32, height: 32, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
   },
-  calMonth: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  calMonth: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.colors.bone },
   calWeekdays: { flexDirection: 'row', marginBottom: 10 },
   calWeekday: {
     flex: 1, textAlign: 'center', fontSize: 12,
@@ -434,14 +434,14 @@ const styles = StyleSheet.create({
   calDay: {
     width: '14.28%', aspectRatio: 1,
     alignItems: 'center', justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: theme.radius.md,
   },
   calDaySelected: {
     backgroundColor: theme.colors.redPrimary,
     ...theme.shadow.red,
   },
   calDayEmpty: { opacity: 0 },
-  calDayText: { fontSize: 14, fontWeight: '500', color: '#fff' },
+  calDayText: { fontSize: 14, fontWeight: '500', color: theme.colors.bone },
   calDayPast: { color: theme.colors.textMuted, opacity: 0.4 },
   calDayTextSelected: { fontWeight: '700' },
 
@@ -454,18 +454,18 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
     marginBottom: 20,
   },
-  playersLabel: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  playersLabel: { fontSize: 15, fontWeight: '600', color: theme.colors.bone },
   playersControl: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   playersBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36, height: 36, borderRadius: theme.radius.md,
     backgroundColor: theme.colors.glass, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  playersBtnText: { fontSize: 18, fontWeight: '600', color: '#fff' },
-  playersCount: { fontSize: 18, fontWeight: '700', color: '#fff', minWidth: 24, textAlign: 'center' },
+  playersBtnText: { fontSize: 18, fontWeight: '600', color: theme.colors.bone },
+  playersCount: { fontSize: 18, fontWeight: '700', color: theme.colors.bone, minWidth: 24, textAlign: 'center' },
 
   // Time Slots
-  timeSectionTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 14 },
+  timeSectionTitle: { fontFamily: theme.fonts.display, fontSize: 20, color: theme.colors.bone, marginBottom: 14 },
   timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   noTimesLeft: { fontSize: 14, color: theme.colors.textMuted, marginBottom: 12 },
   timeCard: {
@@ -475,9 +475,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.bgCardSolid,
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
-  timeCardSelected: { backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary },
+  timeCardSelected: { backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redLight },
   timeCardUnavailable: { opacity: 0.45 },
-  timeVal: { fontSize: 15, fontWeight: '600', color: '#fff' },
+  timeVal: { fontSize: 15, fontWeight: '600', color: theme.colors.bone },
   timeValDisabled: { color: theme.colors.textMuted },
   timePrice: { fontSize: 12, color: theme.colors.textSecondary },
   timePriceDiscount: { color: '#4CAF50', fontWeight: '700' },
@@ -512,10 +512,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,215,0,0.15)',
     marginBottom: 6,
   },
-  overflowBadgeText: { fontSize: 13, fontWeight: '700', color: '#FFD700' },
+  overflowBadgeText: { fontSize: 13, fontWeight: '700', color: theme.colors.gold },
   overflowHint: { fontSize: 12, color: theme.colors.textMuted, marginBottom: 10 },
   overflowCard: {
-    borderColor: '#FFD700', borderWidth: 1,
+    borderColor: theme.colors.gold, borderWidth: 1,
     width: '100%',
     backgroundColor: 'rgba(255,215,0,0.08)',
   },
@@ -525,20 +525,21 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
-    backgroundColor: 'rgba(26,13,13,0.95)',
-    borderTopWidth: 1, borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.bgBar,
+    borderTopWidth: 1, borderTopColor: theme.colors.glassBorder,
   },
   totalRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 12,
   },
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
-  totalVal: { fontSize: 22, fontWeight: '800', color: theme.colors.redPrimary },
+  totalVal: { fontFamily: theme.fonts.display, fontSize: 24, color: theme.colors.redLight },
   continueBtn: {
-    paddingVertical: 16, borderRadius: theme.radius.full,
+    paddingVertical: 16, borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.redPrimary, alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255, 42, 54, 0.4)',
     ...theme.shadow.red,
   },
   continueBtnDisabled: { opacity: 0.4 },
-  continueBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  continueBtnText: { fontSize: 16, fontWeight: '700', color: theme.colors.bone },
 });

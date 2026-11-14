@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { ConvexProvider } from 'convex/react';
 import { NavigationContainer, DefaultTheme, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -76,7 +77,7 @@ const DarkNavTheme = {
     ...DefaultTheme.colors,
     background: theme.colors.bgPrimary,
     card: theme.colors.bgPrimary,
-    text: '#FFFFFF',
+    text: theme.colors.textPrimary,
     border: theme.colors.border,
     notification: theme.colors.redPrimary,
     primary: theme.colors.redPrimary,
@@ -89,14 +90,14 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: 'rgba(26, 13, 13, 0.95)',
+          backgroundColor: theme.colors.bgBar,
           borderTopColor: theme.colors.border,
           borderTopWidth: 1,
           height: 88,
           paddingBottom: 28,
           paddingTop: 10,
         },
-        tabBarActiveTintColor: theme.colors.redPrimary,
+        tabBarActiveTintColor: theme.colors.redLight,
         tabBarInactiveTintColor: theme.colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' as const },
       }}
@@ -146,6 +147,12 @@ export default function App() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companyToken, setCompanyToken] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  // Required by file so only these three weights ship, not the whole family
+  const [fontsLoaded, fontError] = useFonts({
+    NotoSerifDisplay_700Bold: require('@expo-google-fonts/noto-serif-display/700Bold/NotoSerifDisplay_700Bold.ttf'),
+    NotoSerifDisplay_900Black: require('@expo-google-fonts/noto-serif-display/900Black/NotoSerifDisplay_900Black.ttf'),
+    SpecialElite_400Regular: require('@expo-google-fonts/special-elite/400Regular/SpecialElite_400Regular.ttf'),
+  });
 
   // Check for existing session on app launch
   useEffect(() => {
@@ -212,6 +219,11 @@ export default function App() {
     setCompanyToken(null);
     setAppState('companyAuth');
   }, []);
+
+  // Hold the first frame until the fonts are in; if they fail, carry on with system fonts.
+  if (!fontsLoaded && !fontError) {
+    return <View style={{ flex: 1, backgroundColor: theme.colors.bgPrimary }} />;
+  }
 
   if (appState === 'splash') {
     return (
@@ -357,14 +369,14 @@ export default function App() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(26, 13, 13, 0.95)',
+            backgroundColor: theme.colors.bgBar,
             borderTopColor: theme.colors.border,
             borderTopWidth: 1,
             height: 88,
             paddingBottom: 28,
             paddingTop: 10,
           },
-          tabBarActiveTintColor: theme.colors.redPrimary,
+          tabBarActiveTintColor: theme.colors.redLight,
           tabBarInactiveTintColor: theme.colors.textMuted,
           tabBarLabelStyle: { fontSize: 10, fontWeight: '600' as const },
         }}

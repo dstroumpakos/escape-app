@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 36,
-    backgroundColor: 'rgba(26,13,13,0.97)',
+    backgroundColor: theme.colors.bgBar,
     borderTopWidth: 1, borderTopColor: theme.colors.border,
     alignItems: 'center',
   },

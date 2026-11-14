@@ -14,7 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { RoomRow } from '../components/RoomCard';
+import { DifficultySkulls, PrimaryButton } from '../components/ui';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from 'convex/react';
@@ -29,41 +30,28 @@ import { ROOM_THEMES, ROOM_THEME_VALUES } from '../roomThemes';
 const { width, height } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
+// Before we know where the player or the rooms are: the whole world.
 const DEFAULT_REGION: Region = {
-  latitude: 37.9838,
-  longitude: 23.7275,
-  latitudeDelta: 0.45,
-  longitudeDelta: 0.45,
+  latitude: 25,
+  longitude: 10,
+  latitudeDelta: 110,
+  longitudeDelta: 110,
 };
 
 const filters = ['All', ...ROOM_THEME_VALUES];
-
-function getDiffLabel(d: number) {
-  if (d <= 2) return 'discover.easy';
-  if (d <= 3) return 'discover.medium';
-  if (d <= 4) return 'discover.hard';
-  return 'discover.expert';
-}
-
-function getDiffColor(d: number) {
-  if (d <= 2) return { bg: 'rgba(76,175,80,0.15)', text: '#4CAF50' };
-  if (d <= 3) return { bg: 'rgba(255,167,38,0.15)', text: '#FFA726' };
-  if (d <= 4) return { bg: 'rgba(255,30,30,0.15)', text: '#FF1E1E' };
-  return { bg: 'rgba(156,39,176,0.15)', text: '#CE93D8' };
-}
 
 // Custom dark map style – only applies on Android (Google Maps provider).
 // On iOS Apple Maps uses userInterfaceStyle="dark" instead.
 const darkMapStyle = Platform.OS === 'android' ? [
   { elementType: 'geometry', stylers: [{ color: '#1d1214' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#8a7070' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a0d0d' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#080505' }] },
   { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3a2020' }] },
   { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#251515' }] },
   { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#6a4545' }] },
   { featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{ color: '#1a2e1a' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a1515' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a0d0d' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#080505' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a1a1a' }] },
   { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#2a1010' }] },
   { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#251515' }] },
@@ -97,6 +85,8 @@ export default function DiscoverScreen() {
   const [mapReady, setMapReady] = useState(false);
   const [initialRegionSet, setInitialRegionSet] = useState(false);
   const [cityLabel, setCityLabel] = useState(t('discover.locating'));
+  // No saved or device location: frame the rooms themselves instead of a fixed city
+  const [locationUnavailable, setLocationUnavailable] = useState(false);
 
   const filtered = activeFilter === 'All' ? rooms : rooms.filter((r) => r.theme === activeFilter);
 
@@ -147,9 +137,36 @@ export default function DiscoverScreen() {
           } catch {}
           setInitialRegionSet(true);
         }
+      } else {
+        setLocationUnavailable(true);
       }
-    })();
+    })().catch(() => setLocationUnavailable(true));
   }, []);
+
+  /** Zoom out (or in) until every listed room with coordinates is on screen. */
+  const fitToRooms = (list: any[]) => {
+    const coords = list
+      .filter((r) => r.latitude && r.longitude)
+      .map((r) => ({ latitude: r.latitude, longitude: r.longitude }));
+    if (!mapRef.current) return;
+    if (coords.length === 0) {
+      mapRef.current.animateToRegion(DEFAULT_REGION, 500);
+    } else if (coords.length === 1) {
+      mapRef.current.animateToRegion({ ...coords[0], latitudeDelta: 0.25, longitudeDelta: 0.25 }, 500);
+    } else {
+      mapRef.current.fitToCoordinates(coords, {
+        edgePadding: { top: 230, right: 60, bottom: 220, left: 60 },
+        animated: true,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!locationUnavailable || initialRegionSet || !mapReady || rooms.length === 0) return;
+    fitToRooms(rooms);
+    setCityLabel(t('discover.yourArea'));
+    setInitialRegionSet(true);
+  }, [locationUnavailable, initialRegionSet, mapReady, rooms.length]);
 
   useEffect(() => {
     Animated.spring(cardAnim, {
@@ -191,9 +208,7 @@ export default function DiscoverScreen() {
   };
 
   const handleRecenter = () => {
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(DEFAULT_REGION, 500);
-    }
+    fitToRooms(filtered);
     setSelectedRoom(null);
   };
 
@@ -242,7 +257,7 @@ export default function DiscoverScreen() {
               >
                 <View style={styles.markerWrap}>
                   <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive, room.isEarlyAccess && styles.markerBubbleEarlyAccess]}>
-                    {room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? '#1A0D2E' : '#FFD700'} style={{ marginRight: 3 }} />}
+                    {room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? theme.colors.blood : theme.colors.gold} style={{ marginRight: 3 }} />}
                     <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
                       €{room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
                     </Text>
@@ -261,13 +276,13 @@ export default function DiscoverScreen() {
           <View>
             <Text style={styles.headerTitle}>{t('discover.title')}</Text>
             <View style={styles.locationRow}>
-              <Ionicons name="location" size={12} color={theme.colors.redPrimary} />
+              <Ionicons name="location" size={12} color={theme.colors.redLight} />
               <Text style={styles.locationText}>{cityLabel}</Text>
             </View>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerBtn} onPress={handleRecenter}>
-              <Ionicons name="map-outline" size={18} color="#fff" />
+              <Ionicons name="map-outline" size={18} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
         </View>
@@ -295,7 +310,7 @@ export default function DiscoverScreen() {
         </ScrollView>
 
         <View style={styles.countBadge}>
-          <Ionicons name="key-outline" size={12} color={theme.colors.redPrimary} />
+          <Ionicons name="key-outline" size={12} color={theme.colors.redLight} />
           <Text style={styles.countText}>
             {filtered.length === 1
               ? t('discover.roomNearby')
@@ -307,10 +322,10 @@ export default function DiscoverScreen() {
       {/* Map controls */}
       <View style={styles.controls}>
         <TouchableOpacity style={styles.ctrlBtn} onPress={handleMyLocation}>
-          <Ionicons name="locate" size={20} color={theme.colors.redPrimary} />
+          <Ionicons name="locate" size={20} color={theme.colors.redLight} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.ctrlBtn} onPress={handleRecenter}>
-          <Ionicons name="scan-outline" size={20} color="#fff" />
+          <Ionicons name="scan-outline" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
       </View>
 
@@ -320,7 +335,7 @@ export default function DiscoverScreen() {
         pointerEvents={selectedRoom ? 'auto' : 'none'}
       >
         {selectedRoom ? (
-          <RoomCard room={selectedRoom} navigation={navigation} />
+          <SelectedRoomCard room={selectedRoom} navigation={navigation} />
         ) : null}
       </Animated.View>
 
@@ -335,30 +350,19 @@ export default function DiscoverScreen() {
             decelerationRate="fast"
           >
             {filtered.map((room) => (
-              <TouchableOpacity
+              <RoomRow
                 key={room.id}
-                style={[styles.peekCard, room.isEarlyAccess && { borderColor: 'rgba(255, 215, 0, 0.3)' }]}
-                activeOpacity={0.85}
+                room={room}
+                style={styles.peekCard}
+                earlyLabel={
+                  room.isEarlyAccess
+                    ? room.daysUntilRelease != null
+                      ? t('home.earlyDays', { n: room.daysUntilRelease })
+                      : t('home.earlyAccess')
+                    : undefined
+                }
                 onPress={() => handleMarkerPress(room)}
-              >
-                <Image source={{ uri: room.image }} style={styles.peekImg} />
-                {room.isEarlyAccess && (
-                  <View style={styles.peekEarlyBadge}>
-                    <Ionicons name="diamond" size={9} color="#1A0D2E" />
-                    <Text style={styles.peekEarlyText}>{room.daysUntilRelease}d early</Text>
-                  </View>
-                )}
-                <View style={styles.peekInfo}>
-                  <Text style={styles.peekTitle} numberOfLines={1}>
-                    {room.title}
-                  </Text>
-                  <View style={styles.peekMeta}>
-                    <Ionicons name="star" size={11} color={theme.colors.gold} />
-                    <Text style={styles.peekRating}>{room.rating > 0 ? room.rating : t('discover.new')}</Text>
-                    <Text style={styles.peekPrice}>{room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+              />
             ))}
           </ScrollView>
         </View>
@@ -367,9 +371,8 @@ export default function DiscoverScreen() {
   );
 }
 
-function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
+function SelectedRoomCard({ room, navigation }: { room: any; navigation: Nav }) {
   const { t } = useTranslation();
-  const dc = getDiffColor(room.difficulty);
 
   return (
     <TouchableOpacity
@@ -386,8 +389,8 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               {room.isEarlyAccess && (
                 <View style={styles.earlyAccessCardBadge}>
-                  <Ionicons name="diamond" size={10} color="#1A0D2E" />
-                  <Text style={styles.earlyAccessCardText}>Early Access</Text>
+                  <Ionicons name="diamond" size={10} color={theme.colors.gold} />
+                  <Text style={styles.earlyAccessCardText}>{t('home.earlyAccess')}</Text>
                 </View>
               )}
               <View style={styles.cardRatingBadge}>
@@ -405,17 +408,13 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
           <View style={styles.cardDetails}>
             <View style={styles.cardDetail}>
               <Ionicons name="time-outline" size={13} color={theme.colors.textSecondary} />
-              <Text style={styles.cardDetailText}>{room.duration}min</Text>
+              <Text style={styles.cardDetailText}>{room.duration}{t('min')}</Text>
             </View>
             <View style={styles.cardDetail}>
               <Ionicons name="people-outline" size={13} color={theme.colors.textSecondary} />
               <Text style={styles.cardDetailText}>{room.players}</Text>
             </View>
-            <View style={[styles.diffBadge, { backgroundColor: dc.bg }]}>
-              <Text style={[styles.diffText, { color: dc.text }]}>
-                {t(getDiffLabel(room.difficulty))}
-              </Text>
-            </View>
+            <DifficultySkulls level={room.difficulty ?? 3} max={room.maxDifficulty ?? 5} size={12} />
           </View>
 
           <View style={styles.cardBottom}>
@@ -423,21 +422,12 @@ function RoomCard({ room, navigation }: { room: any; navigation: Nav }) {
               {room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}
               {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>{t('perPerson')}</Text>}
             </Text>
-            <TouchableOpacity
-              style={styles.bookBtn}
-              activeOpacity={0.8}
+            <PrimaryButton
+              small
+              label={t('discover.bookNow')}
+              icon="arrow-forward"
               onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
-            >
-              <LinearGradient
-                colors={[theme.colors.redPrimary, '#8B0000']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.bookBtnGrad}
-              >
-                <Text style={styles.bookBtnText}>{t('discover.bookNow')}</Text>
-                <Ionicons name="arrow-forward" size={14} color="#fff" />
-              </LinearGradient>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </View>
@@ -456,11 +446,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
     paddingTop: 12, // actual top padding set dynamically via insets
     paddingBottom: 12,
-    backgroundColor: 'rgba(26, 13, 13, 0.85)',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: 'rgba(8, 5, 5, 0.88)',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: theme.colors.glassBorder,
   },
   headerTop: {
     flexDirection: 'row',
@@ -469,15 +457,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 10,
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontFamily: theme.fonts.displayBlack, fontSize: 26, lineHeight: 32, color: theme.colors.bone },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   locationText: { fontSize: 11, color: theme.colors.textSecondary },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerBtn: {
     width: 36,
     height: 36,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.glass,
     borderWidth: 1,
     borderColor: theme.colors.glassBorder,
     alignItems: 'center',
@@ -488,14 +476,14 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: theme.radius.sm,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     borderWidth: 1,
     borderColor: theme.colors.glassBorder,
   },
   chipActive: { backgroundColor: theme.colors.redPrimary, borderColor: theme.colors.redPrimary },
-  chipText: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
+  chipText: { fontFamily: theme.fonts.type, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.colors.textSecondary },
+  chipTextActive: { color: theme.colors.bone },
 
   countBadge: {
     flexDirection: 'row',
@@ -506,16 +494,18 @@ const styles = StyleSheet.create({
     marginTop: 6,
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 30, 30, 0.08)',
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.redSubtle,
   },
   countText: { fontSize: 11, fontWeight: '600', color: theme.colors.textSecondary },
 
   markerWrap: { alignItems: 'center' },
   markerBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 14,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.redPrimary,
     shadowColor: '#FF1E1E',
     shadowOffset: { width: 0, height: 2 },
@@ -523,8 +513,8 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-  markerBubbleActive: { backgroundColor: '#fff', shadowColor: '#fff', shadowOpacity: 0.3 },
-  markerPrice: { fontSize: 12, fontWeight: '800', color: '#fff' },
+  markerBubbleActive: { backgroundColor: theme.colors.bone, shadowColor: '#fff', shadowOpacity: 0.3 },
+  markerPrice: { fontSize: 12, fontWeight: '800', color: theme.colors.bone },
   markerPriceActive: { color: theme.colors.redPrimary },
   markerArrow: {
     width: 0,
@@ -536,7 +526,7 @@ const styles = StyleSheet.create({
     borderRightColor: 'transparent',
     borderTopColor: theme.colors.redPrimary,
   },
-  markerArrowActive: { borderTopColor: '#fff' },
+  markerArrowActive: { borderTopColor: theme.colors.bone },
   markerDot: {
     width: 8,
     height: 8,
@@ -549,7 +539,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  markerDotActive: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#fff', shadowColor: '#fff' },
+  markerDotActive: { width: 12, height: 12, borderRadius: 6, backgroundColor: theme.colors.bone, shadowColor: '#fff' },
 
   controls: {
     position: 'absolute',
@@ -561,8 +551,8 @@ const styles = StyleSheet.create({
   ctrlBtn: {
     width: 42,
     height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(26, 13, 13, 0.85)',
+    borderRadius: theme.radius.lg,
+    backgroundColor: 'rgba(8, 5, 5, 0.88)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -579,9 +569,9 @@ const styles = StyleSheet.create({
   cardInner: {
     flexDirection: 'row',
     backgroundColor: theme.colors.bgCardSolid,
-    borderRadius: 20,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.glassBorder,
+    borderColor: 'rgba(200, 16, 27, 0.45)',
     overflow: 'hidden',
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.5, shadowRadius: 16 },
@@ -591,66 +581,37 @@ const styles = StyleSheet.create({
   cardImg: { width: 110, height: '100%', minHeight: 150, resizeMode: 'cover' },
   cardContent: { flex: 1, padding: 14, justifyContent: 'space-between', gap: 4 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#fff', flex: 1 },
+  cardTitle: { fontFamily: theme.fonts.display, fontSize: 16, color: theme.colors.bone, flex: 1 },
   cardRatingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 215, 0, 0.12)',
+    borderRadius: theme.radius.sm,
+    backgroundColor: 'rgba(201, 154, 46, 0.14)',
   },
-  cardRatingText: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  cardRatingText: { fontSize: 12, fontWeight: '700', color: theme.colors.bone },
   cardLocation: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   cardLocationText: { fontSize: 11, color: theme.colors.textMuted },
   cardDetails: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   cardDetail: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   cardDetailText: { fontSize: 11, color: theme.colors.textSecondary },
-  diffBadge: { paddingVertical: 2, paddingHorizontal: 8, borderRadius: 6 },
-  diffText: { fontSize: 10, fontWeight: '700' },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
-  cardPrice: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  cardPrice: { fontSize: 18, fontWeight: '800', color: theme.colors.bone },
   cardPriceSub: { fontSize: 11, fontWeight: '500', color: theme.colors.textMuted },
-  bookBtn: { borderRadius: 12, overflow: 'hidden' },
-  bookBtnGrad: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 14 },
-  bookBtnText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
   listPeek: { position: 'absolute', bottom: 100, left: 0, right: 0, zIndex: 10 },
   listPeekScroll: { paddingHorizontal: 16, gap: 12 },
-  peekCard: {
-    width: width * 0.72,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(42, 18, 18, 0.92)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.glassBorder,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8 },
-      android: { elevation: 6 },
-    }),
-  },
-  peekImg: { width: 80, height: 80, resizeMode: 'cover' },
-  peekInfo: { flex: 1, padding: 10, justifyContent: 'center', gap: 4 },
-  peekTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
-  peekMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  peekRating: { fontSize: 12, fontWeight: '600', color: '#fff' },
-  peekPrice: { fontSize: 12, fontWeight: '700', color: theme.colors.redPrimary, marginLeft: 6 },
+  peekCard: { width: width * 0.72, ...theme.shadow.card },
 
   // Early access styles
-  markerBubbleEarlyAccess: { borderColor: '#FFD700', borderWidth: 1.5 },
-  peekEarlyBadge: {
-    position: 'absolute', top: 6, left: 6,
-    flexDirection: 'row', alignItems: 'center', gap: 3,
-    paddingVertical: 2, paddingHorizontal: 6,
-    borderRadius: 8, backgroundColor: '#FFD700',
-  },
-  peekEarlyText: { fontSize: 9, fontWeight: '700', color: '#1A0D2E' },
+  markerBubbleEarlyAccess: { borderColor: theme.colors.gold, borderWidth: 1.5 },
   earlyAccessCardBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingVertical: 3, paddingHorizontal: 8,
-    borderRadius: 8, backgroundColor: '#FFD700',
+    borderRadius: theme.radius.sm, backgroundColor: 'rgba(0,0,0,0.8)',
+    borderWidth: 1, borderColor: 'rgba(201, 154, 46, 0.6)',
   },
-  earlyAccessCardText: { fontSize: 10, fontWeight: '700', color: '#1A0D2E' },
+  earlyAccessCardText: { fontSize: 10, fontWeight: '700', color: theme.colors.gold },
 });

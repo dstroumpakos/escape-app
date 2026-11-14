@@ -120,7 +120,7 @@ export default function LoginScreen({ onLogin }: Props) {
   };
 
   return (
-    <LinearGradient colors={['#2a0f0f', '#1A0D0D', '#0d0505']} style={styles.container}>
+    <LinearGradient colors={['#1D1010', '#0D0707', '#050202']} style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}

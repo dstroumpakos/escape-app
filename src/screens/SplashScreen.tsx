@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
+import { Flicker, Heartbeat, Typewriter } from '../components/motion';
 
 interface Props {
   onComplete: () => void;
@@ -43,16 +44,20 @@ export default function SplashScreen({ onComplete }: Props) {
   }, []);
 
   return (
-    <LinearGradient colors={['#2a0f0f', '#1A0D0D', '#0d0505']} style={styles.container}>
+    <LinearGradient colors={['#1D1010', '#0D0707', '#050202']} style={styles.container}>
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
         <Animated.View style={[styles.iconWrap, { opacity: glowAnim }]}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="lock-closed-outline" size={48} color={theme.colors.redPrimary} />
-          </View>
+          <Heartbeat rest={900}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="lock-closed-outline" size={48} color={theme.colors.redLight} />
+            </View>
+          </Heartbeat>
         </Animated.View>
 
-        <Text style={styles.title}>{t('splash.title')}</Text>
-        <Text style={styles.subtitle}>{t('splash.subtitle')}</Text>
+        <Flicker period={2600} delay={300}>
+          <Text style={styles.title}>{t('splash.title')}</Text>
+        </Flicker>
+        <Typewriter text={t('splash.subtitle')} delay={500} speed={50} style={styles.subtitle} />
       </Animated.View>
 
       <View style={styles.loaderWrap}>
@@ -83,18 +88,22 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 30, 30, 0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 30, 30, 0.3)',
+    backgroundColor: 'rgba(200, 16, 27, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(200, 16, 27, 0.5)',
   },
   title: {
+    fontFamily: theme.fonts.displayBlack,
     fontSize: 36,
-    fontWeight: '900',
-    color: theme.colors.textPrimary,
+    color: theme.colors.redLight,
     letterSpacing: 8,
+    textShadowColor: 'rgba(255, 30, 40, 0.55)',
+    textShadowRadius: 16,
+    textShadowOffset: { width: 0, height: 0 },
   },
   subtitle: {
-    fontSize: 13,
+    fontFamily: theme.fonts.type,
+    fontSize: 12,
     color: theme.colors.textSecondary,
     letterSpacing: 3,
   },

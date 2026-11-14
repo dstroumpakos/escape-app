@@ -73,8 +73,8 @@ export default function MapView() {
     if (userLoc) return { ...userLoc, latitudeDelta: 0.12, longitudeDelta: 0.12 };
     const first = nearbyRooms[0];
     if (first?.latitude) return { latitude: first.latitude, longitude: first.longitude, latitudeDelta: 0.12, longitudeDelta: 0.12 };
-    // Fallback: Athens, Greece
-    return { latitude: 37.9838, longitude: 23.7275, latitudeDelta: 0.12, longitudeDelta: 0.12 };
+    // No location and no rooms yet: the whole world
+    return { latitude: 25, longitude: 10, latitudeDelta: 110, longitudeDelta: 110 };
   }, [userLoc, nearbyRooms]);
 
   const recenterMap = () => {
