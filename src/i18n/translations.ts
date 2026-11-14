@@ -117,8 +117,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'notifications.companyCancelledBody': 'A booking for "{{room}}" on {{date}} at {{time}} has been cancelled.',
 
     /* ── TicketsScreen ── */
-    'tickets.title': 'My Tickets',
-    'tickets.filterTitle': 'Filter Tickets',
+    'tickets.title': 'My Bookings',
+    'tickets.tab': 'Bookings',
+    'tickets.filterTitle': 'Filter Bookings',
     'tickets.filterMessage': 'Filter by',
     'tickets.all': 'All',
     'tickets.upcomingOnly': 'Upcoming Only',
@@ -1379,8 +1380,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'notifications.companyCancelledBody': 'Μια κράτηση για "{{room}}" στις {{date}} στις {{time}} ακυρώθηκε.',
 
     /* ── TicketsScreen ── */
-    'tickets.title': 'Τα Εισιτήριά μου',
-    'tickets.filterTitle': 'Φίλτρο Εισιτηρίων',
+    'tickets.title': 'Οι Κρατήσεις μου',
+    'tickets.tab': 'Κρατήσεις',
+    'tickets.filterTitle': 'Φίλτρο Κρατήσεων',
     'tickets.filterMessage': 'Φιλτράρισμα κατά',
     'tickets.all': 'Όλα',
     'tickets.upcomingOnly': 'Μόνο Επερχόμενα',

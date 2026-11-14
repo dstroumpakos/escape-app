@@ -19,7 +19,7 @@ import {
   clearCompanySession,
 } from './src/companySession';
 import { UserProvider } from './src/UserContext';
-import { LanguageProvider } from './src/i18n';
+import { LanguageProvider, useTranslation } from './src/i18n';
 import { registerForPushNotificationsAsync, addNotificationResponseListener } from './src/notifications';
 import { useNotificationWatcher } from './src/useNotificationWatcher';
 import { ErrorBoundary } from './src/ErrorBoundary';
@@ -133,6 +133,7 @@ const DarkNavTheme = {
 };
 
 function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () => void; onAdminReview: () => void }) {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       {...tabNavigatorProps}
@@ -163,6 +164,8 @@ function MainTabs({ onSwitchToCompany, onAdminReview }: { onSwitchToCompany: () 
         name="Tickets"
         component={TicketsScreen}
         options={{
+          // The route keeps its old name; players see "Bookings"
+          tabBarLabel: t('tickets.tab'),
           tabBarIcon: tabIcon('ticket.fill', 'ticket'),
         }}
       />
