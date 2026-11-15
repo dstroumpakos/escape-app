@@ -218,6 +218,8 @@ export default function ProfileScreen({ onSwitchToCompany, onAdminReview }: Prof
         <View style={styles.section}>
           {[
             { icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true },
+            { icon: 'bag-handle-outline' as const, label: t('shop.title'), action: () => navigation.navigate('Shop', {}) },
+            { icon: 'receipt-outline' as const, label: t('shop.myOrders'), action: () => navigation.navigate('MerchOrders') },
             { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
             { icon: 'people-outline' as const, label: t('friends.title'), action: () => navigation.navigate('Friends' as any) },
             { icon: 'trophy-outline' as const, label: t('leaderboard.title'), action: () => navigation.navigate('Leaderboard' as any) },

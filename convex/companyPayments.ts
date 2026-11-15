@@ -26,7 +26,7 @@ const PAYMENT_WINDOW_MS = 30 * 60 * 1000;
 // ─── Credentials ───
 
 type StripeCreds = { provider: "stripe"; secretKey: string };
-type VivaCreds = {
+export type VivaCreds = {
   provider: "viva";
   clientId: string;
   clientSecret: string;
@@ -34,8 +34,8 @@ type VivaCreds = {
   merchantId: string;
   apiKey: string;
 };
-type Creds = StripeCreds | VivaCreds;
-type Mode = "live" | "test";
+export type Creds = StripeCreds | VivaCreds;
+export type Mode = "live" | "test";
 
 function serverKey(): Buffer {
   const raw = process.env.PAYMENT_CREDENTIALS_KEY;
@@ -62,7 +62,7 @@ function decrypt(blob: string): Creds {
   return JSON.parse(json);
 }
 
-async function loadCreds(ctx: ActionCtx, companyId: Id<"companies">) {
+export async function loadCreds(ctx: ActionCtx, companyId: Id<"companies">) {
   const row = await ctx.runQuery(internal.companyPaymentsData.getCredentialRow, { companyId });
   if (!row) throw new ConvexError("This escape room hasn't connected a payment account");
   return { creds: decrypt(row.encrypted), mode: row.mode as Mode };
@@ -85,14 +85,14 @@ async function requirePassword(
 
 // ─── Stripe (company's own account) ───
 
-function stripeFor(secretKey: string) {
+export function stripeFor(secretKey: string) {
   // Same API version as the platform integration in stripe.ts.
   return new Stripe(secretKey, { apiVersion: "2025-02-24.acacia" as any, maxNetworkRetries: 2 });
 }
 
 // ─── Viva Smart Checkout ───
 
-const VIVA = {
+export const VIVA = {
   live: {
     accounts: "https://accounts.vivapayments.com",
     api: "https://api.vivapayments.com",
@@ -129,7 +129,7 @@ function pickDigits(text: string, field: string): string | null {
   return m ? m[1] : null;
 }
 
-async function vivaCreateOrder(
+export async function vivaCreateOrder(
   c: VivaCreds,
   mode: Mode,
   o: { amountCents: number; customerTrns: string; merchantTrns: string; email: string; fullName: string; lang: string }
@@ -164,7 +164,7 @@ async function vivaCreateOrder(
 }
 
 /** Retrieve Order (Basic auth with Merchant ID + API Key). StateId 3 = paid. */
-async function vivaOrderState(c: VivaCreds, mode: Mode, orderCode: string) {
+export async function vivaOrderState(c: VivaCreds, mode: Mode, orderCode: string) {
   const res = await fetch(`${VIVA[mode].www}/api/orders/${orderCode}`, {
     headers: { Authorization: basic(c.merchantId, c.apiKey) },
   });
@@ -173,7 +173,7 @@ async function vivaOrderState(c: VivaCreds, mode: Mode, orderCode: string) {
   return { stateId: Number(json.StateId), requestAmount: Number(json.RequestAmount) };
 }
 
-async function vivaCancelOrder(c: VivaCreds, mode: Mode, orderCode: string) {
+export async function vivaCancelOrder(c: VivaCreds, mode: Mode, orderCode: string) {
   try {
     await fetch(`${VIVA[mode].www}/api/orders/${orderCode}`, {
       method: "DELETE",
@@ -185,7 +185,7 @@ async function vivaCancelOrder(c: VivaCreds, mode: Mode, orderCode: string) {
 }
 
 /** Retrieve Transaction (OAuth). statusId "F" = finished (paid). */
-async function vivaTransaction(c: VivaCreds, mode: Mode, transactionId: string) {
+export async function vivaTransaction(c: VivaCreds, mode: Mode, transactionId: string) {
   const token = await vivaToken(c, mode);
   const res = await fetch(`${VIVA[mode].api}/checkout/v2/transactions/${encodeURIComponent(transactionId)}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -294,7 +294,7 @@ export const disconnect = action({
 
 // ─── Checkout ───
 
-function checkUrl(url: string) {
+export function checkUrl(url: string) {
   if (!/^(https?:\/\/|[a-z][a-z0-9+.-]*:\/\/)/i.test(url)) throw new ConvexError("Invalid return URL");
   return url;
 }

@@ -51,6 +51,11 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen';
+import ShopScreen from './src/screens/shop/ShopScreen';
+import ProductScreen from './src/screens/shop/ProductScreen';
+import CartScreen from './src/screens/shop/CartScreen';
+import MerchCheckoutScreen from './src/screens/shop/MerchCheckoutScreen';
+import { MerchOrdersScreen, MerchOrderScreen } from './src/screens/shop/MerchOrdersScreen';
 
 // Company Screens
 import CompanyAuth from './src/screens/company/CompanyAuth';
@@ -566,6 +571,12 @@ export default function App() {
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
                   <Stack.Screen name="PlayerSettings" component={PlayerSettings} />
+                  <Stack.Screen name="Shop" component={ShopScreen} />
+                  <Stack.Screen name="Product" component={ProductScreen} />
+                  <Stack.Screen name="Cart" component={CartScreen} />
+                  <Stack.Screen name="MerchCheckout" component={MerchCheckoutScreen} />
+                  <Stack.Screen name="MerchOrders" component={MerchOrdersScreen} />
+                  <Stack.Screen name="MerchOrder" component={MerchOrderScreen} />
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth

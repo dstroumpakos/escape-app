@@ -16,6 +16,7 @@ import {
   normalizePlan,
   paygAmountCents,
 } from "./plans";
+import { merchSalesForMonth } from "./merch";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 // A claim stuck in "creating" this long (action crashed mid-way) may be retried.
@@ -57,6 +58,7 @@ export const getPaygUsage = query({
     const plan = normalizePlan(company.platformPlan);
     const month = currentMonthAthens();
     const bookingCount = plan === "payg" ? await countFeeBookings(ctx, company, month) : 0;
+    const merch = plan === "payg" ? await merchSalesForMonth(ctx, company, month) : null;
     const invoices = await ctx.db
       .query("platformFeeInvoices")
       .withIndex("by_company_month", (q) => q.eq("companyId", company._id))
@@ -66,7 +68,10 @@ export const getPaygUsage = query({
       plan,
       month,
       bookingCount,
-      amountCents: paygAmountCents(bookingCount),
+      amountCents: paygAmountCents(bookingCount) + (merch?.feeCents ?? 0),
+      bookingAmountCents: paygAmountCents(bookingCount),
+      merchSalesCents: merch?.salesCents ?? 0,
+      merchFeeCents: merch?.feeCents ?? 0,
       feeCents: PAYG_FEE_CENTS,
       capCents: PAYG_CAP_CENTS,
       invoices: invoices
@@ -75,6 +80,7 @@ export const getPaygUsage = query({
           month: i.month,
           bookingCount: i.bookingCount,
           amountCents: i.amountCents,
+          merchFeeCents: i.merchFeeCents ?? 0,
           status: i.status,
           hostedInvoiceUrl: i.hostedInvoiceUrl ?? null,
         })),
@@ -122,6 +128,9 @@ export const claimInvoice = internalMutation({
         invoiceDocId: existing._id,
         bookingCount: existing.bookingCount,
         amountCents: existing.amountCents,
+        bookingAmountCents: existing.bookingAmountCents ?? existing.amountCents,
+        merchSalesCents: existing.merchSalesCents ?? 0,
+        merchFeeCents: existing.merchFeeCents ?? 0,
         stripeInvoiceId: existing.stripeInvoiceId ?? null,
         stripeCustomerId: company.stripeCustomerId ?? null,
         companyName: company.name,
@@ -130,7 +139,10 @@ export const claimInvoice = internalMutation({
     }
 
     const bookingCount = await countFeeBookings(ctx, company, month);
-    const amountCents = paygAmountCents(bookingCount);
+    const bookingAmountCents = paygAmountCents(bookingCount);
+    // Merch fee (5% of paid merch) comes on top of the capped booking fee.
+    const merch = await merchSalesForMonth(ctx, company, month);
+    const amountCents = bookingAmountCents + merch.feeCents;
     if (amountCents <= 0) return null;
 
     const invoiceDocId = await ctx.db.insert("platformFeeInvoices", {
@@ -138,6 +150,9 @@ export const claimInvoice = internalMutation({
       month,
       bookingCount,
       amountCents,
+      bookingAmountCents,
+      merchSalesCents: merch.salesCents,
+      merchFeeCents: merch.feeCents,
       status: "creating",
       createdAt: now,
       updatedAt: now,
@@ -146,6 +161,9 @@ export const claimInvoice = internalMutation({
       invoiceDocId,
       bookingCount,
       amountCents,
+      bookingAmountCents,
+      merchSalesCents: merch.salesCents,
+      merchFeeCents: merch.feeCents,
       stripeInvoiceId: null,
       stripeCustomerId: company.stripeCustomerId ?? null,
       companyName: company.name,

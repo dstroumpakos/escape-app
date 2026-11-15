@@ -974,3 +974,160 @@ export const sendRoomReportAlert = internalAction({
       .catch(e => console.error("[Email] Room report alert failed:", e));
   },
 });
+
+// ══════════════════════════════════════════════════════════════
+// MERCH ORDER EMAILS (buyer confirmation + seller notice)
+// ══════════════════════════════════════════════════════════════
+
+const MERCH_TEXT = {
+  en: {
+    title: "Order confirmed",
+    sub: "Thanks for supporting the rooms you love",
+    hi: "Hi",
+    intro: "Here is your order.",
+    item: "Item",
+    subtotal: "Subtotal",
+    premium: "Premium discount",
+    shipping: "Shipping",
+    total: "Total",
+    pickup: "Pick up at",
+    pickupWhen: "At your game",
+    payAtPickup: "You pay when you collect it.",
+    paid: "Paid online.",
+    shipTo: "Ship to",
+    view: "View your orders",
+    footer: "Questions about your order? Reply to the shop that sold it.",
+    sellerTitle: "New merch order",
+    sellerSub: "A player ordered from your shop",
+    buyer: "Buyer",
+    open: "Open your orders",
+  },
+  el: {
+    title: "Η παραγγελία καταχωρήθηκε",
+    sub: "Ευχαριστούμε που στηρίζεις τα δωμάτια που αγαπάς",
+    hi: "Γεια σου",
+    intro: "Αυτή είναι η παραγγελία σου.",
+    item: "Προϊόν",
+    subtotal: "Υποσύνολο",
+    premium: "Έκπτωση Premium",
+    shipping: "Μεταφορικά",
+    total: "Σύνολο",
+    pickup: "Παραλαβή από",
+    pickupWhen: "Στο παιχνίδι σου",
+    payAtPickup: "Πληρώνεις κατά την παραλαβή.",
+    paid: "Πληρώθηκε online.",
+    shipTo: "Αποστολή σε",
+    view: "Δες τις παραγγελίες σου",
+    footer: "Ερωτήσεις για την παραγγελία; Απάντησε στο κατάστημα που την πούλησε.",
+    sellerTitle: "Νέα παραγγελία merch",
+    sellerSub: "Ένας παίκτης παρήγγειλε από το κατάστημά σου",
+    buyer: "Αγοραστής",
+    open: "Άνοιξε τις παραγγελίες",
+  },
+};
+
+const eur = (cents: number) => `€${(cents / 100).toFixed(2)}`;
+
+export const sendMerchOrderEmails = internalAction({
+  args: {
+    orderCode: v.string(),
+    buyerName: v.string(),
+    buyerEmail: v.string(),
+    buyerPhone: v.string(),
+    sellerName: v.string(),
+    sellerEmail: v.string(),
+    items: v.array(
+      v.object({ title: v.string(), variantLabel: v.string(), quantity: v.number(), unitPriceCents: v.number() })
+    ),
+    subtotalCents: v.number(),
+    discountCents: v.number(),
+    shippingCents: v.number(),
+    totalCents: v.number(),
+    delivery: v.string(),
+    payment: v.string(),
+    paid: v.boolean(),
+    pickupNote: v.string(),
+    pickupAddress: v.string(),
+    bookingWhen: v.string(),
+    address: v.string(),
+    lang: v.optional(v.string()),
+  },
+  handler: async (_ctx, d) => {
+    const resend = getResend();
+    if (!resend) return;
+    const tx = (lang: "en" | "el") => MERCH_TEXT[lang];
+
+    const table = (lang: "en" | "el") => {
+      const m = tx(lang);
+      const rows = d.items
+        .map(
+          (i) =>
+            `<tr>${TH(`${i.quantity}× ${escHtml(i.title)}`)}${TD(
+              `${escHtml(i.variantLabel)} · ${i.unitPriceCents ? eur(i.unitPriceCents * i.quantity) : "€0"}`
+            )}</tr>`
+        )
+        .join("");
+      return TABLE(`
+  ${rows}
+  <tr>${TH(m.subtotal)}${TD(eur(d.subtotalCents))}</tr>
+  ${d.discountCents ? `<tr>${TH(m.premium)}${TD(`−${eur(d.discountCents)}`)}</tr>` : ""}
+  ${d.delivery === "shipping" ? `<tr>${TH(m.shipping)}${TD(d.shippingCents ? eur(d.shippingCents) : "€0")}</tr>` : ""}
+  <tr>${TH(m.total)}${TD(`<strong>${eur(d.totalCents)}</strong>`)}</tr>
+  ${
+    d.delivery === "pickup"
+      ? `<tr>${TH(m.pickup)}${TD(
+          `${escHtml(d.sellerName)}${d.pickupAddress ? `<br>${escHtml(d.pickupAddress)}` : ""}${
+            d.pickupNote ? `<br><em>${escHtml(d.pickupNote)}</em>` : ""
+          }`
+        )}</tr>${d.bookingWhen ? `<tr>${TH(m.pickupWhen)}${TD(escHtml(d.bookingWhen))}</tr>` : ""}`
+      : `<tr>${TH(m.shipTo)}${TD(escHtml(d.address))}</tr>`
+  }
+`);
+    };
+
+    const promises: Promise<any>[] = [];
+    const lang = d.lang === "el" ? "el" : "en";
+    const m = tx(lang);
+    if (isEmail(d.buyerEmail)) {
+      const html = shell(
+        m.title,
+        m.sub,
+        `<p style="${S.greeting}">${m.hi} <strong>${escHtml(d.buyerName)}</strong>,</p>
+<p style="${S.bodyText}">${m.intro} ${d.paid ? m.paid : d.payment === "at_pickup" ? m.payAtPickup : ""}</p>
+<div style="text-align:center;margin:0 0 28px;"><span style="${S.badge}">${d.orderCode}</span></div>
+${table(lang)}
+<div style="text-align:center;margin:24px 0;">
+  <a href="https://unlocked.gr/shop/orders" style="${S.btn}">${m.view}</a>
+</div>`,
+        `${escHtml(d.sellerName)} · ${m.footer}`
+      );
+      promises.push(
+        resend.emails
+          .send({ from: fromAddr(d.sellerName), to: d.buyerEmail, subject: `${m.title}: ${d.orderCode}`, html })
+          .catch((e) => console.error("[Email] Merch buyer email failed:", e))
+      );
+    }
+
+    if (isEmail(d.sellerEmail)) {
+      const s = tx("en");
+      const html = shell(
+        s.sellerTitle,
+        s.sellerSub,
+        `<div style="text-align:center;margin:0 0 28px;"><span style="${S.badge}">${d.orderCode}</span></div>
+${TABLE(`<tr>${TH(s.buyer)}${TD(`${escHtml(d.buyerName)}<br>${escHtml(d.buyerEmail)}${d.buyerPhone ? `<br>${escHtml(d.buyerPhone)}` : ""}`)}</tr>`)}
+${table("en")}
+<p style="${S.bodyText}">${d.paid ? s.paid : d.payment === "at_pickup" ? s.payAtPickup : ""}</p>
+<div style="text-align:center;margin:24px 0;">
+  <a href="https://business.unlocked.gr/merch" style="${S.btn}">${s.open}</a>
+</div>`,
+        "UNLOCKED Business"
+      );
+      promises.push(
+        resend.emails
+          .send({ from: fromAddr(), to: d.sellerEmail, subject: `New order ${d.orderCode}`, html })
+          .catch((e) => console.error("[Email] Merch seller email failed:", e))
+      );
+    }
+    await Promise.all(promises);
+  },
+});

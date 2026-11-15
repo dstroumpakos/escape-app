@@ -2,6 +2,17 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { playerReportCategoryV, roomReportKindV, roomReportStatusV } from "./reportRules";
 import { cancelReasonV, cancelledByV } from "./cancelRules";
+import {
+  merchAddressV,
+  merchCategoryV,
+  merchDeliveryV,
+  merchOrderStatusV,
+  merchPaymentV,
+  merchProductStatusV,
+  merchSellerV,
+  merchUnlockRuleV,
+  merchVariantV,
+} from "./merchRules";
 
 export default defineSchema({
   // ─── Company / Business ───
@@ -69,6 +80,9 @@ export default defineSchema({
     depositPercent: v.optional(v.number()),      // default upfront % for deposit bookings (1–99)
     bookingFeeEnabled: v.optional(v.boolean()),  // add a booking fee on online payments
     bookingFeeAmount: v.optional(v.number()),    // euros, goes to the company with the payment
+    // ── Merch shop (merch.ts) ──
+    merchPremiumDiscountPercent: v.optional(v.number()), // 0–30, off for Premium players
+    merchPickupNote: v.optional(v.string()),             // e.g. "Ask at reception"
   })
     .index("by_email", ["email"])
     .index("by_stripeCustomerId", ["stripeCustomerId"])
@@ -212,6 +226,8 @@ export default defineSchema({
     isPremium: v.optional(v.boolean()),
     premiumSince: v.optional(v.number()),
     premiumExpiresAt: v.optional(v.number()),
+    // Yearly Premium welcome gift: the Official order it shipped with.
+    merchWelcomeGiftOrderId: v.optional(v.id("merchOrders")),
   }).index("by_email", ["email"])
     .index("by_apple_id", ["appleId"]),
 
@@ -726,10 +742,97 @@ export default defineSchema({
     stripeInvoiceId: v.optional(v.string()),
     hostedInvoiceUrl: v.optional(v.string()),
     error: v.optional(v.string()),
+    // Split of amountCents (older invoices have neither: all of it is bookings).
+    bookingAmountCents: v.optional(v.number()),
+    merchSalesCents: v.optional(v.number()),
+    merchFeeCents: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_company_month", ["companyId", "month"])
     .index("by_month", ["month"])
     .index("by_stripeInvoiceId", ["stripeInvoiceId"]),
+
+  // ─── Merch shop (merch.ts, merchPayments.ts, rules in merchRules.ts) ───
+  merchProducts: defineTable({
+    seller: merchSellerV,
+    companyId: v.optional(v.id("companies")), // set when seller is "company"
+    title: v.string(),
+    description: v.string(),
+    category: merchCategoryV,
+    images: v.array(v.string()),
+    priceCents: v.number(),
+    variants: v.array(merchVariantV), // at least one ("One size")
+    pickup: v.boolean(),              // collect at the venue (company only)
+    shipping: v.boolean(),
+    shippingCents: v.number(),        // company flat rate; Official uses merchRules
+    // Rooms whose pages show this item. Empty = every room of the company.
+    roomIds: v.optional(v.array(v.id("rooms"))),
+    premiumOnly: v.optional(v.boolean()),
+    releaseAt: v.optional(v.number()), // drop time; Premium can buy 48h earlier
+    // "I escaped" items: only players who played/escaped this room can buy.
+    unlockRoomId: v.optional(v.id("rooms")),
+    unlockRule: v.optional(merchUnlockRuleV),
+    status: merchProductStatusV,
+    hiddenByAdmin: v.optional(v.boolean()),
+    adminNote: v.optional(v.string()),
+    sortOrder: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_seller_status", ["seller", "status"]),
+
+  merchOrders: defineTable({
+    orderCode: v.string(), // "MER-XXXXXX"
+    userId: v.id("users"),
+    seller: merchSellerV,
+    companyId: v.optional(v.id("companies")),
+    items: v.array(
+      v.object({
+        productId: v.optional(v.id("merchProducts")), // unset for the welcome gift
+        title: v.string(),
+        variantId: v.string(),
+        variantLabel: v.string(),
+        quantity: v.number(),
+        listPriceCents: v.number(), // before the Premium discount
+        unitPriceCents: v.number(), // what the buyer pays per item
+        image: v.optional(v.string()),
+      })
+    ),
+    subtotalCents: v.number(), // list prices
+    discountCents: v.number(), // Premium discount
+    shippingCents: v.number(),
+    totalCents: v.number(),
+    premiumApplied: v.boolean(),
+    welcomeGift: v.optional(v.boolean()),
+    delivery: merchDeliveryV,
+    bookingId: v.optional(v.id("bookings")), // pickup at this game
+    shippingAddress: v.optional(merchAddressV),
+    buyerNote: v.optional(v.string()),
+    payment: merchPaymentV,
+    paymentProvider: v.optional(v.union(v.literal("stripe"), v.literal("viva"))),
+    paymentMode: v.optional(v.union(v.literal("live"), v.literal("test"))),
+    stripeSessionId: v.optional(v.string()),
+    vivaOrderCode: v.optional(v.string()),
+    paymentReference: v.optional(v.string()),
+    paidAt: v.optional(v.number()),
+    status: merchOrderStatusV,
+    stockReleased: v.optional(v.boolean()),
+    trackingCode: v.optional(v.string()),
+    trackingUrl: v.optional(v.string()),
+    sellerNote: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    shippedAt: v.optional(v.number()),
+    collectedAt: v.optional(v.number()),
+    cancelledAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_company", ["companyId"])
+    .index("by_seller", ["seller"])
+    .index("by_orderCode", ["orderCode"])
+    .index("by_stripeSessionId", ["stripeSessionId"])
+    .index("by_vivaOrderCode", ["vivaOrderCode"])
+    .index("by_booking", ["bookingId"]),
 });

@@ -261,6 +261,10 @@ export const getPlanInfo = query({
         { icon: "diamond-outline", title: "Premium Badge", desc: "Exclusive badge on your profile" },
         { icon: "notifications-outline", title: "Priority Notifications", desc: "Be the first to know about new rooms" },
         { icon: "headset-outline", title: "Priority Support", desc: "Get faster responses from our team" },
+        { icon: "pricetag-outline", title: "10% Off Official Merch", desc: "Plus free shipping on every UNLOCKED Official order" },
+        { icon: "time-outline", title: "Early Merch Drops", desc: "Buy new drops 48 hours before everyone else" },
+        { icon: "storefront-outline", title: "Member Prices at Escape Rooms", desc: "Premium prices on merch from rooms that offer them, plus members-only items" },
+        { icon: "gift-outline", title: "Yearly Welcome Gift", desc: "A free sticker pack with your first Official order on the yearly plan" },
       ],
     };
   },

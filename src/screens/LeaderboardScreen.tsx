@@ -13,7 +13,7 @@ import { TypeLabel } from '../components/ui';
 
 type Tab = 'players' | 'rooms' | 'badges';
 
-/** Same eight badges as the website's leaderboard; keys match convex/badges.ts. */
+/** Same badges as the website's leaderboard; keys match convex/badges.ts. */
 const BADGES: { key: string; icon: string; name: string; desc: string }[] = [
   { key: 'champion', icon: '🏆', name: 'leaderboard.badge_champion', desc: 'leaderboard.badge_champion_desc' },
   { key: 'on_fire', icon: '🔥', name: 'leaderboard.badge_on_fire', desc: 'leaderboard.badge_on_fire_desc' },
@@ -23,6 +23,7 @@ const BADGES: { key: string; icon: string; name: string; desc: string }[] = [
   { key: 'explorer', icon: '🌍', name: 'leaderboard.badge_explorer', desc: 'leaderboard.badge_explorer_desc' },
   { key: 'perfectionist', icon: '🎯', name: 'leaderboard.badge_perfectionist', desc: 'leaderboard.badge_perfectionist_desc' },
   { key: 'night_owl', icon: '🌙', name: 'leaderboard.badge_night_owl', desc: 'leaderboard.badge_night_owl_desc' },
+  { key: 'collector', icon: '🛍️', name: 'leaderboard.badge_collector', desc: 'leaderboard.badge_collector_desc' },
 ];
 
 const MEDAL = ['#E0B84A', '#B9B9B9', '#B5713A'];

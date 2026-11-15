@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { getStripe } from "./stripe";
 import { PAYG_FEE_CENTS, currentMonthAthens, previousMonth } from "./plans";
+import { PAYG_MERCH_FEE_PERCENT } from "./merchRules";
 
 const DAYS_UNTIL_DUE = 14;
 
@@ -86,19 +87,34 @@ export const billPreviousMonth = internalAction({
         let invoice = await stripe.invoices.retrieve(invoiceId);
         if (invoice.status === "draft") {
           if ((invoice.lines?.data.length ?? 0) === 0) {
-            const capped = claim.amountCents < claim.bookingCount * PAYG_FEE_CENTS;
-            await stripe.invoiceItems.create(
-              {
-                customer: customerId,
-                invoice: invoiceId,
-                amount: claim.amountCents,
-                currency: "eur",
-                description:
-                  `${claim.bookingCount} bookings × €${(PAYG_FEE_CENTS / 100).toFixed(2)}` +
-                  (capped ? ` (capped at €${(claim.amountCents / 100).toFixed(2)})` : ""),
-              } as any,
-              { idempotencyKey: `payg-item-${companyId}-${month}` }
-            );
+            const bookingCents = claim.bookingAmountCents;
+            if (bookingCents > 0) {
+              const capped = bookingCents < claim.bookingCount * PAYG_FEE_CENTS;
+              await stripe.invoiceItems.create(
+                {
+                  customer: customerId,
+                  invoice: invoiceId,
+                  amount: bookingCents,
+                  currency: "eur",
+                  description:
+                    `${claim.bookingCount} bookings × €${(PAYG_FEE_CENTS / 100).toFixed(2)}` +
+                    (capped ? ` (capped at €${(bookingCents / 100).toFixed(2)})` : ""),
+                } as any,
+                { idempotencyKey: `payg-item-${companyId}-${month}` }
+              );
+            }
+            if (claim.merchFeeCents > 0) {
+              await stripe.invoiceItems.create(
+                {
+                  customer: customerId,
+                  invoice: invoiceId,
+                  amount: claim.merchFeeCents,
+                  currency: "eur",
+                  description: `Merch fee: ${PAYG_MERCH_FEE_PERCENT}% of €${(claim.merchSalesCents / 100).toFixed(2)} paid merch sales`,
+                } as any,
+                { idempotencyKey: `payg-merch-${companyId}-${month}` }
+              );
+            }
           }
           invoice = await stripe.invoices.finalizeInvoice(invoiceId);
           invoice = await stripe.invoices.sendInvoice(invoiceId);

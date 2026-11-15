@@ -67,6 +67,13 @@ export type RootStackParamList = {
   TermsOfService: undefined;
   NotificationPrefs: undefined;
   PlayerSettings: undefined;
+  // Merch shop
+  Shop: { companyId?: string } | undefined;
+  Product: { id: string };
+  Cart: undefined;
+  MerchCheckout: { sellerKey: string };
+  MerchOrders: undefined;
+  MerchOrder: { id: string; fresh?: boolean };
   // Company side
   CompanyAuth: undefined;
   CompanyTabs: undefined;
