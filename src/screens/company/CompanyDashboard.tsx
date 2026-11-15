@@ -15,6 +15,7 @@ import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import Svg, { Circle } from 'react-native-svg';
 import GettingStartedChecklist from './GettingStartedChecklist';
+import { MerchDashboardCard } from './CompanyMerch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -121,6 +122,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         </View>
 
         <GettingStartedChecklist companyId={companyId} company={company} rooms={rooms} />
+
+        <MerchDashboardCard companyId={companyId} onOpen={() => navigation.navigate('CompanyMerch', { companyId })} />
 
         {/* Overview + Room Capacity Row */}
         <Text style={styles.sectionTitle}>{t('dashboard.overview')}</Text>

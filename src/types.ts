@@ -84,6 +84,8 @@ export type RootStackParamList = {
   CompanyPhotos: { companyId: string };
   CompanyBilling: { companyId: string };
   CompanyPayments: { companyId: string };
+  CompanyMerch: { companyId: string };
+  CompanyMerchEditor: { companyId: string; productId?: string };
   CompanyGuide: undefined;
   CompanyNotificationPrefs: undefined;
 };

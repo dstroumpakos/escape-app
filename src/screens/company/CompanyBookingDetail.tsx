@@ -16,6 +16,7 @@ import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
 import { PlayerFlagCard, ReportPlayerCard } from './PlayerReportSection';
+import { BookingMerchCard } from './CompanyMerch';
 import CompleteBookingModal from './CompleteBookingModal';
 import CancelReasonModal from '../../components/CancelReasonModal';
 import { slotStart } from '../../slotTime';
@@ -290,6 +291,9 @@ export default function CompanyBookingDetail({ companyId }: Props) {
             )}
           </View>
         )}
+
+        {/* Merch to hand over at this game */}
+        <BookingMerchCard companyId={companyId} bookingId={bookingId} />
 
         {/* Booking code */}
         <View style={styles.card}>

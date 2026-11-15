@@ -25,6 +25,7 @@ interface Props {
   onNavigateBilling?: () => void;
   onNavigatePhotos?: () => void;
   onNavigatePayments?: () => void;
+  onNavigateMerch?: () => void;
   onNavigateNotifPrefs?: () => void;
   onNavigateGuide?: () => void;
   onNavigateTerms?: () => void;
@@ -32,7 +33,7 @@ interface Props {
 }
 
 export default function CompanySettings({
-  companyId, onLogout, onSwitchToPlayer, onNavigateBilling, onNavigatePhotos, onNavigatePayments,
+  companyId, onLogout, onSwitchToPlayer, onNavigateBilling, onNavigatePhotos, onNavigatePayments, onNavigateMerch,
   onNavigateNotifPrefs, onNavigateGuide, onNavigateTerms, onNavigatePrivacy,
 }: Props) {
   const company = useCompanyQuery(api.companies.getById, { id: companyId as Id<"companies"> });
@@ -416,6 +417,7 @@ export default function CompanySettings({
             <Text style={styles.sectionTitle}>{t('settings.account')}</Text>
             <View style={styles.card}>
               {[
+                { icon: 'bag-handle-outline' as const, label: t('cmerch.title'), action: onNavigateMerch },
                 { icon: 'wallet-outline' as const, label: t('pay.title'), action: onNavigatePayments },
                 { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: onNavigateNotifPrefs },
                 { icon: 'language-outline' as const, label: t('settings.language'), value: language === 'en' ? 'English' : 'Ελληνικά', action: () => setLanguage(language === 'en' ? 'el' : 'en') },

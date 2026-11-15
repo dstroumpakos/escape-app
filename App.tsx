@@ -52,6 +52,8 @@ import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen';
 import ShopScreen from './src/screens/shop/ShopScreen';
+import CompanyMerch from './src/screens/company/CompanyMerch';
+import CompanyMerchEditor from './src/screens/company/CompanyMerchEditor';
 import ProductScreen from './src/screens/shop/ProductScreen';
 import CartScreen from './src/screens/shop/CartScreen';
 import MerchCheckoutScreen from './src/screens/shop/MerchCheckoutScreen';
@@ -469,6 +471,7 @@ export default function App() {
               onNavigateBilling={() => companyNav.navigate('CompanyBilling', { companyId: companyId! })}
               onNavigatePhotos={() => companyNav.navigate('CompanyPhotos', { companyId: companyId! })}
               onNavigatePayments={() => companyNav.navigate('CompanyPayments', { companyId: companyId! })}
+              onNavigateMerch={() => companyNav.navigate('CompanyMerch', { companyId: companyId! })}
               onNavigateNotifPrefs={() => companyNav.navigate('CompanyNotificationPrefs')}
               onNavigateGuide={() => companyNav.navigate('CompanyGuide')}
               onNavigateTerms={() => companyNav.navigate('TermsOfService')}
@@ -548,6 +551,25 @@ export default function App() {
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="CompanyPayments">
                     {(props) => <CompanyPayments companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyMerch">
+                    {(props) => (
+                      <CompanyMerch
+                        companyId={companyId}
+                        onBack={() => (props as any).navigation.goBack()}
+                        onEditItem={(productId) => (props as any).navigation.navigate('CompanyMerchEditor', { companyId, productId })}
+                        onNavigatePayments={() => (props as any).navigation.navigate('CompanyPayments', { companyId })}
+                      />
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyMerchEditor">
+                    {(props) => (
+                      <CompanyMerchEditor
+                        companyId={companyId}
+                        productId={(props as any).route.params?.productId}
+                        onBack={() => (props as any).navigation.goBack()}
+                      />
+                    )}
                   </Stack.Screen>
                   <Stack.Screen name="CompanyBilling">
                     {(props) => <CompanyBilling companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
