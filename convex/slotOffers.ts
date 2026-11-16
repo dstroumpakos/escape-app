@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { notifyUser } from "./push";
 import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -197,7 +198,7 @@ export const notifyWishlist = internalMutation({
     for (const user of page.page) {
       if (!user.wishlist?.includes(room._id)) continue;
       const lang = (user as any).language;
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId: user._id,
         type: "promo",
         title: nt(lang, "offer.title", { percent: String(offer.percent), room: room.title }),

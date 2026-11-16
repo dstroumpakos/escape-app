@@ -14,6 +14,7 @@ import { getFunctionName } from 'convex/server';
 import type { FunctionArgs, FunctionReference, FunctionReturnType } from 'convex/server';
 import { api } from '../convex/_generated/api';
 import { convex } from './convex';
+import { unregisterPush } from './pushRegistration';
 
 const ID_KEY = 'companyId';
 const TOKEN_KEY = COMPANY_TOKEN_KEY;
@@ -61,6 +62,7 @@ export async function loadCompanySession(): Promise<{ companyId: string; token: 
 
 export async function clearCompanySession(revoke = true) {
   if (revoke) {
+    await unregisterPush('company');
     const token = await getToken(TOKEN_KEY);
     if (token) convex.mutation(api.companies.logoutCompany, { sessionToken: token }).catch(() => {});
   }

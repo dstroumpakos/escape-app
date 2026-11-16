@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { slotFreed } from "./push";
 import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -167,5 +168,6 @@ export const expireGuestBooking = internalMutation({
       cancelledBy: "system",
       awaitingEmailConfirm: undefined,
     });
+    await slotFreed(ctx, booking.roomId, booking.date, booking.time);
   },
 });

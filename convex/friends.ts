@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { notifyUser } from "./push";
 import { v } from "convex/values";
 import { nt } from "./notificationTexts";
 import { requireUser, optionalUser } from "./userSession";
@@ -143,7 +144,7 @@ export const sendRequest = mutation({
     const requester = requesterUser;
     const receiver = await ctx.db.get(args.receiverId);
     const lang = receiver?.language;
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: args.receiverId,
       type: "friend_request",
       title: nt(lang, "friend_request.title"),
@@ -180,7 +181,7 @@ export const acceptRequest = mutation({
     // Notify the requester
     const requesterUser = await ctx.db.get(friendship.requesterId);
     const lang = requesterUser?.language;
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: friendship.requesterId,
       type: "friend_accepted",
       title: nt(lang, "friend_accepted.title"),
@@ -380,7 +381,7 @@ export const inviteToBooking = mutation({
     // Send notification
     const inviteeUser = await ctx.db.get(args.inviteeId);
     const lang = inviteeUser?.language;
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: args.inviteeId,
       type: "booking_invite",
       title: nt(lang, "booking_invite.title"),
@@ -435,7 +436,7 @@ export const respondToBookingInvite = mutation({
     const titleKey = args.response === "accepted" ? "invite_accepted.title" : "invite_declined.title";
     const msgKey = args.response === "accepted" ? "invite_accepted.message" : "invite_declined.message";
 
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: invite.inviterId,
       type: "booking",
       title: nt(lang, titleKey),

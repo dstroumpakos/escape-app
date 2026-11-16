@@ -8,6 +8,7 @@
  */
 
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
+import { pushBookingToCompany } from "./push";
 import { rateLimit, HOUR } from "./rateLimit";
 import { sendGuestBookingConfirmation } from "./emailVerify";
 import { validateEmail, checkLengths } from "./validation";
@@ -326,6 +327,7 @@ export const sendGuestBookingEmails = internalMutation({
   handler: async (ctx, args) => {
     const b = await ctx.db.get(args.bookingId);
     if (!b || b.status !== "upcoming") return;
+    await pushBookingToCompany(ctx, b, "new");
     const room = await ctx.db.get(b.roomId);
     const company = b.companyId ? await ctx.db.get(b.companyId) : null;
     await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {

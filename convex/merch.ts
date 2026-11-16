@@ -12,6 +12,7 @@
  *    provider's own API said the money arrived.
  */
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import { notifyUser } from "./push";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
@@ -736,7 +737,7 @@ export const createOrder = internalMutation({
 // ─── Notifications ───
 
 async function notifyBuyer(ctx: MutationCtx, o: Order, title: string, message: string) {
-  await ctx.db.insert("notifications", {
+  await notifyUser(ctx, {
     userId: o.userId,
     type: "system",
     title,

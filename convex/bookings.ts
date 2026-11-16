@@ -10,6 +10,7 @@ import { slotStartMs } from "./reportRules";
 import { PLAYER_CANCEL_REASONS, cancelReasonV, cleanCancelNote, isLateCancel } from "./cancelRules";
 import { assertRoomOpen } from "./companyRules";
 import { applyOffer, offerPercentFor } from "./slotOffers";
+import { pushBookingToCompany, slotFreed } from "./push";
 
 export const create = mutation({
   args: {
@@ -98,6 +99,7 @@ export const create = mutation({
     // Only send confirmation emails if payment is not pending
     // (for Stripe bookings, emails are sent after payment is confirmed via webhook)
     if (!isPending) {
+      await pushBookingToCompany(ctx, { ...args, companyId: room.companyId }, "new");
       const company: any = room.companyId ? await ctx.db.get(room.companyId as any) : null;
       if (user) {
         await ctx.scheduler.runAfter(0, internal.email.sendBookingEmails, {
@@ -211,66 +213,9 @@ export const cancel = mutation({
       lateCancel,
     });
 
-    // Check if this was the only active booking for this slot.
-    // If so, the slot is now available again — mark slotAlerts as "ready"
-    // by setting a special field so the client watcher can fire notifications.
-    if (booking) {
-      const otherActive = await ctx.db
-        .query("bookings")
-        .withIndex("by_room_date", (q) =>
-          q.eq("roomId", booking.roomId).eq("date", booking.date)
-        )
-        .collect();
-      const stillBooked = otherActive.some(
-        (b) => b._id !== args.id && b.time === booking.time && b.status !== "cancelled"
-      );
-
-      if (!stillBooked) {
-        // Slot is now free! Find all pending alerts for this slot
-        const alerts = await ctx.db
-          .query("slotAlerts")
-          .withIndex("by_slot", (q) =>
-            q.eq("roomId", booking.roomId).eq("date", booking.date).eq("time", booking.time)
-          )
-          .collect();
-
-        // Get room info for the email
-        const room = await ctx.db.get(booking.roomId);
-
-        for (const alert of alerts) {
-          if (!alert.notified) {
-            await ctx.db.patch(alert._id, { notified: true });
-
-            // Send email notification to the user
-            const alertUser = await ctx.db.get(alert.userId);
-            if (alertUser?.email && room) {
-              await ctx.scheduler.runAfter(0, internal.email.sendSlotAvailableEmail, {
-                playerName: alertUser.name || "Player",
-                playerEmail: alertUser.email,
-                roomTitle: room.title,
-                date: booking.date,
-                time: booking.time,
-                roomId: booking.roomId,
-                lang: (alertUser as any).language || "en",
-              });
-            }
-          }
-        }
-
-        // Also mark guest (widget) slot alerts as notified
-        const guestAlerts = await ctx.db
-          .query("guestSlotAlerts")
-          .withIndex("by_slot", (q) =>
-            q.eq("roomId", booking.roomId).eq("date", booking.date).eq("time", booking.time)
-          )
-          .collect();
-        for (const ga of guestAlerts) {
-          if (!ga.notified) {
-            await ctx.db.patch(ga._id, { notified: true });
-          }
-        }
-      }
-    }
+    // Tell the company, and anyone waiting for this time (see push.ts).
+    await pushBookingToCompany(ctx, booking, "cancelled");
+    await slotFreed(ctx, booking.roomId, booking.date, booking.time);
   },
 });
 
@@ -361,6 +306,7 @@ export const confirmBookingPayment = internalMutation({
     }
 
     await ctx.db.patch(booking._id as any, updates);
+    if (bookingDoc.status === "pending_payment") await pushBookingToCompany(ctx, bookingDoc, "new");
 
     // Now that payment is confirmed, send booking confirmation emails
     const room: any = await ctx.db.get(bookingDoc.roomId);
@@ -397,6 +343,7 @@ export const cancelUnpaidBooking = internalMutation({
     // Only cancel if payment hasn't been confirmed yet
     if (booking.paymentStatus === "paid" || booking.paymentStatus === "deposit") return;
     await ctx.db.patch(args.bookingId, { status: "cancelled", cancelledAt: Date.now(), cancelledBy: "system" });
+    await slotFreed(ctx, booking.roomId, booking.date, booking.time);
   },
 });
 

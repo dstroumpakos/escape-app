@@ -1,4 +1,5 @@
 import { query, mutation, internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { notifyUser } from "./push";
 import { v } from "convex/values";
 import { checkLengths } from "./validation";
 import { api, internal } from "./_generated/api";
@@ -352,7 +353,7 @@ export const checkAndNotifyBooking = mutation({
     const recipientUser = await ctx.db.get(booking.userId);
     const lang = recipientUser?.language;
 
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: booking.userId,
       type: "photos_ready",
       title: nt(lang, "photos_ready.title"),
@@ -380,7 +381,7 @@ export const notifyPhotosReady = internalMutation({
     const lang2 = recipientUser2?.language;
 
     // Create in-app notification
-    await ctx.db.insert("notifications", {
+    await notifyUser(ctx, {
       userId: booking.userId,
       type: "photos_ready",
       title: nt(lang2, "photos_ready.title"),

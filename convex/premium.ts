@@ -1,4 +1,5 @@
 import { query, mutation, action, internalMutation, internalAction } from "./_generated/server";
+import { notifyUser } from "./push";
 import { ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { getAppleTransaction, getSubscriptionState, bundleId } from "./appStore";
@@ -124,7 +125,7 @@ export const grantFromStore = internalMutation({
         originalTransactionId: args.originalTransactionId,
         environment: args.environment,
       });
-      await ctx.db.insert("notifications", {
+      await notifyUser(ctx, {
         userId: args.userId,
         type: "system",
         title: "Welcome to UNLOCKED Premium! 🎉",

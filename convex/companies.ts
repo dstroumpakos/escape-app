@@ -1,4 +1,5 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import { notifyUser, slotFreed } from "./push";
 import { ConvexError, v } from "convex/values";
 import { newBookingCode } from "./codes";
 import { internal } from "./_generated/api";
@@ -545,7 +546,7 @@ export const createRoom = mutation({
         .collect();
       for (const premiumUser of premiumUsers) {
         const lang = premiumUser.language;
-        await ctx.db.insert("notifications", {
+        await notifyUser(ctx, {
           userId: premiumUser._id,
           type: "new_room" as any,
           title: nt(lang, "new_room.title", { room: args.title }),
@@ -553,7 +554,7 @@ export const createRoom = mutation({
           read: false,
           createdAt: Date.now(),
           data: { roomId: id },
-        });
+        }, { skipInForeground: true }); // the open app already announces new rooms
       }
     }
 
@@ -1321,6 +1322,34 @@ export const adminCancelBooking = mutation({
       cancelNote: cleanCancelNote(args.note),
       lateCancel,
     });
+    // Tell the player (if it was booked on UNLOCKED), and anyone waiting for this time.
+    if (booking.userId && booking.status !== "completed") {
+      const player = await ctx.db.get(booking.userId as Id<"users">);
+      const room = await ctx.db.get(booking.roomId as Id<"rooms">);
+      const company = await ctx.db.get(args.companyId);
+      const lang = (player as any)?.language;
+      if (player) {
+        await notifyUser(
+          ctx,
+          {
+            userId: player._id,
+            type: "cancelled",
+            title: nt(lang, "booking_cancelled.title"),
+            message: nt(lang, "booking_cancelled.message", {
+              company: company?.name ?? "The escape room",
+              room: room?.title ?? "Escape room",
+              date: booking.date,
+              time: booking.time,
+            }),
+            read: false,
+            createdAt: now,
+            data: { bookingId: booking._id },
+          },
+          { skipInForeground: true }
+        );
+      }
+    }
+    await slotFreed(ctx, booking.roomId, booking.date, booking.time);
     return { lateCancel };
   },
 });

@@ -22,6 +22,7 @@ import { assertSlotStillBookable } from "./slotRules";
 import { sessionTokenV, requireCompany } from "./companySession";
 import { assertRoomOpen } from "./companyRules";
 import { applyOffer, offerPercentFor } from "./slotOffers";
+import { pushBookingToCompany, slotFreed } from "./push";
 import { failureLock, recordFailure, clearFailures } from "./rateLimit";
 import type { MutationCtx } from "./_generated/server";
 
@@ -448,6 +449,7 @@ export const markPaid = internalMutation({
     });
 
     if (status === "cancelled") return { ok: true as const, lateCancelled: true };
+    await pushBookingToCompany(ctx, booking, "new");
 
     const room = await ctx.db.get(booking.roomId);
     const user = booking.userId ? await ctx.db.get(booking.userId) : null;
@@ -498,6 +500,7 @@ export const expirePendingBooking = internalMutation({
     if (!booking || booking.paidAt) return;
     if (booking.status !== "pending_payment") return;
     await ctx.db.patch(args.bookingId, { status: "cancelled" });
+    await slotFreed(ctx, booking.roomId, booking.date, booking.time);
   },
 });
 

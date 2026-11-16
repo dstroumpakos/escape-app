@@ -1,4 +1,5 @@
 import { ConvexError, v } from "convex/values";
+import { removeOwnerTokens } from "./push";
 import { mutation, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -64,6 +65,8 @@ function passwordErrorCode(pw: string): string | null {
 
 /** Signs out every session of the account, except `keepTokenHash` if given. */
 async function signOutEverywhere(ctx: MutationCtx, kind: Kind, id: string, keepSessionId?: string) {
+  // Phones that were signed in stop getting pushes too (the current one registers again).
+  await removeOwnerTokens(ctx, kind === "player" ? { userId: id as Id<"users"> } : { companyId: id as Id<"companies"> });
   if (kind === "player") {
     const rows = await ctx.db
       .query("userSessions")

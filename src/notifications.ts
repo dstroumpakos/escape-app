@@ -5,12 +5,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ── Configure how notifications appear when the app is in the foreground ──
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    // While the app is open, pushes the app already announces itself
+    // (useNotificationWatcher) are not shown twice.
+    const data: any = notification.request.content.data || {};
+    const show = data.skipInForeground !== true;
+    return {
+      shouldPlaySound: show,
+      shouldSetBadge: true,
+      shouldShowBanner: show,
+      shouldShowList: show,
+    };
+  },
 });
 
 // ── Request permissions & get push token ──

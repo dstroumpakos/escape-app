@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
+import { useUser } from '../UserContext';
+import { syncPlayerPush } from '../pushRegistration';
 
 const PREF_KEY = '@notification_preferences';
 
@@ -29,6 +31,7 @@ const DEFAULT_PREFS: NotifPrefs = {
 export default function NotificationPrefsScreen() {
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const { sessionToken } = useUser();
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_PREFS);
   const [loaded, setLoaded] = useState(false);
 
@@ -46,7 +49,8 @@ export default function NotificationPrefsScreen() {
   const updatePref = (key: keyof NotifPrefs, value: boolean) => {
     const updated = { ...prefs, [key]: value };
     setPrefs(updated);
-    AsyncStorage.setItem(PREF_KEY, JSON.stringify(updated));
+    // Saved first, then sent to the server so pushes follow the new settings.
+    AsyncStorage.setItem(PREF_KEY, JSON.stringify(updated)).then(() => syncPlayerPush(sessionToken));
   };
 
   const sections = [

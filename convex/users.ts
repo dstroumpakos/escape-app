@@ -1,4 +1,5 @@
 import { query, mutation, action, internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
+import { removeOwnerTokens } from "./push";
 import { readPublicCache } from "./publicCache";
 import type { Id } from "./_generated/dataModel";
 import { verifyAppleIdentityToken } from "./appleAuth";
@@ -629,6 +630,7 @@ export const deleteAccount = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     for (const sess of sessions) await ctx.db.delete(sess._id);
+    await removeOwnerTokens(ctx, { userId });
 
     // 1. Delete badges
     const badges = await ctx.db

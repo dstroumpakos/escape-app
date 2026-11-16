@@ -486,6 +486,19 @@ export default defineSchema({
   // Users subscribe to get notified when an unavailable slot becomes free
   // Last-minute offers: a company discounts a free slot of today or tomorrow.
   // Only bookings made on UNLOCKED (web + app) get the discount, not the widget.
+  // Expo push tokens of logged-in phones (see push.ts). One row per phone.
+  pushTokens: defineTable({
+    token: v.string(),
+    platform: v.union(v.literal("ios"), v.literal("android")),
+    userId: v.optional(v.id("users")),
+    companyId: v.optional(v.id("companies")),
+    muted: v.array(v.string()), // notification kinds the player turned off
+    updatedAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_user", ["userId"])
+    .index("by_company", ["companyId"]),
+
   slotOffers: defineTable({
     companyId: v.id("companies"),
     roomId: v.id("rooms"),

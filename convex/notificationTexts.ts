@@ -7,6 +7,16 @@ type Lang = "en" | "el";
 
 const texts: Record<Lang, Record<string, string>> = {
   en: {
+    // Push (see push.ts)
+    "company_new.title": "📋 New booking: {{room}}",
+    "company_new.message": "{{date}} at {{time}} · {{players}} players",
+    "company_cancelled.title": "❌ Booking cancelled: {{room}}",
+    "company_cancelled.message": "{{date}} at {{time}} · {{players}} players",
+    "slot_available.title": "🔔 A time you wanted is free!",
+    "slot_available.message": "{{room}}: {{date}} at {{time}}. Book it before someone else does.",
+    "booking_cancelled.title": "Your booking was cancelled",
+    "booking_cancelled.message": "{{company}} cancelled your booking for {{room}} ({{date}}, {{time}}).",
+
     // Friend system
     "friend_request.title": "Friend Request",
     "friend_request.message": "{{name}} sent you a friend request!",
@@ -36,6 +46,16 @@ const texts: Record<Lang, Record<string, string>> = {
     "offer.tomorrow": "tomorrow",
   },
   el: {
+    // Push (see push.ts)
+    "company_new.title": "📋 Νέα κράτηση: {{room}}",
+    "company_new.message": "{{date}} στις {{time}} · {{players}} άτομα",
+    "company_cancelled.title": "❌ Ακύρωση κράτησης: {{room}}",
+    "company_cancelled.message": "{{date}} στις {{time}} · {{players}} άτομα",
+    "slot_available.title": "🔔 Ελευθερώθηκε η ώρα που ήθελες!",
+    "slot_available.message": "{{room}}: {{date}} στις {{time}}. Κλείσε την πριν την πάρει άλλος.",
+    "booking_cancelled.title": "Η κράτησή σου ακυρώθηκε",
+    "booking_cancelled.message": "Η {{company}} ακύρωσε την κράτησή σου στο {{room}} ({{date}}, {{time}}).",
+
     // Friend system
     "friend_request.title": "Αίτημα Φιλίας",
     "friend_request.message": "Ο/Η {{name}} σου έστειλε αίτημα φιλίας!",

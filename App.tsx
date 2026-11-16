@@ -21,7 +21,8 @@ import {
 } from './src/companySession';
 import { UserProvider } from './src/UserContext';
 import { LanguageProvider, useTranslation } from './src/i18n';
-import { registerForPushNotificationsAsync, addNotificationResponseListener } from './src/notifications';
+import { addNotificationResponseListener } from './src/notifications';
+import { syncPlayerPush, syncCompanyPush, unregisterPush } from './src/pushRegistration';
 import { useNotificationWatcher } from './src/useNotificationWatcher';
 import { ErrorBoundary } from './src/ErrorBoundary';
 import { initCrashReporting, setUser as setCrashUser } from './src/crashReporting';
@@ -214,19 +215,29 @@ export default function App() {
     });
   }, []);
 
-  // Register for push notifications on mount
+  // Tell the server where to send pushes (convex/push.ts), once logged in.
   useEffect(() => {
-    registerForPushNotificationsAsync();
-  }, []);
+    syncPlayerPush(sessionToken);
+  }, [sessionToken]);
+  useEffect(() => {
+    syncCompanyPush(companyToken);
+  }, [companyToken]);
 
   // Handle notification taps (navigate to Notifications screen)
   const navigationRef = React.useRef<any>(null);
   useEffect(() => {
     const sub = addNotificationResponseListener((response) => {
-      // Navigate to notifications screen when user taps a notification
-      if (navigationRef.current) {
-        navigationRef.current.navigate('Notifications');
+      const nav = navigationRef.current;
+      if (!nav) return;
+      const data: any = response.notification.request.content.data || {};
+      // Company pushes: the business app shows its own bookings.
+      if (typeof data.type === 'string' && data.type.startsWith('company_')) return;
+      // Offer or a time that became free: open that slot.
+      if (data.roomId && data.date && data.time && (data.kind === 'offer' || data.type === 'slot_available')) {
+        nav.navigate('DateTimeSelect', { id: data.roomId, date: data.date, time: data.time });
+        return;
       }
+      nav.navigate('Notifications');
     });
     return () => sub.remove();
   }, []);
@@ -242,6 +253,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    await unregisterPush('player');
     const token = await getToken(PLAYER_TOKEN_KEY);
     if (token) convex.mutation(api.userSession.logout, { sessionToken: token }).catch(() => {});
     await removeToken(PLAYER_TOKEN_KEY);
