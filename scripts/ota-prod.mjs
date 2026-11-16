@@ -14,7 +14,7 @@
  *   4. Scans the bundles and ABORTS if the DEV deployment URL is
  *      present (or the PROD one is missing).
  *   5. Publishes that exact bundle (eas update --skip-bundler), signed with
- *      keys/private-key.pem (builds from 1.2.0 accept only signed updates), then
+ *      keys/private-key.pem (builds from 1.1.1 accept only signed updates), then
  *      restores the original .env.local.
  *
  * Check only, no publish:  npm run ota:prod:check
