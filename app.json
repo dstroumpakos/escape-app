@@ -2,16 +2,15 @@
   "expo": {
     "name": "Unlocked",
     "slug": "escape-app",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "scheme": "unlocked",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A0D0D"
+      "backgroundColor": "#080505"
     },
     "ios": {
       "supportsTablet": true,
@@ -32,11 +31,12 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A0D0D"
+        "backgroundImage": "./assets/adaptive-background.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#C20F1A"
       },
       "package": "com.unlocked.escapeapp",
       "versionCode": 1,
-      "useNextNotificationsApi": true,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_MEDIA_IMAGES",
@@ -52,8 +52,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#DC2626"
+          "icon": "./assets/notification-icon.png",
+          "color": "#D4141F"
         }
       ],
       [
@@ -69,7 +69,8 @@
         }
       ],
       "react-native-iap",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "platforms": [
       "ios",

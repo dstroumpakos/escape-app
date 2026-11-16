@@ -39,6 +39,35 @@ export default function ReportsAboutMe({ sessionToken }: { sessionToken: string 
   );
 }
 
+/**
+ * The player's late cancellations. Renders nothing until they have one; says
+ * when businesses start seeing a warning and when the oldest one stops counting.
+ */
+export function LateCancelsAboutMe({ sessionToken }: { sessionToken: string }) {
+  const { t, language } = useTranslation();
+  const late = useQuery(api.cancellations.myLateCancels, { sessionToken });
+  if (!late || late.count === 0) return null;
+  const expires = late.oldestExpiresAt
+    ? new Date(late.oldestExpiresAt).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-GB', {
+        day: 'numeric', month: 'long', year: 'numeric',
+      })
+    : null;
+  const vars = { count: late.count, threshold: late.threshold, days: late.lookbackDays };
+
+  return (
+    <View style={[styles.card, !late.flagged && styles.cardQuiet]}>
+      <View style={styles.titleRow}>
+        <Ionicons name="calendar-clear-outline" size={18} color={late.flagged ? '#FF8A50' : theme.colors.textSecondary} />
+        <Text style={styles.title}>
+          {t(late.count === 1 ? 'cancelReason.me.titleOne' : 'cancelReason.me.titleMany', vars)}
+        </Text>
+      </View>
+      <Text style={styles.body}>{t(late.flagged ? 'cancelReason.me.flagged' : 'cancelReason.me.notFlagged', vars)}</Text>
+      {!!expires && <Text style={[styles.muted, { marginTop: 6 }]}>{t('cancelReason.me.expires', { date: expires })}</Text>}
+    </View>
+  );
+}
+
 function ReportRow({ sessionToken, report }: { sessionToken: string; report: { _id: string; categories: string[]; reply: string | null } }) {
   const { t } = useTranslation();
   const reply = useMutation(api.reports.replyToReport);
@@ -111,6 +140,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.lg, borderWidth: 1,
     borderColor: 'rgba(255,183,77,0.4)', backgroundColor: 'rgba(255,183,77,0.06)',
   },
+  cardQuiet: { borderColor: theme.colors.glassBorder, backgroundColor: theme.colors.bgCardSolid },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   title: { fontSize: 16, fontWeight: '800', color: theme.colors.bone },
   body: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18 },

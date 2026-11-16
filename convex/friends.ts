@@ -2,17 +2,17 @@ import { query, mutation } from "./_generated/server";
 import { notifyUser } from "./push";
 import { v } from "convex/values";
 import { nt } from "./notificationTexts";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { rateLimit, HOUR } from "./rateLimit";
 
 // ─── Search users by name (for adding friends) ───
 export const searchUsers = query({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), currentUserId: legacyUserIdV,
     searchTerm: v.string(),
   },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.currentUserId);
     if (!me) return [];
     const currentUserId = me._id;
     if (args.searchTerm.trim().length < 3) return [];
@@ -97,11 +97,11 @@ export const searchUsers = query({
 // ─── Send friend request ───
 export const sendRequest = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), requesterId: legacyUserIdV,
     receiverId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const requesterUser = await requireUser(ctx, args.sessionToken);
+    const requesterUser = await requireUser(ctx, args.sessionToken, args.requesterId);
     const requesterId = requesterUser._id;
     if (requesterId === args.receiverId)
       throw new Error("Cannot send a friend request to yourself");
@@ -162,10 +162,10 @@ export const sendRequest = mutation({
 export const acceptRequest = mutation({
   args: {
     friendshipId: v.id("friendships"),
-    sessionToken: v.string(), // the receiver accepting
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV, // the receiver accepting
   },
   handler: async (ctx, args) => {
-    const receiver = await requireUser(ctx, args.sessionToken);
+    const receiver = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
     if (!friendship) throw new Error("Friend request not found");
     if (friendship.receiverId !== receiver._id)
@@ -197,10 +197,10 @@ export const acceptRequest = mutation({
 export const declineRequest = mutation({
   args: {
     friendshipId: v.id("friendships"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
     if (!friendship) throw new Error("Friend request not found");
     if (friendship.receiverId !== user._id)
@@ -219,10 +219,10 @@ export const declineRequest = mutation({
 export const removeFriend = mutation({
   args: {
     friendshipId: v.id("friendships"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
     if (!friendship) throw new Error("Friendship not found");
     if (
@@ -237,9 +237,9 @@ export const removeFriend = mutation({
 
 // ─── Get friends list ───
 export const listFriends = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
     const userId = me._id;
     // Friendships where current user is requester
@@ -288,9 +288,9 @@ export const listFriends = query({
 
 // ─── Get pending requests (incoming) ───
 export const pendingRequests = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
     const pending = await ctx.db
       .query("friendships")
@@ -329,11 +329,11 @@ export const pendingRequests = query({
 export const inviteToBooking = mutation({
   args: {
     bookingId: v.id("bookings"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), inviterId: legacyUserIdV,
     inviteeId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const inviter = await requireUser(ctx, args.sessionToken);
+    const inviter = await requireUser(ctx, args.sessionToken, args.inviterId);
     const inviterId = inviter._id;
     // Only the booking's owner can invite people to it
     const ownBooking = await ctx.db.get(args.bookingId);
@@ -410,11 +410,11 @@ export const inviteToBooking = mutation({
 export const respondToBookingInvite = mutation({
   args: {
     inviteId: v.id("bookingInvites"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     response: v.union(v.literal("accepted"), v.literal("declined")),
   },
   handler: async (ctx, args) => {
-    const invitee = await requireUser(ctx, args.sessionToken);
+    const invitee = await requireUser(ctx, args.sessionToken, args.userId);
     const invite = await ctx.db.get(args.inviteId);
     if (!invite) throw new Error("Invite not found");
     if (invite.inviteeId !== invitee._id)
@@ -511,9 +511,9 @@ export const getBookingInvites = query({
 
 // ─── Get invites sent for a specific booking (for the booking owner) ───
 export const getBookingInvitesByBooking = query({
-  args: { bookingId: v.id("bookings"), sessionToken: v.string() },
+  args: { bookingId: v.id("bookings"), sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
     const ownBooking = await ctx.db.get(args.bookingId);
     if (!ownBooking || ownBooking.userId !== me._id) return [];

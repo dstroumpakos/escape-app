@@ -14,7 +14,7 @@ import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
 import EditProfileModal from './EditProfileModal';
-import ReportsAboutMe from './reports/ReportsAboutMe';
+import ReportsAboutMe, { LateCancelsAboutMe } from './reports/ReportsAboutMe';
 import type { Id } from '../../convex/_generated/dataModel';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -117,7 +117,11 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
         >
           <View style={styles.topRow}>
             <Text style={styles.screenTitle}>{t('profile.title')}</Text>
-            <TouchableOpacity style={styles.settingsBtn} onPress={() => Alert.alert(t('profile.settingsTitle'), t('profile.settingsMessage'))}>
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => navigation.navigate('PlayerSettings')}
+              accessibilityLabel={t('profile.settingsTitle')}
+            >
               <Ionicons name="settings-outline" size={22} color={theme.colors.bone} />
             </TouchableOpacity>
           </View>
@@ -180,6 +184,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
 
         {/* Reports businesses filed about this player (only while active) */}
         {sessionToken && <ReportsAboutMe sessionToken={sessionToken} />}
+        {sessionToken && <LateCancelsAboutMe sessionToken={sessionToken} />}
 
         {/* Badges */}
         {badges && badges.length > 0 && (
@@ -240,13 +245,15 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
         <View style={styles.section}>
           {[
             { icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true },
+            { icon: 'bag-handle-outline' as const, label: t('shop.title'), action: () => navigation.navigate('Shop', {}) },
+            { icon: 'receipt-outline' as const, label: t('shop.myOrders'), action: () => navigation.navigate('MerchOrders') },
             { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
             { icon: 'key-outline' as const, label: t('password.changeTitle'), action: () => setChangePwVisible(true) },
             { icon: 'people-outline' as const, label: t('friends.title'), action: () => navigation.navigate('Friends' as any) },
             { icon: 'trophy-outline' as const, label: t('leaderboard.title'), action: () => navigation.navigate('Leaderboard' as any) },
             { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => navigation.navigate('NotificationPrefs' as any) },
-            { icon: 'card-outline' as const, label: t('profile.paymentMethods'), action: () => Alert.alert(t('profile.paymentMethods'), t('profile.paymentMessage')) },
-            { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Linking.openURL('mailto:support@unlocked.app?subject=Support%20Request') },
+            { icon: 'settings-outline' as const, label: t('profile.settingsTitle'), action: () => navigation.navigate('PlayerSettings') },
+            { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Linking.openURL('mailto:hello@unlocked.gr?subject=UNLOCKED%20app').catch(() => {}) },
             { icon: 'shield-checkmark-outline' as const, label: t('profile.privacyPolicy'), action: () => navigation.navigate('PrivacyPolicy' as any) },
             { icon: 'document-text-outline' as const, label: t('profile.termsOfService'), action: () => navigation.navigate('TermsOfService' as any) },
             { icon: 'language-outline' as const, label: language === 'en' ? t('profile.switchToGreek') : t('profile.switchToEnglish'), action: () => setLanguage(language === 'en' ? 'el' : 'en') },

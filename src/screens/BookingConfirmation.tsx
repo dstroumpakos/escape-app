@@ -10,6 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { MerchAddOnCard } from '../components/RoomMerch';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useTranslation } from '../i18n';
@@ -198,6 +199,9 @@ export default function BookingConfirmation() {
               <Text style={styles.actionText} numberOfLines={2}>{t('confirmation.getDirections')}</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Merch to collect at the game */}
+          <MerchAddOnCard roomId={id} bookingId={bookingId} />
 
           {/* Invite Friends Section */}
           {userId && friends && friends.length > 0 && bookingId && (

@@ -19,7 +19,7 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { sessionTokenV, requireCompany } from "./companySession";
 import { requireAdminSession } from "./adminSession";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { dateAthens } from "./plans";
 import { rateLimit, HOUR } from "./rateLimit";
 import { slotStartMs } from "./reportRules";
@@ -128,8 +128,8 @@ async function meetsUnlock(ctx: Ctx, userId: Id<"users"> | undefined, p: Product
 
 type Viewer = { userId?: Id<"users">; user: Doc<"users"> | null; isPremium: boolean };
 
-async function viewerOf(ctx: Ctx, sessionToken?: string): Promise<Viewer> {
-  const user = sessionToken ? await optionalUser(ctx, sessionToken) : null;
+async function viewerOf(ctx: Ctx, sessionToken?: string, legacyUserId?: Id<"users">): Promise<Viewer> {
+  const user = await optionalUser(ctx, sessionToken, legacyUserId);
   return { userId: user?._id, user, isPremium: isPremiumUser(user) };
 }
 
@@ -277,9 +277,9 @@ async function perksFor(ctx: Ctx, viewer: Viewer) {
 
 /** Everything for the /shop page. */
 export const listShop = query({
-  args: { sessionToken: v.optional(v.string()) },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const viewer = await viewerOf(ctx, args.sessionToken);
+    const viewer = await viewerOf(ctx, args.sessionToken, args.userId);
     const cache = new Map<string, SellerInfo | null>();
     const products = [];
     for (const p of sortProducts(await listedProducts(ctx))) {
@@ -293,11 +293,11 @@ export const listShop = query({
 });
 
 export const getProduct = query({
-  args: { productId: v.id("merchProducts"), sessionToken: v.optional(v.string()) },
+  args: { productId: v.id("merchProducts"), sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.productId);
     if (!p || !isListed(p)) return null;
-    const viewer = await viewerOf(ctx, args.sessionToken);
+    const viewer = await viewerOf(ctx, args.sessionToken, args.userId);
     const cache = new Map<string, SellerInfo | null>();
     const product = await viewProduct(ctx, p, viewer, cache);
     if (!product) return null;
@@ -317,11 +317,11 @@ export const getProduct = query({
 
 /** Merch shown on a room page: the company's items for this room, plus its "I escaped" items. */
 export const roomMerch = query({
-  args: { roomId: v.id("rooms"), sessionToken: v.optional(v.string()) },
+  args: { roomId: v.id("rooms"), sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
     if (!room?.companyId) return [];
-    const viewer = await viewerOf(ctx, args.sessionToken);
+    const viewer = await viewerOf(ctx, args.sessionToken, args.userId);
     const cache = new Map<string, SellerInfo | null>();
     const rows = await ctx.db
       .query("merchProducts")
@@ -340,11 +340,11 @@ export const roomMerch = query({
 
 /** A company's shop page. */
 export const companyStore = query({
-  args: { companyId: v.id("companies"), sessionToken: v.optional(v.string()) },
+  args: { companyId: v.id("companies"), sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     const c = await ctx.db.get(args.companyId);
     if (!companyIsLive(c)) return null;
-    const viewer = await viewerOf(ctx, args.sessionToken);
+    const viewer = await viewerOf(ctx, args.sessionToken, args.userId);
     const cache = new Map<string, SellerInfo | null>();
     const rows = await ctx.db
       .query("merchProducts")
@@ -378,9 +378,9 @@ export const myPerks = query({
 
 /** Upcoming games at this company, to pick up an order at. */
 export const pickupBookings = query({
-  args: { sessionToken: v.string(), companyId: v.id("companies") },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, companyId: v.id("companies") },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
     const today = dateAthens(Date.now());
     const rows = await ctx.db
@@ -442,9 +442,9 @@ async function orderView(ctx: Ctx, o: Order) {
 export type OrderView = Awaited<ReturnType<typeof orderView>>;
 
 export const myOrders = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
     const rows = await ctx.db
       .query("merchOrders")
@@ -458,9 +458,9 @@ export const myOrders = query({
 });
 
 export const getMyOrder = query({
-  args: { sessionToken: v.string(), orderId: v.id("merchOrders") },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, orderId: v.id("merchOrders") },
   handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken);
+    const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return null;
     const o = await ctx.db.get(args.orderId);
     if (!o || o.userId !== me._id) return null;
@@ -480,9 +480,9 @@ export const getOrderPaymentState = query({
 
 /** Cancel an order that isn't paid yet (pay at pickup, or an abandoned online payment). */
 export const cancelMyOrder = mutation({
-  args: { sessionToken: v.string(), orderId: v.id("merchOrders") },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, orderId: v.id("merchOrders") },
   handler: async (ctx, args) => {
-    const me = await requireUser(ctx, args.sessionToken);
+    const me = await requireUser(ctx, args.sessionToken, args.userId);
     const o = await ctx.db.get(args.orderId);
     if (!o || o.userId !== me._id) throw new ConvexError("Order not found");
     if (o.paidAt) throw new ConvexError("This order is paid. Contact the shop to return it.");

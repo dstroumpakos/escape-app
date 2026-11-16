@@ -6,7 +6,7 @@ import { verifyAppleIdentityToken } from "./appleAuth";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
-import { createUserSession, requireUser, optionalUser } from "./userSession";
+import { createUserSession, requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { validateEmail, validatePassword, requireNonEmpty } from "./validation";
 import { rateLimit, HOUR } from "./rateLimit";
 import { sendUserVerification } from "./emailVerify";
@@ -76,10 +76,10 @@ function getPlayerRank(completed: number): string {
 }
 
 export const getById = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     // Own profile only: the user comes from the session, never from an argument.
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return null;
 
     // Resolve avatar from storage each time (signed URLs expire)
@@ -462,9 +462,9 @@ export const appleLogin = internalMutation({
 });
 
 export const toggleWishlist = mutation({
-  args: { sessionToken: v.string(), roomId: v.id("rooms") },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, roomId: v.id("rooms") },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
 
     const wishlist = user.wishlist.includes(args.roomId)
       ? user.wishlist.filter((id) => id !== args.roomId)
@@ -477,14 +477,14 @@ export const toggleWishlist = mutation({
 
 export const updateProfile = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     name: v.optional(v.string()),
     phone: v.optional(v.string()),
     avatar: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
 
     const updates: Record<string, any> = {};
     if (args.name !== undefined) {
@@ -533,9 +533,9 @@ export const updateLanguage = mutation({
 });
 
 export const generateUploadUrl = mutation({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     await rateLimit(ctx, `upload:user:${user._id}`, UPLOADS_PER_HOUR_USER, HOUR);
     return await ctx.storage.generateUploadUrl();
   },
@@ -576,13 +576,13 @@ export const setAdmin = internalMutation({
 
 export const updateLocation = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     latitude: v.number(),
     longitude: v.number(),
     city: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     if (Math.abs(args.latitude) > 90 || Math.abs(args.longitude) > 180) throw new Error("Invalid location");
 
     // Only an approximate position is kept (2 decimals ≈ 1 km), enough for
@@ -604,13 +604,15 @@ export const updateLocation = mutation({
    ═══════════════════════════════════════════════════════════ */
 export const deleteAccount = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     // Confirmation, so a stolen session alone can't wipe the account:
     // the password, or the word DELETE for Apple accounts that have none.
     password: v.optional(v.string()),
     confirm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Old app builds cannot ask for the password: they are told to update.
+    if (!args.sessionToken) throw new ConvexError("Please update the UNLOCKED app to delete your account.");
     const user = await requireUser(ctx, args.sessionToken);
     const userId = user._id;
 

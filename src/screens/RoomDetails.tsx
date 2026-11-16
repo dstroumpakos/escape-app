@@ -16,6 +16,7 @@ import { ROOM_THEME_KEYS } from '../roomThemes';
 import { DifficultySkulls, PrimaryButton, TypeLabel } from '../components/ui';
 import { FadeUp } from '../components/motion';
 import { ReviewForm } from '../components/ReviewForm';
+import { RoomMerchStrip } from '../components/RoomMerch';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RoomDetails'>;
@@ -215,6 +216,9 @@ export default function RoomDetails() {
               </View>
             </View>
           )}
+
+          {/* Merch */}
+          <RoomMerchStrip roomId={room.id} />
 
           {/* Reviews */}
           <View style={styles.section}>

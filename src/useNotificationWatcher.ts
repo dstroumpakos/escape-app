@@ -18,6 +18,7 @@ import {
   setLastCompanyBookingStatuses,
 } from './notifications';
 import { useTranslation } from './i18n';
+import { loadCompanyNotifPrefs } from './screens/company/CompanyNotificationPrefs';
 
 /**
  * Watches Convex queries and fires device notifications when:
@@ -201,8 +202,9 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
       const newBookings = companyBookings.filter(
         (b: any) => !lastIds.includes(b._id),
       );
+      const notifPrefs = await loadCompanyNotifPrefs();
 
-      for (const booking of newBookings) {
+      for (const booking of notifPrefs.newBookings ? newBookings : []) {
         const roomTitle = (booking as any).roomTitle || 'room';
         await sendLocalNotification(
           '📋 ' + t('notifications.companyNewBooking'),
@@ -217,7 +219,7 @@ export function useNotificationWatcher(userId: string | null, companyId: string 
       for (const booking of companyBookings) {
         const id = (booking as any)._id;
         const prevStatus = lastStatuses[id];
-        if (prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
+        if (notifPrefs.cancellations && prevStatus && prevStatus !== 'cancelled' && (booking as any).status === 'cancelled') {
           const roomTitle = (booking as any).roomTitle || 'room';
           await sendLocalNotification(
             '❌ ' + t('notifications.companyCancelled'),

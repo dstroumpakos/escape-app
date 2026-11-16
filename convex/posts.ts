@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { filterContent } from "./moderation";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { rateLimit, HOUR } from "./rateLimit";
 import { assertUpload, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, UPLOADS_PER_HOUR_USER } from "./uploads";
 
@@ -98,9 +98,9 @@ export const getFeed = query({
 });
 
 export const getUserLikes = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     const likes = await ctx.db
       .query("postLikes")
@@ -138,7 +138,7 @@ export const getComments = query({
 
 export const createPost = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), authorUserId: legacyUserIdV, authorType: v.optional(v.string()), authorCompanyId: v.optional(v.id("companies")),
     text: v.string(),
     mediaStorageIds: v.array(v.object({
       type: v.union(v.literal("image"), v.literal("video")),
@@ -148,7 +148,9 @@ export const createPost = mutation({
     rating: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    // Old app builds also sent authorType/authorCompanyId: only player posts are accepted that way.
+    if (!args.sessionToken && args.authorType && args.authorType !== "user") throw new Error("Please update the UNLOCKED app.");
+    const user = await requireUser(ctx, args.sessionToken, args.authorUserId);
     if (args.text.length > 5000) throw new Error("Your post is too long.");
     if (args.mediaStorageIds.length > 10) throw new Error("A post can have at most 10 photos or videos.");
     if (args.rating !== undefined && (!Number.isInteger(args.rating) || args.rating < 1 || args.rating > 5)) {
@@ -195,10 +197,10 @@ export const createPost = mutation({
 export const toggleLike = mutation({
   args: {
     postId: v.id("posts"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const existing = await ctx.db
       .query("postLikes")
       .withIndex("by_user_post", (q) =>
@@ -228,11 +230,11 @@ export const toggleLike = mutation({
 export const addComment = mutation({
   args: {
     postId: v.id("posts"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     if (!(await ctx.db.get(args.postId))) throw new Error("Post not found");
     if (args.text.length > 2000) throw new Error("Your comment is too long.");
     // Content filtering (Apple Guideline 1.2)
@@ -277,9 +279,9 @@ export const deletePost = mutation({
 });
 
 export const generateUploadUrl = mutation({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     await rateLimit(ctx, `upload:user:${user._id}`, UPLOADS_PER_HOUR_USER, HOUR);
     return await ctx.storage.generateUploadUrl();
   },

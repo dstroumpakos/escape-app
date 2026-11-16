@@ -1,7 +1,7 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { checkLengths } from "./validation";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 
 /* ════════════════════════════════════════════════════════════
    Content Moderation — Reports, Blocks, and Filtering
@@ -35,7 +35,7 @@ export function filterContent(text: string): string | null {
 export const reportPost = mutation({
   args: {
     postId: v.id("posts"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), reporterId: legacyUserIdV,
     reason: v.union(
       v.literal("spam"),
       v.literal("harassment"),
@@ -47,7 +47,7 @@ export const reportPost = mutation({
   },
   handler: async (ctx, args) => {
     checkLengths([["Details", args.details, 1000]]);
-    const reporter = await requireUser(ctx, args.sessionToken);
+    const reporter = await requireUser(ctx, args.sessionToken, args.reporterId);
     // Prevent duplicate reports from same user on same post
     const existing = await ctx.db
       .query("reports")
@@ -107,11 +107,11 @@ export const reportComment = mutation({
 /* ── Block a User ── */
 export const blockUser = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), blockerId: legacyUserIdV,
     blockedUserId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const blocker = await requireUser(ctx, args.sessionToken);
+    const blocker = await requireUser(ctx, args.sessionToken, args.blockerId);
     if (blocker._id === args.blockedUserId) {
       throw new Error("Cannot block yourself.");
     }
@@ -152,9 +152,9 @@ export const unblockUser = mutation({
 
 /* ── Get Blocked User IDs (for feed filtering) ── */
 export const getBlockedUserIds = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     const blocks = await ctx.db
       .query("blockedUsers")

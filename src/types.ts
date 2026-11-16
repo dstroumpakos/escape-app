@@ -66,6 +66,14 @@ export type RootStackParamList = {
   PrivacyPolicy: undefined;
   TermsOfService: undefined;
   NotificationPrefs: undefined;
+  PlayerSettings: undefined;
+  // Merch shop
+  Shop: { companyId?: string } | undefined;
+  Product: { id: string };
+  Cart: undefined;
+  MerchCheckout: { sellerKey: string };
+  MerchOrders: undefined;
+  MerchOrder: { id: string; fresh?: boolean };
   // Company side
   CompanyAuth: undefined;
   CompanyTabs: undefined;
@@ -75,6 +83,11 @@ export type RootStackParamList = {
   CompanyAddBooking: { companyId: string; roomId?: string; date?: string; time?: string };
   CompanyPhotos: { companyId: string };
   CompanyBilling: { companyId: string };
+  CompanyPayments: { companyId: string };
+  CompanyMerch: { companyId: string };
+  CompanyMerchEditor: { companyId: string; productId?: string };
+  CompanyGuide: undefined;
+  CompanyNotificationPrefs: undefined;
 };
 
 export type MainTabParamList = {
@@ -87,6 +100,7 @@ export type MainTabParamList = {
 
 export type CompanyTabParamList = {
   Today: undefined;
+  Slots: undefined;
   Calendar: undefined;
   Rooms: undefined;
   Settings: undefined;

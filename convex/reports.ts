@@ -4,7 +4,7 @@ import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAdminSession } from "./adminSession";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { rateLimit, HOUR } from "./rateLimit";
 import { UPLOADS_PER_HOUR_USER } from "./uploads";
 import { sessionTokenV, requireCompany, requireBookingOf } from "./companySession";
@@ -94,9 +94,9 @@ function categoryCounts(reports: { categories: PlayerReportCategory[] }[]) {
 
 /** The player's room reports, so ticket pages can show "Reported" instead of the button. */
 export const myRoomReports = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     const rows = await ctx.db
       .query("roomReports")
@@ -113,9 +113,9 @@ export const myRoomReports = query({
 });
 
 export const generateRoomReportUploadUrl = mutation({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     await rateLimit(ctx, `upload:user:${user._id}`, UPLOADS_PER_HOUR_USER, HOUR);
     return await ctx.storage.generateUploadUrl();
   },
@@ -123,14 +123,14 @@ export const generateRoomReportUploadUrl = mutation({
 
 export const submitRoomReport = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     bookingId: v.id("bookings"),
     kind: roomReportKindV,
     description: v.string(),
     photoStorageIds: v.array(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const booking = await ctx.db.get(args.bookingId);
     if (!booking || booking.userId !== user._id) throw new ConvexError("Booking not found");
     if (booking.status !== "completed") throw new ConvexError("You can only report a room you have played");
@@ -322,9 +322,9 @@ export const flagsForBookings = query({
 // ═══════════════════════════════════════════════════════════════════════
 
 export const myStanding = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return null;
     const standing = await loadStanding(ctx, user._id);
     return {
@@ -341,9 +341,9 @@ export const myStanding = query({
 });
 
 export const replyToReport = mutation({
-  args: { sessionToken: v.string(), reportId: v.id("playerReports"), reply: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, reportId: v.id("playerReports"), reply: v.string() },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const report = await ctx.db.get(args.reportId);
     if (!report || report.userId !== user._id || report.voidedAt) throw new ConvexError("Report not found");
     const standing = await loadStanding(ctx, user._id);

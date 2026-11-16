@@ -5,7 +5,7 @@ import { internal } from "./_generated/api";
 import { getAppleTransaction, getSubscriptionState, bundleId } from "./appStore";
 import { rateLimit, HOUR } from "./rateLimit";
 import { v } from "convex/values";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { filterPublicRooms } from "./companyRules";
 
 const PREMIUM_PRICES = {
@@ -17,9 +17,9 @@ const EARLY_ACCESS_DAYS = 3;
 
 // ─── Get premium status for a user ───
 export const getStatus = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return { isPremium: false };
 
     const now = Date.now();
@@ -147,7 +147,8 @@ export const grantFromStore = internalMutation({
  * Premium for free. Closed; the app now calls verifyApplePurchase.
  */
 const iapArgs = {
-  sessionToken: v.string(),
+  sessionToken: v.optional(v.string()),
+  userId: legacyUserIdV, // old app builds; they only get the "please update" message
   plan: v.optional(v.union(v.literal("monthly"), v.literal("yearly"))),
   productId: v.string(),
   transactionId: v.string(),
@@ -170,9 +171,9 @@ export const restoreWithIAP = mutation({
 
 // ─── Cancel premium subscription ───
 export const cancel = mutation({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
 
     // Find active subscription
     const subs = await ctx.db
@@ -194,7 +195,7 @@ export const cancel = mutation({
 // Premium users see rooms with releaseDate up to 3 days in the future
 // Non-premium users only see rooms that are already released (or have no releaseDate)
 export const getVisibleRooms = query({
-  args: { sessionToken: v.optional(v.string()) },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     // Only rooms of approved companies (companyRules.ts).
     const allRooms = await filterPublicRooms(ctx, await ctx.db.query("rooms").collect());
@@ -203,7 +204,7 @@ export const getVisibleRooms = query({
 
     let isPremium = false;
     if (args.sessionToken) {
-      const user = await optionalUser(ctx, args.sessionToken);
+      const user = await optionalUser(ctx, args.sessionToken, args.userId);
       isPremium = user?.isPremium === true && (user?.premiumExpiresAt ?? 0) > Date.now();
     }
 
@@ -236,9 +237,9 @@ export const getVisibleRooms = query({
 
 // ─── Get early access rooms only (for premium showcase) ───
 export const getEarlyAccessRooms = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     const isPremium = user?.isPremium === true && (user?.premiumExpiresAt ?? 0) > Date.now();
     if (!isPremium) return [];
 

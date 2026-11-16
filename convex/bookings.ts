@@ -1,5 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { ConvexError, v } from "convex/values";
 import { newBookingCode } from "./codes";
 import { internal } from "./_generated/api";
@@ -14,7 +14,7 @@ import { pushBookingToCompany, slotFreed } from "./push";
 
 export const create = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     roomId: v.id("rooms"),
     date: v.string(),
     time: v.string(),
@@ -32,7 +32,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // The booking belongs to whoever is logged in, never to a userId from the client.
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     // No card payment here, so the email must be confirmed (see emailVerify.ts).
     requireVerifiedEmail(user);
 
@@ -134,9 +134,9 @@ export const getById = internalQuery({
 });
 
 export const getByUser = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     const bookings = await ctx.db
       .query("bookings")
@@ -181,12 +181,12 @@ export const upcoming = internalQuery({
 export const cancel = mutation({
   args: {
     id: v.id("bookings"),
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     reason: v.optional(cancelReasonV),
     note: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const booking = await ctx.db.get(args.id);
     if (!booking) return { lateCancel: false };
     // Only the owner can cancel (bookings made by guests/companies have no player owner).

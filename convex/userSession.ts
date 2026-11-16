@@ -63,9 +63,37 @@ export async function findUserSession(ctx: Ctx, token: string): Promise<Doc<"use
   return row;
 }
 
-/** Resolves the calling player from a session token, or throws "session expired". */
-export async function requireUser(ctx: Ctx, token: string | undefined): Promise<Doc<"users">> {
-  if (!token) throw new ConvexError(USER_SESSION_EXPIRED);
+// ── Old app builds ──────────────────────────────────────────────────────
+// App builds up to 1.1.0 send the player's userId instead of a session token.
+// Until PLAYER_AUTH_ENFORCE is "1", a call with no token but a userId still
+// works exactly as before and logs "[player-auth:legacy]", so we can see when
+// the old builds are gone. Then set PLAYER_AUTH_ENFORCE=1 on prod. A call that
+// sends a token never falls back, even if the token has expired.
+
+/** Validator for the userId that old app builds send (each function lists it under the name the old build used). */
+export const legacyUserIdV = v.optional(v.id("users"));
+
+export function playerAuthEnforced(): boolean {
+  return process.env.PLAYER_AUTH_ENFORCE === "1";
+}
+
+async function legacyUser(ctx: Ctx, legacyUserId: Id<"users"> | undefined): Promise<Doc<"users"> | null> {
+  if (!legacyUserId || playerAuthEnforced()) return null;
+  console.warn(`[player-auth:legacy] called without a session token (userId=${legacyUserId})`);
+  return await ctx.db.get(legacyUserId);
+}
+
+/** Resolves the calling player from a session token (or, for old app builds, their userId), or throws "session expired". */
+export async function requireUser(
+  ctx: Ctx,
+  token: string | undefined,
+  legacyUserId?: Id<"users">
+): Promise<Doc<"users">> {
+  if (!token) {
+    const legacy = await legacyUser(ctx, legacyUserId);
+    if (legacy) return legacy;
+    throw new ConvexError(USER_SESSION_EXPIRED);
+  }
   const session = await findUserSession(ctx, token);
   if (!session) throw new ConvexError(USER_SESSION_EXPIRED);
   const user = await ctx.db.get(session.userId);
@@ -74,8 +102,12 @@ export async function requireUser(ctx: Ctx, token: string | undefined): Promise<
 }
 
 /** Like requireUser but returns null instead of throwing: for queries, so an expired session shows a logged-out view instead of crashing the page. */
-export async function optionalUser(ctx: Ctx, token: string | undefined): Promise<Doc<"users"> | null> {
-  if (!token) return null;
+export async function optionalUser(
+  ctx: Ctx,
+  token: string | undefined,
+  legacyUserId?: Id<"users">
+): Promise<Doc<"users"> | null> {
+  if (!token) return await legacyUser(ctx, legacyUserId);
   const session = await findUserSession(ctx, token);
   if (!session) return null;
   return await ctx.db.get(session.userId);
@@ -83,9 +115,9 @@ export async function optionalUser(ctx: Ctx, token: string | undefined): Promise
 
 /** For actions (which cannot read the database): resolves the caller from a session token. */
 export const verify = internalQuery({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     return { userId: user._id };
   },
 });

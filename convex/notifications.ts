@@ -1,11 +1,11 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 
 // ─── Create a notification ───
 export const create = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     type: v.union(
       v.literal("booking"),
       v.literal("cancelled"),
@@ -25,7 +25,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // A notification can only be created for yourself.
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     if (args.title.length > 200 || args.message.length > 1000) {
       throw new Error("Notification text is too long");
     }
@@ -43,9 +43,9 @@ export const create = mutation({
 
 // ─── Get all notifications for a user (newest first, limited) ───
 export const getByUser = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     return await ctx.db
       .query("notifications")
@@ -57,9 +57,9 @@ export const getByUser = query({
 
 // ─── Mark one notification as read ───
 export const markAsRead = mutation({
-  args: { id: v.id("notifications"), sessionToken: v.string() },
+  args: { id: v.id("notifications"), sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const n = await ctx.db.get(args.id);
     if (!n || n.userId !== user._id) return;
     await ctx.db.patch(args.id, { read: true });
@@ -68,9 +68,9 @@ export const markAsRead = mutation({
 
 // ─── Mark all notifications as read for a user ───
 export const markAllRead = mutation({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) => q.eq("userId", user._id).eq("read", false))
@@ -83,9 +83,9 @@ export const markAllRead = mutation({
 
 // ─── Get unread count ───
 export const unreadCount = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return 0;
     const unread = await ctx.db
       .query("notifications")

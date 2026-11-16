@@ -11,6 +11,14 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { slotStart } from '../slotTime';
 import { ROOM_REPORT_WINDOW_MS } from '../../convex/reportRules';
 import RoomReportModal from './reports/RoomReportModal';
+import CancelReasonModal from '../components/CancelReasonModal';
+import {
+  LATE_CANCEL_FLAG_THRESHOLD,
+  LATE_CANCEL_LOOKBACK_DAYS,
+  LATE_CANCEL_WINDOW_MS,
+  PLAYER_CANCEL_REASONS,
+  type CancelReason,
+} from '../../convex/cancelRules';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 function formatDisplayDate(iso: string): string {
@@ -34,6 +42,11 @@ export default function TicketsScreen() {
     sessionToken ? { sessionToken } : 'skip',
   );
   const [reporting, setReporting] = useState<any>(null);
+  const [cancelTarget, setCancelTarget] = useState<any>(null);
+  const lateCancels = useQuery(
+    api.cancellations.myLateCancels,
+    sessionToken ? { sessionToken } : 'skip',
+  );
 
   const upcomingBookings = (bookings || []).filter((b: any) => b.status === 'upcoming');
   const pastBookings = (bookings || []).filter((b: any) => b.status === 'completed');
@@ -49,28 +62,29 @@ export default function TicketsScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCancel = (booking: any) => {
-    const roomTitle = booking.room?.title || t('tickets.escapeRoom');
-    Alert.alert(
-      t('tickets.cancelTitle'),
-      t('tickets.cancelMessage', { title: roomTitle, date: formatDisplayDate(booking.date), time: booking.time }),
-      [
-        { text: t('tickets.keepBooking'), style: 'cancel' },
-        {
-          text: t('tickets.confirmCancel'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await cancelBooking({ id: booking._id, sessionToken: sessionToken as string });
-              Alert.alert(t('tickets.cancelled'), t('tickets.cancelledMsg'));
-            } catch {
-              Alert.alert(t('error'), t('tickets.cancelFailed'));
-            }
-          },
-        },
-      ],
-    );
+  const handleCancel = (booking: any) => setCancelTarget(booking);
+
+  const confirmCancel = async (reason: CancelReason, note: string) => {
+    if (!cancelTarget) return;
+    await cancelBooking({ id: cancelTarget._id, sessionToken: sessionToken as string, reason, note });
+    setCancelTarget(null);
+    Alert.alert(t('tickets.cancelled'), t('tickets.cancelledMsg'));
   };
+
+  // Late = an upcoming booking that starts in less than 24h (same rule as the server).
+  const cancelIsLate =
+    !!cancelTarget &&
+    cancelTarget.status === 'upcoming' &&
+    slotStart(cancelTarget.date, cancelTarget.time).getTime() - Date.now() < LATE_CANCEL_WINDOW_MS;
+  const lateWarning = cancelIsLate
+    ? [
+        t('cancelReason.player.lateTitle'),
+        t('cancelReason.player.lateBody', { threshold: LATE_CANCEL_FLAG_THRESHOLD, days: LATE_CANCEL_LOOKBACK_DAYS }),
+        ...(lateCancels?.count
+          ? [t(lateCancels.count === 1 ? 'cancelReason.player.lateCountOne' : 'cancelReason.player.lateCountMany', { count: lateCancels.count })]
+          : []),
+      ]
+    : undefined;
 
   const getPaymentBadge = (status?: string) => {
     if (status === 'paid') return { label: t('tickets.paid'), color: '#4CAF50', bg: 'rgba(76,175,80,0.15)' };
@@ -299,6 +313,20 @@ export default function TicketsScreen() {
           }}
         />
       )}
+
+      <CancelReasonModal
+        visible={!!cancelTarget}
+        title={t('tickets.cancelTitle')}
+        subtitle={
+          cancelTarget
+            ? `${cancelTarget.room?.title || t('tickets.escapeRoom')} · ${formatDisplayDate(cancelTarget.date)} · ${cancelTarget.time}`
+            : undefined
+        }
+        reasons={PLAYER_CANCEL_REASONS}
+        warning={lateWarning}
+        onConfirm={confirmCancel}
+        onClose={() => setCancelTarget(null)}
+      />
     </View>
   );
 }

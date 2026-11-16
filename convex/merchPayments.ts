@@ -12,6 +12,7 @@
  * it is paid for the right amount: on return, and from scheduled checks in
  * case the player closed the tab. No webhook is needed.
  */
+import { legacyUserIdV } from "./userSession";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
@@ -147,7 +148,7 @@ async function currentRef(ctx: ActionCtx, orderId: Id<"merchOrders">) {
  */
 export const checkout = action({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     items: v.array(v.object({ productId: v.id("merchProducts"), variantId: v.string(), quantity: v.number() })),
     delivery: merchDeliveryV,
     payment: merchPaymentV,
@@ -158,8 +159,8 @@ export const checkout = action({
     cancelUrl: v.string(),
   },
   handler: async (ctx, args): Promise<{ orderId: string; orderCode: string; url: string | null }> => {
-    const { successUrl, cancelUrl, sessionToken, ...rest } = args;
-    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken });
+    const { successUrl, cancelUrl, sessionToken, userId: legacyUserId, ...rest } = args;
+    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken, userId: legacyUserId });
     const created = await ctx.runMutation(internal.merch.createOrder, { ...rest, userId });
     if (created.status !== "pending_payment") {
       return { orderId: created.orderId, orderCode: created.orderCode, url: null };
@@ -176,9 +177,9 @@ export const checkout = action({
 
 /** "Pay now" again for an order still waiting for payment. */
 export const retryCheckout = action({
-  args: { sessionToken: v.string(), orderId: v.id("merchOrders"), successUrl: v.string(), cancelUrl: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV, orderId: v.id("merchOrders"), successUrl: v.string(), cancelUrl: v.string() },
   handler: async (ctx, args): Promise<{ url: string }> => {
-    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken: args.sessionToken });
+    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken: args.sessionToken, userId: args.userId });
     const info = await ctx.runQuery(internal.merch.getOrderForPayment, { orderId: args.orderId });
     if (!info || info.order.userId !== userId) throw new ConvexError("Order not found");
     if (info.order.status !== "pending_payment" || info.order.paidAt) throw new ConvexError("This order isn't waiting for payment");

@@ -32,6 +32,10 @@ export default function PremiumScreen() {
 
   const PLAN_BENEFITS = [
     { icon: 'rocket-outline' as const, title: t('premium.benefitEarlyAccess'), desc: t('premium.benefitEarlyAccessDesc'), color: theme.colors.redLight },
+    { icon: 'pricetag-outline' as const, title: t('premium.benefitMerch'), desc: t('premium.benefitMerchDesc'), color: theme.colors.gold },
+    { icon: 'time-outline' as const, title: t('premium.benefitDrops'), desc: t('premium.benefitDropsDesc'), color: '#FF8A65' },
+    { icon: 'storefront-outline' as const, title: t('premium.benefitRoomMerch'), desc: t('premium.benefitRoomMerchDesc'), color: '#4DD0E1' },
+    { icon: 'gift-outline' as const, title: t('premium.benefitGift'), desc: t('premium.benefitGiftDesc'), color: '#F06292' },
     { icon: 'diamond-outline' as const, title: t('premium.benefitBadge'), desc: t('premium.benefitBadgeDesc'), color: '#CE93D8' },
     { icon: 'notifications-outline' as const, title: t('premium.benefitNotifications'), desc: t('premium.benefitNotificationsDesc'), color: '#42A5F5' },
     { icon: 'headset-outline' as const, title: t('premium.benefitSupport'), desc: t('premium.benefitSupportDesc'), color: '#4CAF50' },

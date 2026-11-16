@@ -13,6 +13,7 @@
  * runs when the player comes back, and again from scheduled jobs in case the
  * player closed the tab.
  */
+import { legacyUserIdV } from "./userSession";
 import { action, internalAction, type ActionCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
@@ -438,7 +439,7 @@ export async function startCheckoutImpl(ctx: ActionCtx, args: CheckoutArgs) {
 
 export const startCheckout = action({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     roomId: v.id("rooms"),
     date: v.string(),
     time: v.string(),
@@ -449,7 +450,7 @@ export const startCheckout = action({
   },
   handler: async (ctx, args): Promise<{ url: string; bookingId: string; provider: string }> => {
     // The booking is made for whoever is logged in, never for a userId from the client.
-    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken: args.sessionToken });
+    const { userId } = await ctx.runQuery(internal.userSession.verify, { sessionToken: args.sessionToken, userId: args.userId });
     const { sessionToken: _t, ...rest } = args;
     return await startCheckoutImpl(ctx, { ...rest, userId });
   },

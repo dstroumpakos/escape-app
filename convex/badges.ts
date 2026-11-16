@@ -3,7 +3,7 @@ import { query, mutation, internalMutation, type QueryCtx } from "./_generated/s
 import { readPublicCache } from "./publicCache";
 import { internal } from "./_generated/api";
 import { sessionTokenV, requireCompany } from "./companySession";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { merchOrderCount } from "./merch";
 
 // ═══════════════════════════════════════════════════════════════
@@ -28,9 +28,9 @@ export const BADGE_DEFS = [
 // ═══════════════════════════════════════════════════════════════
 
 export const getUserBadges = query({
-  args: { sessionToken: v.string() },
+  args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
     const userId = user._id;
     // Fetch earned badges

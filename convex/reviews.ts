@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { checkLengths } from "./validation";
-import { requireUser, optionalUser } from "./userSession";
+import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 
 // ─── Get reviews for a room (newest first) ───
 export const getByRoom = query({
@@ -73,11 +73,11 @@ export const getUserReviewForBooking = query({
 // ─── Check if user can review a room (has completed booking, hasn't reviewed it) ───
 export const canReview = query({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const user = await optionalUser(ctx, args.sessionToken);
+    const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return { canReview: false, bookingId: null };
     // Get completed bookings for this room by this user
     const bookings = await ctx.db
@@ -112,7 +112,7 @@ export const canReview = query({
 // ─── Submit a review ───
 export const submit = mutation({
   args: {
-    sessionToken: v.string(),
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
     roomId: v.id("rooms"),
     bookingId: v.id("bookings"),
     rating: v.number(),
@@ -120,7 +120,7 @@ export const submit = mutation({
   },
   handler: async (ctx, args) => {
     checkLengths([["Review", args.text, 2000]]);
-    const user = await requireUser(ctx, args.sessionToken);
+    const user = await requireUser(ctx, args.sessionToken, args.userId);
     // Validate rating
     if (args.rating < 1 || args.rating > 5) {
       throw new Error("Rating must be between 1 and 5");

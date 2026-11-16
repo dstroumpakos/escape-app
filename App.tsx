@@ -54,6 +54,13 @@ import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
 import NotificationPrefsScreen from './src/screens/NotificationPrefsScreen';
+import ShopScreen from './src/screens/shop/ShopScreen';
+import CompanyMerch from './src/screens/company/CompanyMerch';
+import CompanyMerchEditor from './src/screens/company/CompanyMerchEditor';
+import ProductScreen from './src/screens/shop/ProductScreen';
+import CartScreen from './src/screens/shop/CartScreen';
+import MerchCheckoutScreen from './src/screens/shop/MerchCheckoutScreen';
+import { MerchOrdersScreen, MerchOrderScreen } from './src/screens/shop/MerchOrdersScreen';
 
 // Company Screens
 import CompanyAuth from './src/screens/company/CompanyAuth';
@@ -68,6 +75,11 @@ import CompanyAddBooking from './src/screens/company/CompanyAddBooking';
 import CompanyOnboarding from './src/screens/company/CompanyOnboarding';
 import CompanyPhotos from './src/screens/company/CompanyPhotos';
 import CompanyBilling from './src/screens/company/CompanyBilling';
+import CompanyPayments from './src/screens/company/CompanyPayments';
+import CompanyGuide from './src/screens/company/CompanyGuide';
+import PlayerSettings from './src/screens/PlayerSettings';
+import CompanyNotificationPrefs from './src/screens/company/CompanyNotificationPrefs';
+import CompanySlots from './src/screens/company/CompanySlots';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 /**
@@ -443,6 +455,12 @@ export default function App() {
           }} />}
         </CompanyTab.Screen>
         <CompanyTab.Screen
+          name="Slots"
+          options={{ tabBarLabel: t('tabs.slots'), tabBarIcon: tabIcon('square.grid.3x3.fill', 'grid-outline') }}
+        >
+          {() => <CompanySlots companyId={companyId!} />}
+        </CompanyTab.Screen>
+        <CompanyTab.Screen
           name="Calendar"
           options={{ tabBarLabel: t('tabs.calendar'), tabBarIcon: tabIcon('calendar', 'calendar') }}
         >
@@ -463,6 +481,12 @@ export default function App() {
               companyId={companyId!}
               onNavigateBilling={() => companyNav.navigate('CompanyBilling', { companyId: companyId! })}
               onNavigatePhotos={() => companyNav.navigate('CompanyPhotos', { companyId: companyId! })}
+              onNavigatePayments={() => companyNav.navigate('CompanyPayments', { companyId: companyId! })}
+              onNavigateMerch={() => companyNav.navigate('CompanyMerch', { companyId: companyId! })}
+              onNavigateNotifPrefs={() => companyNav.navigate('CompanyNotificationPrefs')}
+              onNavigateGuide={() => companyNav.navigate('CompanyGuide')}
+              onNavigateTerms={() => companyNav.navigate('TermsOfService')}
+              onNavigatePrivacy={() => companyNav.navigate('PrivacyPolicy')}
               onSwitchToPlayer={async () => {
                 setCompanyId(null);
                 const storedUserId = await AsyncStorage.getItem('userId');
@@ -502,7 +526,10 @@ export default function App() {
       <CompanySessionProvider token={companyToken} onExpired={handleCompanySessionExpired}>
         <View style={{ flex: 1 }}>
           <StatusBar style="light" />
-          <NotificationWatcher userId={userId} companyId={companyId} sessionToken={sessionToken} />
+          {/* A failing background query here must never take the whole app down */}
+          <ErrorBoundary fallback={null}>
+            <NotificationWatcher userId={userId} companyId={companyId} sessionToken={sessionToken} />
+          </ErrorBoundary>
           <NavigationContainer ref={navigationRef} theme={DarkNavTheme}>
             <Stack.Navigator
               screenOptions={{
@@ -527,6 +554,36 @@ export default function App() {
                   <Stack.Screen name="CompanyPhotos">
                     {() => <CompanyPhotos companyId={companyId} />}
                   </Stack.Screen>
+                  <Stack.Screen name="CompanyGuide">
+                    {(props) => <CompanyGuide onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyNotificationPrefs">
+                    {(props) => <CompanyNotificationPrefs onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+                  <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
+                  <Stack.Screen name="CompanyPayments">
+                    {(props) => <CompanyPayments companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyMerch">
+                    {(props) => (
+                      <CompanyMerch
+                        companyId={companyId}
+                        onBack={() => (props as any).navigation.goBack()}
+                        onEditItem={(productId) => (props as any).navigation.navigate('CompanyMerchEditor', { companyId, productId })}
+                        onNavigatePayments={() => (props as any).navigation.navigate('CompanyPayments', { companyId })}
+                      />
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen name="CompanyMerchEditor">
+                    {(props) => (
+                      <CompanyMerchEditor
+                        companyId={companyId}
+                        productId={(props as any).route.params?.productId}
+                        onBack={() => (props as any).navigation.goBack()}
+                      />
+                    )}
+                  </Stack.Screen>
                   <Stack.Screen name="CompanyBilling">
                     {(props) => <CompanyBilling companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
                   </Stack.Screen>
@@ -548,6 +605,13 @@ export default function App() {
                   <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
+                  <Stack.Screen name="PlayerSettings" component={PlayerSettings} />
+                  <Stack.Screen name="Shop" component={ShopScreen} />
+                  <Stack.Screen name="Product" component={ProductScreen} />
+                  <Stack.Screen name="Cart" component={CartScreen} />
+                  <Stack.Screen name="MerchCheckout" component={MerchCheckoutScreen} />
+                  <Stack.Screen name="MerchOrders" component={MerchOrdersScreen} />
+                  <Stack.Screen name="MerchOrder" component={MerchOrderScreen} />
                   <Stack.Screen name="CompanyAuth">
                     {() => (
                       <CompanyAuth
