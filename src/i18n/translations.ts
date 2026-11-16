@@ -9,6 +9,11 @@ export const translations: Record<Language, Record<string, string>> = {
   //  ENGLISH
   // ═══════════════════════════════════════════════════════════
   en: {
+    'offers.tag': 'Last minute',
+    'offers.title': 'Last-minute offers',
+    'offers.today': 'Today',
+    'offers.tomorrow': 'Tomorrow',
+    'offers.perPerson': '/ person',
     /* ── generic / shared ── */
     cancel: 'Cancel',
     ok: 'OK',
@@ -1317,6 +1322,11 @@ export const translations: Record<Language, Record<string, string>> = {
   //  GREEK (Ελληνικά)
   // ═══════════════════════════════════════════════════════════
   el: {
+    'offers.tag': 'Τελευταία στιγμή',
+    'offers.title': 'Προσφορές τελευταίας στιγμής',
+    'offers.today': 'Σήμερα',
+    'offers.tomorrow': 'Αύριο',
+    'offers.perPerson': '/ άτομο',
     /* ── generic / shared ── */
     cancel: 'Ακύρωση',
     ok: 'OK',

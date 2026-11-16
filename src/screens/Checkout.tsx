@@ -67,6 +67,8 @@ export default function Checkout() {
   const options = useQuery(api.companyPaymentsData.getCheckoutOptions, {
     roomId: id as Id<'rooms'>,
     players,
+    date,
+    time,
   });
 
   const [promoCode, setPromoCode] = useState('');

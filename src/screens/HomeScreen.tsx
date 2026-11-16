@@ -15,6 +15,7 @@ import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { RoomCard, RoomRow } from '../components/RoomCard';
+import { OfferCard, type Offer } from '../components/OfferCard';
 import { TypeLabel } from '../components/ui';
 import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
@@ -69,6 +70,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { userId, sessionToken } = useUser();
+  const offers = (useQuery(api.slotOffers.listActive) ?? []) as Offer[];
   const unreadCount = useQuery(
     api.notifications.unreadCount,
     sessionToken ? { sessionToken } : 'skip',
@@ -215,6 +217,23 @@ export default function HomeScreen() {
                       : t('home.earlyAccess')
                   }
                   onPress={() => openRoom(room._id)}
+                />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {/* Last-minute offers */}
+        {offers.length > 0 && (
+          <>
+            <SectionHeader tag={t('offers.tag')} title={t('offers.title')} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carousel}>
+              {offers.slice(0, 10).map((o) => (
+                <OfferCard
+                  key={`${o.roomId}-${o.date}-${o.time}`}
+                  offer={o}
+                  style={styles.carouselCard}
+                  onPress={() => navigation.navigate('DateTimeSelect', { id: o.roomId, date: o.date, time: o.time })}
                 />
               ))}
             </ScrollView>

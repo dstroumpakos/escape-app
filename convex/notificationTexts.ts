@@ -28,6 +28,12 @@ const texts: Record<Lang, Record<string, string>> = {
     // New room (premium notification)
     "new_room.title": "🆕 New Room: {{room}}",
     "new_room.message": "{{company}} just added a new escape room! As a Premium member, you can book it before anyone else.",
+
+    // Last-minute offers
+    "offer.title": "🔥 -{{percent}}% on {{room}}",
+    "offer.message": "Last-minute offer: {{day}} at {{time}}. Only on UNLOCKED.",
+    "offer.today": "today",
+    "offer.tomorrow": "tomorrow",
   },
   el: {
     // Friend system
@@ -51,6 +57,12 @@ const texts: Record<Lang, Record<string, string>> = {
     // New room (premium notification)
     "new_room.title": "🆕 Νέο Δωμάτιο: {{room}}",
     "new_room.message": "Η {{company}} μόλις πρόσθεσε ένα νέο escape room! Ως Premium μέλος, μπορείς να το κλείσεις πριν από όλους.",
+
+    // Last-minute offers
+    "offer.title": "🔥 -{{percent}}% στο {{room}}",
+    "offer.message": "Προσφορά τελευταίας στιγμής: {{day}} στις {{time}}. Μόνο στο UNLOCKED.",
+    "offer.today": "σήμερα",
+    "offer.tomorrow": "αύριο",
   },
 };
 

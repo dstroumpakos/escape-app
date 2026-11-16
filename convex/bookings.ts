@@ -9,6 +9,7 @@ import { requireVerifiedEmail } from "./emailVerify";
 import { slotStartMs } from "./reportRules";
 import { PLAYER_CANCEL_REASONS, cancelReasonV, cleanCancelNote, isLateCancel } from "./cancelRules";
 import { assertRoomOpen } from "./companyRules";
+import { applyOffer, offerPercentFor } from "./slotOffers";
 
 export const create = mutation({
   args: {
@@ -46,7 +47,9 @@ export const create = mutation({
     ) {
       throw new ConvexError(`Number of players must be between ${room.playersMin} and ${room.playersMax}`);
     }
-    const total = roomTotal(room, args.players);
+    // Last-minute offer on this slot (bookings on UNLOCKED only, see slotOffers.ts)
+    const offerPercent = await offerPercentFor(ctx, args.roomId, args.date, args.time);
+    const total = applyOffer(roomTotal(room, args.players), offerPercent);
 
     // Prevent double-booking: check for existing active booking at this slot
     const existing = await ctx.db
@@ -89,6 +92,7 @@ export const create = mutation({
       paymentStatus,
       paymentTerms,
       depositPaid,
+      offerPercent: offerPercent || undefined,
     });
 
     // Only send confirmation emails if payment is not pending

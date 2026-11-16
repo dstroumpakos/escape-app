@@ -21,6 +21,7 @@ import { verifyPassword } from "./passwordUtils";
 import { assertSlotStillBookable } from "./slotRules";
 import { sessionTokenV, requireCompany } from "./companySession";
 import { assertRoomOpen } from "./companyRules";
+import { applyOffer, offerPercentFor } from "./slotOffers";
 import { failureLock, recordFailure, clearFailures } from "./rateLimit";
 import type { MutationCtx } from "./_generated/server";
 
@@ -229,7 +230,8 @@ export const removeCredentials = internalMutation({
  * pay at the venue.
  */
 export const getCheckoutOptions = query({
-  args: { roomId: v.id("rooms"), players: v.number() },
+  // date + time (optional for older app builds) let a last-minute offer apply.
+  args: { roomId: v.id("rooms"), players: v.number(), date: v.optional(v.string()), time: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
     if (!room) return null;
@@ -238,7 +240,9 @@ export const getCheckoutOptions = query({
     const configured = roomTerms(room);
     let terms = configured.filter((t) => online || t === "pay_on_arrival");
     if (terms.length === 0) terms = ["pay_on_arrival"];
-    const total = roomTotal(room, args.players);
+    const offerPercent = args.date && args.time ? await offerPercentFor(ctx, room._id, args.date, args.time) : 0;
+    const fullPrice = roomTotal(room, args.players);
+    const total = applyOffer(fullPrice, offerPercent);
     const depositPercent = effectiveDepositPercent(room, company);
     const bookingFee = effectiveBookingFee(company);
     return {
@@ -247,6 +251,8 @@ export const getCheckoutOptions = query({
       provider: online ? company!.paymentProvider! : null,
       testMode: online && company!.paymentMode === "test",
       total,
+      fullPrice,
+      offerPercent,
       depositPercent,
       bookingFee,
       depositAmount: chargeFor(total, "deposit_20", depositPercent, 0).partCents / 100,
@@ -294,7 +300,8 @@ export const createPendingBooking = internalMutation({
     }
     await assertSlotStillBookable(ctx, room, args.date, args.time, existing);
 
-    const total = roomTotal(room, args.players);
+    const offerPercent = await offerPercentFor(ctx, room._id, args.date, args.time);
+    const total = applyOffer(roomTotal(room, args.players), offerPercent);
     const depositPercent = effectiveDepositPercent(room, company);
     const bookingFee = effectiveBookingFee(company);
     const charge = chargeFor(total, args.paymentTerms, depositPercent, bookingFee);
@@ -315,6 +322,7 @@ export const createPendingBooking = internalMutation({
       companyId: room.companyId,
       paymentStatus: "unpaid",
       paymentTerms: args.paymentTerms,
+      offerPercent: offerPercent || undefined,
       paymentProvider: company.paymentProvider,
       paymentMode: company.paymentMode,
       depositPercent: args.paymentTerms === "deposit_20" ? depositPercent : undefined,

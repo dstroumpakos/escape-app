@@ -398,6 +398,7 @@ export default defineSchema({
     paymentMode: v.optional(v.union(v.literal("live"), v.literal("test"))),
     depositPercent: v.optional(v.number()),
     bookingFee: v.optional(v.number()),       // euros, added on top of the booking amount
+    offerPercent: v.optional(v.number()),     // last-minute offer applied (see slotOffers.ts)
     amountDueNow: v.optional(v.number()),     // euros charged online (deposit or full, + fee)
     vivaOrderCode: v.optional(v.string()),    // 16 digits, kept as a string
     paymentReference: v.optional(v.string()), // Stripe payment intent / Viva transaction id
@@ -483,6 +484,20 @@ export default defineSchema({
 
   // ─── Slot Availability Alerts ───
   // Users subscribe to get notified when an unavailable slot becomes free
+  // Last-minute offers: a company discounts a free slot of today or tomorrow.
+  // Only bookings made on UNLOCKED (web + app) get the discount, not the widget.
+  slotOffers: defineTable({
+    companyId: v.id("companies"),
+    roomId: v.id("rooms"),
+    date: v.string(), // YYYY-MM-DD
+    time: v.string(), // HH:MM
+    percent: v.number(), // 5..50
+    createdAt: v.number(),
+  })
+    .index("by_room_date", ["roomId", "date"])
+    .index("by_date", ["date"])
+    .index("by_company_date", ["companyId", "date"]),
+
   slotAlerts: defineTable({
     userId: v.id("users"),
     roomId: v.id("rooms"),

@@ -112,6 +112,11 @@ export default function NotificationsScreen() {
                 activeOpacity={0.7}
                 onPress={() => {
                   if (!notif.read) handleMarkAsRead(notif._id);
+                  // Last-minute offer: open that slot.
+                  const d = notif.data;
+                  if (d?.kind === 'offer' && d.roomId) {
+                    (navigation as any).navigate('DateTimeSelect', { id: d.roomId, date: d.date, time: d.time });
+                  }
                 }}
               >
                 <View style={[styles.iconWrap, { backgroundColor: icon.color + '20' }]}>

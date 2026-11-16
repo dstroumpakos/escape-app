@@ -28,6 +28,14 @@ crons.daily(
   {}
 );
 
+// Last-minute offers of past days (see slotOffers.ts).
+crons.daily(
+  "clean up old slot offers",
+  { hourUTC: 5, minuteUTC: 0 },
+  internal.slotOffers.cleanup,
+  {}
+);
+
 // Leaderboard and homepage stats (see publicCache.ts).
 crons.interval("refresh public cache", { minutes: 10 }, internal.publicCache.refresh, {});
 

@@ -101,3 +101,13 @@ export async function assertSlotStillBookable(
     throw new Error("This time slot is no longer available");
   }
 }
+
+/**
+ * Today's and tomorrow's dates in Greece ("YYYY-MM-DD"). Times before 06:00
+ * belong to the previous date, so before 06:00 "today" is still yesterday.
+ */
+export function athensBusinessDays(nowMs: number = Date.now()): [string, string] {
+  const d = new Date((athensNowMinutes(nowMs) - 6 * 60) * 60000);
+  const key = (x: Date) => x.toISOString().slice(0, 10);
+  return [key(d), key(new Date(d.getTime() + 86400000))];
+}

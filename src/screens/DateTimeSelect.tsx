@@ -31,9 +31,12 @@ export default function DateTimeSelect() {
   const room = allRooms.find((r: any) => r.id === roomId) || allRooms[0];
 
   const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [selectedDate, setSelectedDate] = useState(today.getDate());
+  // date ("YYYY-MM-DD") + time come from an offer; they preselect that slot.
+  const initial = (route.params.date || '').split('-').map((n) => parseInt(n, 10));
+  const hasInitial = initial.length === 3 && initial.every((n) => Number.isFinite(n) && n > 0);
+  const [currentMonth, setCurrentMonth] = useState(hasInitial ? initial[1] - 1 : today.getMonth());
+  const [currentYear, setCurrentYear] = useState(hasInitial ? initial[0] : today.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(hasInitial ? initial[2] : today.getDate());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [players, setPlayers] = useState(2);
 
@@ -47,6 +50,14 @@ export default function DateTimeSelect() {
     api.companies.getRoomSlots,
     room._id ? { roomId: room._id as Id<"rooms">, date: dateStr } : "skip"
   );
+
+  // Last-minute offers on this date (the server applies the discount at booking)
+  const offers = useQuery(
+    api.slotOffers.forRoomDate,
+    room._id ? { roomId: room._id as Id<"rooms">, date: dateStr } : "skip"
+  );
+  const offerPct = (time?: string) =>
+    (time && (offers ?? []).find((o: any) => o.time === time)?.percent) || 0;
 
   // Fetch already-booked times for this room+date
   const bookedTimes = useQuery(
@@ -129,6 +140,18 @@ export default function DateTimeSelect() {
     if (!stillThere) setSelectedTime(null);
   }, [selectedTime, visibleSlots, showOverflow]);
 
+  // Preselect the time an offer pointed to, once its slots have loaded.
+  const [usedInitialTime, setUsedInitialTime] = useState(false);
+  useEffect(() => {
+    const wanted = route.params.time;
+    if (usedInitialTime || !wanted || !hasInitial) return;
+    const slot = visibleSlots.find((s: any) => s.time === wanted && s.available);
+    if (slot) {
+      setSelectedTime(slot.id);
+      setUsedInitialTime(true);
+    }
+  }, [visibleSlots, usedInitialTime]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Slot alerts: let users subscribe to unavailable slots ──
   const slotAlerts = useQuery(
     api.slotAlerts.getByUserRoomDate,
@@ -182,10 +205,13 @@ export default function DateTimeSelect() {
   // Helper: get the effective price for a slot, applying room group pricing
   // If slot.price differs from room.price, scale the group price proportionally
   const getSlotPrice = (slot: any) => {
-    if (slot.price === room.price || !room.price) return standardPrice;
-    // Slot has a custom base price — scale proportionally
-    const ratio = slot.price / room.price;
-    return Math.round(standardPrice * ratio);
+    let base = standardPrice;
+    if (slot.price !== room.price && room.price) {
+      // Slot has a custom base price — scale proportionally
+      base = Math.round(standardPrice * (slot.price / room.price));
+    }
+    const pct = offerPct(slot.time);
+    return pct ? Math.round(base * (100 - pct)) / 100 : base;
   };
 
   // Helper: get discount % for a slot (positive = cheaper than standard)
