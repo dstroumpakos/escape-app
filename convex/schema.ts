@@ -291,6 +291,7 @@ export default defineSchema({
     email: v.string(),
     password: v.optional(v.string()), // hashed in production
     appleId: v.optional(v.string()), // Apple Sign In identifier
+    googleId: v.optional(v.string()), // Google Sign In identifier ("sub")
     avatar: v.string(),
     avatarStorageId: v.optional(v.id("_storage")), // persistent reference
     title: v.string(),
@@ -319,6 +320,7 @@ export default defineSchema({
     merchWelcomeGiftOrderId: v.optional(v.id("merchOrders")),
   }).index("by_email", ["email"])
     .index("by_apple_id", ["appleId"])
+    .index("by_google_id", ["googleId"])
     .index("by_premium", ["isPremium"])
     // Friend search (friends.searchUsers) without loading every user.
     .searchIndex("search_name", { searchField: "name" }),

@@ -3,6 +3,7 @@ import { removeOwnerTokens } from "./push";
 import { readPublicCache } from "./publicCache";
 import type { Id } from "./_generated/dataModel";
 import { verifyAppleIdentityToken } from "./appleAuth";
+import { verifyGoogleIdToken } from "./googleAuth";
 import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { hashPassword, verifyPassword } from "./passwordUtils";
@@ -456,6 +457,97 @@ export const appleLogin = internalMutation({
         lang: args.lang || "en",
       });
     }
+
+    return { userId, sessionToken: await createUserSession(ctx, userId, args.client) };
+  },
+});
+
+/**
+ * Sign in with Google (website). The site sends the ID token from Google
+ * Identity Services; the Google user id, email and name come from the
+ * verified token, never from the client's say-so.
+ */
+export const loginWithGoogle = action({
+  args: {
+    idToken: v.string(),
+    lang: v.optional(v.string()),
+    client: v.optional(v.string()), // "web" | "app"
+  },
+  handler: async (ctx, args): Promise<{ userId: Id<"users">; sessionToken: string }> => {
+    let identity;
+    try {
+      identity = await verifyGoogleIdToken(args.idToken);
+    } catch (e: any) {
+      throw new ConvexError(typeof e?.message === "string" && e.message.startsWith("GOOGLE_") ? e.message : "GOOGLE_TOKEN_INVALID");
+    }
+    // Every account needs a real email (bookings, receipts), and only a
+    // Google-verified one may be linked to an existing account.
+    if (!identity.email || !identity.emailVerified) throw new ConvexError("GOOGLE_EMAIL_UNVERIFIED");
+    return await ctx.runMutation(internal.users.googleLogin, {
+      googleId: identity.sub,
+      email: identity.email,
+      fullName: identity.name,
+      lang: args.lang,
+      client: args.client,
+    });
+  },
+});
+
+export const googleLogin = internalMutation({
+  args: {
+    googleId: v.string(),
+    email: v.string(), // verified by Google
+    fullName: v.optional(v.string()),
+    lang: v.optional(v.string()),
+    client: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ userId: Id<"users">; sessionToken: string }> => {
+    const existingByGoogle = await ctx.db
+      .query("users")
+      .withIndex("by_google_id", (q) => q.eq("googleId", args.googleId))
+      .first();
+    if (existingByGoogle) {
+      return { userId: existingByGoogle._id, sessionToken: await createUserSession(ctx, existingByGoogle._id, args.client) };
+    }
+
+    const existingByEmail = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (existingByEmail) {
+      // Link Google to the existing account. Google verified this email,
+      // so it counts as confirmed too.
+      await ctx.db.patch(existingByEmail._id, {
+        googleId: args.googleId,
+        ...(existingByEmail.emailVerified === false ? { emailVerified: true } : {}),
+      });
+      return { userId: existingByEmail._id, sessionToken: await createUserSession(ctx, existingByEmail._id, args.client) };
+    }
+
+    const now = new Date();
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const memberSince = `Member since ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    const name = args.fullName && !playerNameProblem(args.fullName) ? normalizeName(args.fullName) : "Escape Fan";
+
+    const userId = await ctx.db.insert("users", {
+      name,
+      email: args.email,
+      googleId: args.googleId,
+      avatar: "",
+      title: "Escape Rookie",
+      memberSince,
+      played: 0,
+      escaped: 0,
+      awards: 0,
+      wishlist: [],
+      language: args.lang === "el" || args.lang === "nl" || args.lang === "en" ? args.lang : undefined,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
+      playerName: name,
+      playerEmail: args.email,
+      lang: args.lang || "en",
+    });
 
     return { userId, sessionToken: await createUserSession(ctx, userId, args.client) };
   },

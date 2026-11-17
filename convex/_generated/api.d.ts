@@ -29,6 +29,7 @@ import type * as email from "../email.js";
 import type * as emailVerify from "../emailVerify.js";
 import type * as friends from "../friends.js";
 import type * as games from "../games.js";
+import type * as googleAuth from "../googleAuth.js";
 import type * as http from "../http.js";
 import type * as merch from "../merch.js";
 import type * as merchPayments from "../merchPayments.js";
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   emailVerify: typeof emailVerify;
   friends: typeof friends;
   games: typeof games;
+  googleAuth: typeof googleAuth;
   http: typeof http;
   merch: typeof merch;
   merchPayments: typeof merchPayments;
