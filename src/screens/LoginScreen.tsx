@@ -128,10 +128,23 @@ export default function LoginScreen({ onLogin }: Props) {
         onLogin(userId, sessionToken);
       }
     } catch (err: any) {
-      Alert.alert(t('error'), signupErrorText(err) || err.message || t('login.somethingWentWrong'));
+      const loginError = !isRegister && typeof err?.data === 'string' ? LOGIN_ERRORS[err.data] : undefined;
+      Alert.alert(t('error'), loginError ? t(loginError) : signupErrorText(err) || friendlyMessage(err));
     } finally {
       setLoading(false);
     }
+  };
+
+  // Sign-in failures come back as codes; without this the player saw the
+  // raw "[Request ID: …] Server Error" text for a wrong password.
+  const LOGIN_ERRORS: Record<string, string> = {
+    INVALID_CREDENTIALS: 'login.invalidCredentials',
+    TOO_MANY_ATTEMPTS: 'login.tooManyLogins',
+  };
+  // Never show Convex's internal error text to players.
+  const friendlyMessage = (err: any): string => {
+    const msg = typeof err?.message === 'string' ? err.message : '';
+    return !msg || msg.includes('Server Error') || msg.includes('[CONVEX') ? t('login.somethingWentWrong') : msg;
   };
 
   const SIGNUP_ERRORS: Record<string, string> = {
