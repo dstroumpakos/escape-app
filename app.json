@@ -37,6 +37,11 @@
       },
       "package": "com.unlocked.escapeapp",
       "versionCode": 1,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyA9Q-E4uWURr8x-LIci-ZGXQZlaCeHj9Pg"
+        }
+      },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.READ_MEDIA_IMAGES",
