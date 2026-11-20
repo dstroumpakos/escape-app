@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { filterContent } from "./moderation";
 import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
+import { avatarUrl } from "./avatars";
 import { rateLimit, HOUR } from "./rateLimit";
 import { assertUpload, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, UPLOADS_PER_HOUR_USER } from "./uploads";
 
@@ -42,7 +43,7 @@ export const getFeed = query({
           const user = userMap.get(post.authorUserId);
           if (user) {
             authorName = user.name;
-            authorAvatar = user.avatar;
+            authorAvatar = await avatarUrl(ctx, user);
           }
         } else if (post.authorType === "company" && post.authorCompanyId) {
           const company = companyMap.get(post.authorCompanyId);
@@ -125,7 +126,7 @@ export const getComments = query({
         return {
           ...comment,
           userName: user?.name || "Unknown",
-          userAvatar: user?.avatar || "",
+          userAvatar: await avatarUrl(ctx, user),
         };
       })
     );

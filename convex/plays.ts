@@ -9,6 +9,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { avatarUrl } from "./avatars";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser, optionalUser } from "./userSession";
 import { requireCompany } from "./companySession";
@@ -660,7 +661,7 @@ export const mine = query({
           const owner = await ctx.db.get(r.ownerId);
           if (!log || !owner) return null;
           const place = await placeOf(ctx, log);
-          return { logId: log._id, ownerName: owner.name, ownerAvatar: owner.avatar, title: place.title, company: place.company, playedOn: log.playedOn };
+          return { logId: log._id, ownerName: owner.name, ownerAvatar: await avatarUrl(ctx, owner), title: place.title, company: place.company, playedOn: log.playedOn };
         })
       )
     ).filter((x): x is NonNullable<typeof x> => !!x);
@@ -719,7 +720,7 @@ async function reviewRow(ctx: Ctx, l: Doc<"playLogs">) {
   return {
     _id: l._id,
     playerName: player?.name ?? "",
-    playerAvatar: player?.avatar ?? "",
+    playerAvatar: await avatarUrl(ctx, player),
     playerPlayed: player?.played ?? 0,
     title: place.title,
     company: place.company || company?.name || "",

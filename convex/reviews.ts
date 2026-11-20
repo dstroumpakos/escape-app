@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { checkLengths } from "./validation";
 import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
+import { avatarUrl } from "./avatars";
 
 // ─── Get reviews for a room (newest first) ───
 export const getByRoom = query({
@@ -23,7 +24,7 @@ export const getByRoom = query({
         return {
           ...r,
           user: user
-            ? { name: user.name, avatar: user.avatar }
+            ? { name: user.name, avatar: await avatarUrl(ctx, user) }
             : { name: "Unknown", avatar: "" },
         };
       })
