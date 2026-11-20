@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { SUPPORT_EMAIL } from './companyFlags';
+import { BOOKING_ENABLED } from '../../features';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Color = 'red' | 'green' | 'amber' | 'blue' | 'purple' | 'gray';
@@ -110,6 +111,84 @@ function BadgeLine({ color, badge, text }: { color: Color; badge: string; text: 
 
 const Wrap = ({ children }: { children: React.ReactNode }) => <View style={styles.wrap}>{children}</View>;
 
+/**
+ * The guide while UNLOCKED's own booking is off (src/features.ts): rooms are
+ * adverts, players book on the company's own site, the company gives out QR
+ * stamps and sells merch. No plans, slots, widget or room payments.
+ */
+function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
+  return (
+    <>
+      <Section icon="rocket-outline" title={g('Ξεκινώντας', 'Getting Started')} defaultOpen>
+        <Card>
+          <View style={{ gap: 14 }}>
+            <Step n={1} title={g('Αποδοχή όρων', 'Accept the terms')} desc={g('Αποδεχτείτε τους όρους χρήσης και την πολιτική απορρήτου.', 'Accept the terms of service and the privacy policy.')} />
+            <Step n={2} title={g('Επιβεβαίωση', 'Confirm')} desc={g('Πατήστε «Συνέχεια». Για πακέτα και τιμές θα επικοινωνήσουμε μαζί σας.', 'Tap "Continue". We will get in touch about packages and prices.')} />
+            <Step n={3} title={g('Έλεγχος στοιχείων', 'Account review')} desc={g('Ελέγχουμε τα στοιχεία σας, συνήθως μέσα σε 1 με 2 εργάσιμες. Θα λάβετε email μόλις εγκριθεί ο λογαριασμός σας.', 'We check your details, usually within 1 to 2 working days. You get an email as soon as your account is approved.')} />
+            <Step n={4} title={g('Λίστα εκκίνησης', 'Getting-started checklist')} desc={g('Στον πίνακα ελέγχου μια σύντομη λίστα σας οδηγεί: προφίλ εταιρείας, πρώτο δωμάτιο και φωτογραφία δωματίου.', 'On your dashboard a short checklist walks you through it: company profile, first room and a room photo.')} />
+          </View>
+        </Card>
+      </Section>
+
+      <Section icon="key-outline" title={g('Δωμάτια & Κράτηση στο Site σας', 'Rooms & Booking on Your Site')}>
+        <P>{g('Κάθε δωμάτιο έχει δική του σελίδα στο UNLOCKED με φωτογραφίες, περιγραφή, θέμα, δυσκολία, διάρκεια και αριθμό παικτών. Το UNLOCKED δεν κάνει κρατήσεις και δεν παίρνει πληρωμές για τα δωμάτια.', 'Every room has its own page on UNLOCKED with photos, description, theme, difficulty, duration and number of players. UNLOCKED takes no bookings or payments for rooms.')}</P>
+        <Card title={g('Πού πάει ο παίκτης', 'Where players go')}>
+          <Bullets items={[
+            g('Ο παίκτης πατά «Κλείσε στο Site τους» και πηγαίνει στο link κράτησης του δωματίου ή, αν είναι κενό, στο website σας από τις Ρυθμίσεις.', 'Players tap "Book on Their Site" and go to the room\'s booking link or, if it is empty, to your website from Settings.'),
+            g('Χωρίς κανέναν σύνδεσμο, εμφανίζεται το τηλέφωνο της εταιρείας σας.', 'With no link at all, your company phone number is shown.'),
+            g('Στον πίνακα ελέγχου στο site βλέπετε πόσοι παίκτες πάτησαν το κουμπί τις τελευταίες 30 ημέρες.', 'On the website dashboard you see how many players tapped the button in the last 30 days.'),
+          ]} />
+        </Card>
+      </Section>
+
+      <Section icon="ribbon-outline" title={g('Σφραγίδες QR', 'QR Stamps')}>
+        <P>{g('Στο τέλος κάθε παιχνιδιού δίνετε στην ομάδα τη σφραγίδα του δωματίου σας για το UNLOCKED διαβατήριό τους.', 'At the end of every game you give the team your room\'s stamp for their UNLOCKED passport.')}</P>
+        <Card title={g('Βήματα', 'Steps')}>
+          <View style={{ gap: 14 }}>
+            <Step n={1} title={g('Σφραγίδες QR', 'QR Stamps')} desc={g('Πατήστε την κάρτα «Σφραγίδες QR» στην αρχική του πίνακα.', 'Tap the "QR Stamps" card on your dashboard.')} />
+            <Step n={2} title={g('Στοιχεία παιχνιδιού', 'Game details')} desc={g('Διαλέξτε δωμάτιο, ώρα έναρξης της ομάδας, αριθμό παικτών και αν απέδρασαν.', 'Pick the room, the team\'s start time, the number of players and whether they escaped.')} />
+            <Step n={3} title={g('Δείξτε το QR', 'Show the QR')} desc={g('Κάθε παίκτης το σκανάρει με το κινητό του και παίρνει τη σφραγίδα. Βλέπετε ζωντανά πόσοι την πήραν.', 'Each player scans it with their phone and gets the stamp. You see live how many took it.')} />
+          </View>
+        </Card>
+        <Card>
+          <Bullets items={[
+            g('Το QR ισχύει 30 λεπτά και δίνει τόσες σφραγίδες όσοι οι παίκτες.', 'The QR is valid for 30 minutes and gives as many stamps as there are players.'),
+            g('Κάθε παίκτης παίρνει μία σφραγίδα ανά δωμάτιο.', 'Each player gets one stamp per room.'),
+            g('Οι σφραγίδες ανοίγουν ορόφους και δώρα στον Στοιχειωμένο Πύργο, οπότε οι παίκτες θέλουν να έρθουν ξανά.', 'Stamps open floors and gifts in the Haunted Tower, so players want to come back.'),
+          ]} />
+        </Card>
+      </Section>
+
+      <Section icon="bag-handle-outline" title={g('Merch', 'Merch')}>
+        <P>{g('Από τις Ρυθμίσεις → Merch ανεβάζετε προϊόντα των δωματίων σας στο κατάστημα του UNLOCKED. Εσείς είστε ο πωλητής.', 'From Settings → Merch you add products of your rooms to the UNLOCKED shop. You are the seller.')}</P>
+        <Card>
+          <Bullets items={[
+            g('Για online πληρωμές συνδέστε τον λογαριασμό Stripe ή Viva σας από τις Πληρωμές. Τα χρήματα πηγαίνουν απευθείας σε εσάς.', 'For online payments connect your Stripe or Viva account from Payments. The money goes straight to you.'),
+            g('Χωρίς συνδεδεμένο λογαριασμό, οι παίκτες πληρώνουν στην παραλαβή.', 'Without a connected account, players pay at pickup.'),
+            g('Εσείς αναλαμβάνετε παραλαβή ή αποστολή, επιστροφές και επιστροφές χρημάτων.', 'You handle pickup or shipping, returns and refunds.'),
+          ]} />
+        </Card>
+      </Section>
+
+      <Section icon="camera-outline" title={g('Φωτογραφίες Ομάδων', 'Team Photos')}>
+        <P>{g('Από τις Ρυθμίσεις → Φωτογραφίες ανεβάζετε φωτογραφίες ομάδων, βάζετε το branding σας και τις στέλνετε στους παίκτες με email.', 'From Settings → Photos you upload team photos, add your branding and email them to the players.')}</P>
+      </Section>
+
+      <Section icon="sparkles-outline" title={g('Πρόγραμμα Early Access', 'Early Access Partner Program')}>
+        <P>{g('Ενταχθείτε από τις Ρυθμίσεις → Early Access. Ως Early Access Partner:', 'Join from Settings → Early Access. As an Early Access Partner:')}</P>
+        <Card>
+          <Bullets items={[
+            g('Τα δωμάτιά σας εμφανίζονται στο Featured Spotlight της αρχικής σελίδας', 'Your rooms appear in the Featured Spotlight on the home page'),
+            g('Ορίζετε ημερομηνία κυκλοφορίας και οι Premium παίκτες βλέπουν το δωμάτιο έως 3 ημέρες νωρίτερα', 'You set a release date and Premium players see the room up to 3 days early'),
+            g('Οι Premium παίκτες ειδοποιούνται όταν προσθέτετε νέο δωμάτιο', 'Premium players are notified when you add a new room'),
+            g('Τα δωμάτιά σας έχουν το σήμα "Early Access"', 'Your rooms show the "Early Access" badge'),
+          ]} />
+        </Card>
+      </Section>
+    </>
+  );
+}
+
 export default function CompanyGuide({ onBack }: { onBack: () => void }) {
   const { language } = useTranslation();
   const g = (el: string, en: string) => (language === 'el' ? el : en);
@@ -123,12 +202,15 @@ export default function CompanyGuide({ onBack }: { onBack: () => void }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>{g('Οδηγός Πλατφόρμας', 'Platform Guide')}</Text>
           <Text style={styles.headerSub}>
-            {g('Όλα όσα χρειάζεστε για να δέχεστε κρατήσεις με το UNLOCKED', 'Everything you need to take bookings with UNLOCKED')}
+            {BOOKING_ENABLED
+              ? g('Όλα όσα χρειάζεστε για να δέχεστε κρατήσεις με το UNLOCKED', 'Everything you need to take bookings with UNLOCKED')
+              : g('Όλα όσα χρειάζεστε για να φέρνετε παίκτες στο escape room σας', 'Everything you need to bring players to your escape room')}
           </Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120, gap: 10 }}>
+        {!BOOKING_ENABLED ? <AdvertSections g={g} /> : (<>
         <Section icon="rocket-outline" title={g('Ξεκινώντας', 'Getting Started')} defaultOpen>
           <Card>
             <View style={{ gap: 14 }}>
@@ -361,6 +443,8 @@ export default function CompanyGuide({ onBack }: { onBack: () => void }) {
             ]} />
           </Card>
         </Section>
+
+        </>)}
 
         <TouchableOpacity style={styles.help} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => {})}>
           <Text style={styles.p}>{g('Χρειάζεστε βοήθεια; Στείλτε μας email στο', 'Need help? Email us at')}</Text>

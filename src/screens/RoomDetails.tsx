@@ -287,10 +287,10 @@ export default function RoomDetails() {
 
       {/* Sticky CTA */}
       <View style={[styles.ctaBar, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
-        <View>
+        {BOOKING_ENABLED ? <View>
           <Text style={styles.ctaPriceVal}>{room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}</Text>
           {!room.pricePerGroup?.length && <Text style={styles.ctaPriceLabel}>{t('perPerson')}</Text>}
-        </View>
+        </View> : <View />}
         {BOOKING_ENABLED ? (
           <PrimaryButton
             label={t('roomDetails.unlockNow')}

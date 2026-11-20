@@ -7,6 +7,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import RNMapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -132,7 +133,7 @@ export default function MapView() {
               <View style={styles.markerWrap}>
                 <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive]}>
                   <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
-                    €{room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
+                    {BOOKING_ENABLED ? `€${room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}` : '🔒'}
                   </Text>
                 </View>
                 <View style={[styles.markerDot, isSelected && styles.markerDotActive]} />
@@ -173,11 +174,11 @@ export default function MapView() {
                 <Ionicons name="star" size={14} color={theme.colors.gold} />
                 <Text style={styles.cardRatingText}>{selectedRoom.rating}</Text>
               </View>
-              <Text style={styles.cardPrice}>
+              {BOOKING_ENABLED && <Text style={styles.cardPrice}>
                 {selectedRoom.pricePerGroup?.length
                   ? t('fromPrice', { amount: Math.min(...selectedRoom.pricePerGroup.map((g: any) => g.price)) })
                   : `€${selectedRoom.price}${t('perPerson')}`}
-              </Text>
+              </Text>}
             </View>
             {userLoc && selectedRoom.latitude && (
               <View style={styles.distRow}>

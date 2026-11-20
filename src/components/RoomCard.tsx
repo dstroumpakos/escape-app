@@ -3,6 +3,7 @@ import { Image, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle }
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../theme';
+import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
 import { DifficultySkulls } from './ui';
@@ -113,12 +114,14 @@ export function RoomCard({
           ) : null}
         </View>
 
+        {BOOKING_ENABLED && (
         <View style={styles.priceTag}>
           <Text style={styles.priceText}>
             {price}
             {perPerson && <Text style={styles.priceSub}>{t('perPerson')}</Text>}
           </Text>
         </View>
+        )}
       </View>
 
       <View style={styles.body}>
@@ -221,7 +224,7 @@ export function RoomRow({
             />
             <Text style={styles.rating}>{hasReviews ? room.rating : t('discover.new')}</Text>
           </View>
-          <Text style={styles.rowPrice}>{price}</Text>
+          {BOOKING_ENABLED && <Text style={styles.rowPrice}>{price}</Text>}
         </View>
       </View>
     </TouchableOpacity>

@@ -287,7 +287,7 @@ export default function DiscoverScreen() {
                   <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive, room.isEarlyAccess && styles.markerBubbleEarlyAccess]}>
                     {room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? theme.colors.blood : theme.colors.gold} style={{ marginRight: 3 }} />}
                     <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
-                      €{room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}
+                      {BOOKING_ENABLED ? `€${room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}` : '🔒'}
                     </Text>
                   </View>
                   <View style={[styles.markerArrow, isSelected && styles.markerArrowActive]} />
@@ -389,7 +389,7 @@ export default function DiscoverScreen() {
             contentContainerStyle={styles.listContent}
           >
             <View style={styles.sortRow}>
-              {(['rating', 'price', 'duration'] as const).map((s) => (
+              {(BOOKING_ENABLED ? (['rating', 'price', 'duration'] as const) : (['rating', 'duration'] as const)).map((s) => (
                 <TouchableOpacity
                   key={s}
                   style={[styles.chip, sortBy === s && styles.chipActive]}
@@ -518,10 +518,12 @@ function SelectedRoomCard({ room, navigation }: { room: any; navigation: Nav }) 
           </View>
 
           <View style={styles.cardBottom}>
+            {BOOKING_ENABLED ? (
             <Text style={styles.cardPrice}>
               {room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}
               {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>{t('perPerson')}</Text>}
             </Text>
+            ) : <View />}
             {BOOKING_ENABLED ? (
               <PrimaryButton
                 small
