@@ -520,6 +520,13 @@ export default defineSchema({
     .index("by_token", ["token"])
     .index("by_company", ["companyId"]),
 
+  // Maze game: how many of their stamps a player has put into the doors.
+  passportProgress: defineTable({
+    userId: v.id("users"),
+    placed: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // ...and the stamps players collect with it: one per room per player.
   stamps: defineTable({
     userId: v.id("users"),

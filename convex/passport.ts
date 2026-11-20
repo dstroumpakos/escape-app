@@ -25,10 +25,12 @@ export const STAMP_WINDOW_MS = 30 * 60 * 1000;
 const MAX_PLAYERS = 20;
 
 /**
- * Stamps needed for each chamber of the maze (index 0 = entrance): the first
- * chamber at 5 stamps, then every 10 more.
+ * The maze game has 10 doors. PASSPORT_CHAMBERS[i] = stamps placed in the
+ * doors so far for door i to be open (index 0 = entrance): the first door
+ * takes 5 stamps, every next door 10 more.
  */
-export const PASSPORT_CHAMBERS = [0, 5, 15, 25, 35, 45, 55, 65, 75, 85] as const;
+export const PASSPORT_CHAMBERS = [0, 5, 15, 25, 35, 45, 55, 65, 75, 85, 95] as const;
+const ALL_DOORS = PASSPORT_CHAMBERS[PASSPORT_CHAMBERS.length - 1];
 
 function newToken(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
@@ -200,16 +202,17 @@ export const claim = mutation({
     await ctx.db.patch(me._id, { played: (me.played ?? 0) + 1, escaped: (me.escaped ?? 0) + (s.escaped ? 1 : 0) });
 
     const total = before + 1;
+    // Enough stamps for the next door of the maze game.
     const opened = (PASSPORT_CHAMBERS as readonly number[]).indexOf(total);
     if (opened > 0) {
       const el = me.language === "el";
       await notifyUser(ctx, {
         userId: me._id,
         type: "system",
-        title: el ? "🗝️ Άνοιξε νέος θάλαμος!" : "🗝️ A new chamber opened!",
+        title: el ? "🗝️ Μπορείς να ανοίξεις την επόμενη πόρτα!" : "🗝️ You can open the next door!",
         message: el
-          ? `Με ${total} σφραγίδες έφτασες σε νέο θάλαμο του λαβύρινθου. Δες το δώρο σου στο passport.`
-          : `With ${total} stamps you reached a new chamber of the maze. See your gift in your passport.`,
+          ? `Με ${total} σφραγίδες έχεις αρκετές για την πόρτα ${opened} του λαβύρινθου. Πήγαινε στο passport να τις τοποθετήσεις.`
+          : `With ${total} stamps you have enough for door ${opened} of the maze. Go to your passport and place them.`,
         read: false,
         createdAt: Date.now(),
         data: { kind: "passport", chamber: opened },
@@ -258,6 +261,28 @@ export const mine = query({
       cities: cities.size,
       escapedPct: stamps.length ? Math.round((stamps.filter((s) => s.escaped).length / stamps.length) * 100) : 0,
       chambers: [...PASSPORT_CHAMBERS],
+      placed: (await ctx.db.query("passportProgress").withIndex("by_user", (q) => q.eq("userId", me._id)).first())?.placed ?? 0,
     };
+  },
+});
+
+/**
+ * Maze game: put one of your stamps into the door you stand at. The server
+ * keeps the count, so nobody can place more stamps than they collected.
+ */
+export const placeStamp = mutation({
+  args: { sessionToken: v.string() },
+  handler: async (ctx, args) => {
+    const me = await requireUser(ctx, args.sessionToken);
+    await rateLimit(ctx, `placeStamp:${me._id}`, 300, HOUR);
+    const total = await countStamps(ctx, me._id);
+    const row = await ctx.db.query("passportProgress").withIndex("by_user", (q) => q.eq("userId", me._id)).first();
+    const placed = row?.placed ?? 0;
+    if (placed >= ALL_DOORS) throw new ConvexError("Every door of the maze is already open.");
+    if (placed >= total) throw new ConvexError("You have no stamps left. Play a room and scan the QR at the end.");
+    if (row) await ctx.db.patch(row._id, { placed: placed + 1, updatedAt: Date.now() });
+    else await ctx.db.insert("passportProgress", { userId: me._id, placed: 1, updatedAt: Date.now() });
+    const door = (PASSPORT_CHAMBERS as readonly number[]).indexOf(placed + 1);
+    return { placed: placed + 1, openedDoor: door > 0 ? door : null };
   },
 });

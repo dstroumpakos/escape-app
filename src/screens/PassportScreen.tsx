@@ -122,7 +122,8 @@ const CH = [0, 1, 3, 5, 6, 8, 9, 10, 11, 12];
 function Maze({ total, chambers }: { total: number; chambers: number[] }) {
   const { t } = useTranslation();
   const [sel, setSel] = useState<number | null>(null);
-  const reached = chambers.filter((c) => total >= c).length - 1;
+  // Clamped: the server now has 10 doors, this map shows 9 chambers.
+  const reached = Math.min(CH.length - 1, chambers.filter((c) => total >= c).length - 1);
   const show = sel ?? Math.min(reached + 1, CH.length - 1);
   const pts = (n: number) => V.slice(0, n + 1).map(([x, y]) => `${x},${y}`).join(' ');
   const [px, py] = V[CH[reached]];
