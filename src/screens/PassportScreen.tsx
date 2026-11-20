@@ -62,7 +62,7 @@ export default function PassportScreen() {
             </View>
           </View>
           <View style={styles.stats}>
-            {[[String(data.total), t('pp.stamps')], [String(data.cities), t('pp.cities')], [`${data.escapedPct}%`, t('pp.escapes')]].map(([v, l]) => (
+            {[[String(data.total), t('pp.stamps')], [String(data.cities), t('pp.cities')]].map(([v, l]) => (
               <View key={l} style={styles.stat}><Text style={styles.statNum}>{v}</Text><Text style={styles.label}>{l}</Text></View>
             ))}
           </View>
