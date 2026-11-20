@@ -15,6 +15,7 @@ import { startPendingSignup, takePendingSignup, requireLegacySignupAllowed } fro
 import type { MutationCtx } from "./_generated/server";
 import { assertUpload, MAX_IMAGE_BYTES, UPLOADS_PER_HOUR_USER, isOwnStorageUrl } from "./uploads";
 import { filterPublicRooms } from "./companyRules";
+import { removeUserFromChats } from "./messages";
 
 export const getByEmail = internalQuery({
   args: { email: v.string() },
@@ -855,7 +856,10 @@ export const deleteAccount = mutation({
       .collect();
     for (const r of reports) await ctx.db.delete(r._id);
 
-    // 12. Delete the user record itself
+    // 12. Leave every chat and forget the chat devices (messages.ts)
+    await removeUserFromChats(ctx, userId);
+
+    // 13. Delete the user record itself
     await ctx.db.delete(userId);
 
     return { success: true };

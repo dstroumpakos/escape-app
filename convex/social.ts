@@ -7,6 +7,7 @@ import { rateLimit, HOUR } from "./rateLimit";
 import { filterContent } from "./moderation";
 import { assertUpload, MAX_IMAGE_BYTES } from "./uploads";
 import { notifyUser } from "./push";
+import { avatarUrl } from "./avatars";
 
 /**
  * Player profiles (Instagram + Facebook style): public profile, posts grid,
@@ -74,7 +75,7 @@ export const profile = query({
     return {
       _id: user._id,
       name: user.name,
-      avatar: user.avatar,
+      avatar: await avatarUrl(ctx, user),
       cover: coverUrl || null,
       bio: user.bio ?? "",
       city: user.city ?? "",
@@ -240,6 +241,10 @@ export const followList = query({
         : await ctx.db.query("follows").withIndex("by_follower", (q) => q.eq("followerId", args.userId)).take(200);
     const ids = rows.map((r) => (args.which === "followers" ? r.followerId : r.followingId));
     const users = await Promise.all(ids.map((id) => ctx.db.get(id)));
-    return users.filter((u): u is Doc<"users"> => !!u).map((u) => ({ _id: u._id, name: u.name, avatar: u.avatar }));
+    return Promise.all(
+      users
+        .filter((u): u is Doc<"users"> => !!u)
+        .map(async (u) => ({ _id: u._id, name: u.name, avatar: await avatarUrl(ctx, u) }))
+    );
   },
 });

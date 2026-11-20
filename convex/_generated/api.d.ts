@@ -11,6 +11,7 @@
 import type * as adminSession from "../adminSession.js";
 import type * as appStore from "../appStore.js";
 import type * as appleAuth from "../appleAuth.js";
+import type * as avatars from "../avatars.js";
 import type * as badges from "../badges.js";
 import type * as billing from "../billing.js";
 import type * as billingStripe from "../billingStripe.js";
@@ -26,6 +27,7 @@ import type * as companyPaymentsData from "../companyPaymentsData.js";
 import type * as companyRules from "../companyRules.js";
 import type * as companySession from "../companySession.js";
 import type * as crons from "../crons.js";
+import type * as devSeed from "../devSeed.js";
 import type * as email from "../email.js";
 import type * as emailVerify from "../emailVerify.js";
 import type * as externalLinks from "../externalLinks.js";
@@ -36,6 +38,7 @@ import type * as http from "../http.js";
 import type * as merch from "../merch.js";
 import type * as merchPayments from "../merchPayments.js";
 import type * as merchRules from "../merchRules.js";
+import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
 import type * as notificationTexts from "../notificationTexts.js";
@@ -83,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   adminSession: typeof adminSession;
   appStore: typeof appStore;
   appleAuth: typeof appleAuth;
+  avatars: typeof avatars;
   badges: typeof badges;
   billing: typeof billing;
   billingStripe: typeof billingStripe;
@@ -98,6 +102,7 @@ declare const fullApi: ApiFromModules<{
   companyRules: typeof companyRules;
   companySession: typeof companySession;
   crons: typeof crons;
+  devSeed: typeof devSeed;
   email: typeof email;
   emailVerify: typeof emailVerify;
   externalLinks: typeof externalLinks;
@@ -108,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   merch: typeof merch;
   merchPayments: typeof merchPayments;
   merchRules: typeof merchRules;
+  messages: typeof messages;
   migrations: typeof migrations;
   moderation: typeof moderation;
   notificationTexts: typeof notificationTexts;

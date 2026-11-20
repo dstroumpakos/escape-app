@@ -712,6 +712,85 @@ export default defineSchema({
     .index("by_blocker_blocked", ["blockerId", "blockedUserId"])
     .index("by_blocked", ["blockedUserId"]),
 
+  // ─── Encrypted chat (messages.ts) ───
+  // End-to-end encrypted: the browser encrypts every message with a key the
+  // server never sees. The server only stores ciphertext, public keys, and
+  // conversation keys wrapped (encrypted) for each member's device.
+
+  // One ECDH P-256 public key per browser or phone a player chats from.
+  chatDevices: defineTable({
+    userId: v.id("users"),
+    deviceId: v.string(),   // random id the device picked
+    publicKey: v.string(),  // JWK (JSON) of the ECDH P-256 public key
+    createdAt: v.number(),
+    lastSeenAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_device", ["userId", "deviceId"]),
+
+  conversations: defineTable({
+    kind: v.union(v.literal("direct"), v.literal("group")),
+    name: v.optional(v.string()),       // groups only (not encrypted)
+    directKey: v.optional(v.string()),  // "<smaller id>:<larger id>" for direct chats
+    createdBy: v.id("users"),
+    // Current key version. 0 = no key yet. Goes up with every new key.
+    keyVersion: v.number(),
+    // Members changed: the next member who opens the chat makes a new key.
+    // Nobody can send until then, so removed members never get it.
+    needsRotation: v.boolean(),
+    lastMessageAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_direct_key", ["directKey"]),
+
+  conversationMembers: defineTable({
+    conversationId: v.id("conversations"),
+    userId: v.id("users"),
+    role: v.union(v.literal("admin"), v.literal("member")),
+    // First key version this member may read (no history from before they joined).
+    fromKeyVersion: v.number(),
+    joinedAt: v.number(),
+    lastReadAt: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_user", ["userId"])
+    .index("by_conversation_user", ["conversationId", "userId"]),
+
+  // A conversation key, encrypted for one device (ECDH + HKDF + AES-GCM).
+  conversationKeys: defineTable({
+    conversationId: v.id("conversations"),
+    keyVersion: v.number(),
+    userId: v.id("users"),
+    deviceId: v.string(),
+    ephemeralPublicKey: v.string(), // JWK of the one-off sender key
+    iv: v.string(),                 // base64
+    wrappedKey: v.string(),         // base64
+    createdAt: v.number(),
+  })
+    .index("by_conversation_version", ["conversationId", "keyVersion"])
+    .index("by_device", ["userId", "deviceId", "conversationId"]),
+
+  chatMessages: defineTable({
+    conversationId: v.id("conversations"),
+    senderId: v.id("users"),
+    kind: v.union(v.literal("text"), v.literal("event")),
+    // kind "text": encrypted with the conversation key of keyVersion
+    keyVersion: v.optional(v.number()),
+    iv: v.optional(v.string()),
+    ciphertext: v.optional(v.string()),
+    // kind "event": created / added / removed / left / renamed (no message text)
+    event: v.optional(v.object({
+      type: v.union(
+        v.literal("created"),
+        v.literal("added"),
+        v.literal("removed"),
+        v.literal("left"),
+        v.literal("renamed")
+      ),
+      userIds: v.optional(v.array(v.id("users"))),
+    })),
+    createdAt: v.number(),
+  }).index("by_conversation", ["conversationId", "createdAt"]),
+
   // ─── Friendships ───
   friendships: defineTable({
     requesterId: v.id("users"),     // user who sent the request

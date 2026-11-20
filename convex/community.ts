@@ -3,6 +3,7 @@ import { query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { optionalUser } from "./userSession";
+import { avatarUrl } from "./avatars";
 
 /**
  * The Community page (Facebook style): the feed ("for you" or only people
@@ -59,7 +60,7 @@ async function enrich(ctx: QueryCtx, posts: Doc<"posts">[], me: Doc<"users"> | n
         author:
           p.authorType === "company"
             ? { kind: "company" as const, id: p.authorCompanyId ?? null, name: company?.name ?? "", avatar: company?.logo ?? "", verified: !!company?.verified }
-            : { kind: "user" as const, id: p.authorUserId ?? null, name: author?.name ?? "", avatar: author?.avatar ?? "", verified: false },
+            : { kind: "user" as const, id: p.authorUserId ?? null, name: author?.name ?? "", avatar: await avatarUrl(ctx, author), verified: false },
         room: room ? { id: room._id, title: room.title, image: room.image } : null,
       };
     })
@@ -143,7 +144,7 @@ export const suggestions = query({
       if (me && id === me._id) continue;
       if (following.has(id) || hidden.has(id)) continue;
       const u = await ctx.db.get(id as Id<"users">);
-      if (u) out.push({ _id: u._id, name: u.name, avatar: u.avatar, posts: n });
+      if (u) out.push({ _id: u._id, name: u.name, avatar: await avatarUrl(ctx, u), posts: n });
     }
     return out;
   },
