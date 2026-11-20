@@ -38,6 +38,30 @@ export function cleanExternalUrl(raw: string | undefined): string | undefined {
   return u.toString();
 }
 
+/**
+ * A room trailer: only YouTube or Vimeo, stored as a plain watch link
+ * (the site builds the embed from it). "" clears. Throws on anything else.
+ */
+export function cleanVideoUrl(raw: string | undefined): string | undefined {
+  const s = cleanExternalUrl(raw);
+  if (!s) return s;
+  const u = new URL(s);
+  const host = u.hostname.replace(/^(www\.|m\.)/, "");
+  const parts = u.pathname.split("/").filter(Boolean);
+  let yt: string | null = null;
+  if (host === "youtu.be") yt = parts[0] ?? null;
+  else if (host === "youtube.com" || host === "youtube-nocookie.com") {
+    if (parts[0] === "watch") yt = u.searchParams.get("v");
+    else if (["embed", "shorts", "live", "v"].includes(parts[0])) yt = parts[1] ?? null;
+  }
+  if (yt && /^[\w-]{6,20}$/.test(yt)) return `https://www.youtube.com/watch?v=${yt}`;
+  if (host === "vimeo.com" || host === "player.vimeo.com") {
+    const id = parts.find((p) => /^\d{5,12}$/.test(p));
+    if (id) return `https://vimeo.com/${id}`;
+  }
+  throw new ConvexError("Use a YouTube or Vimeo link for the trailer");
+}
+
 export type BookingTarget = { kind: "url"; url: string } | { kind: "phone"; phone: string } | null;
 
 /** Where "Book now" goes: the room's own link, else the company site, else a call. */

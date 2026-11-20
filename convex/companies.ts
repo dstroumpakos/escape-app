@@ -1,6 +1,6 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { notifyUser, slotFreed } from "./push";
-import { cleanExternalUrl } from "./externalLinks";
+import { cleanExternalUrl, cleanVideoUrl } from "./externalLinks";
 import { ConvexError, v } from "convex/values";
 import { newBookingCode } from "./codes";
 import { internal } from "./_generated/api";
@@ -514,11 +514,13 @@ export const createRoom = mutation({
     overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
     releaseDate: v.optional(v.string()),
     bookingUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
   },
   handler: async (ctx, { sessionToken, ...args }) => {
     const company = await requireCompany(ctx, { companyId: args.companyId, sessionToken }, "companies:createRoom");
     checkRoomInput(args);
     args.bookingUrl = cleanExternalUrl(args.bookingUrl) || undefined;
+    args.videoUrl = cleanVideoUrl(args.videoUrl) || undefined;
     // ── Enforce room limit based on plan ──
     const limit = getRoomLimit(company.platformPlan);
     const existingRooms = await ctx.db
@@ -602,6 +604,7 @@ export const updateRoom = mutation({
     isFeatured: v.optional(v.boolean()),
     releaseDate: v.optional(v.string()),
     bookingUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { roomId, sessionToken, ...fields } = args;
@@ -624,6 +627,8 @@ export const updateRoom = mutation({
     }
     // "" clears the link (Book now then goes to the company website)
     if (fields.bookingUrl !== undefined) updates.bookingUrl = cleanExternalUrl(fields.bookingUrl) || undefined;
+    // "" clears the trailer
+    if (fields.videoUrl !== undefined) updates.videoUrl = cleanVideoUrl(fields.videoUrl) || undefined;
     await ctx.db.patch(roomId, updates);
   },
 });

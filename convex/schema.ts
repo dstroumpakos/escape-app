@@ -273,6 +273,17 @@ export default defineSchema({
     releaseDate: v.optional(v.string()),
     // Booking page for this room on the company site (else the company website)
     bookingUrl: v.optional(v.string()),
+    // Trailer: a YouTube or Vimeo link (checked by cleanVideoUrl in externalLinks.ts)
+    videoUrl: v.optional(v.string()),
+    // Rating the room has on another site (e.g. EscapeAll). Set only by the team
+    // with rooms:setExternalRatingInternal, never by the company itself.
+    externalRating: v.optional(v.object({
+      source: v.string(),
+      rating: v.number(),
+      count: v.number(),
+      url: v.optional(v.string()),
+      updatedAt: v.number(),
+    })),
     // Photos-only rooms (created from photos.unlocked.gr) — hidden from main site listings
     photosOnly: v.optional(v.boolean()),
   })
