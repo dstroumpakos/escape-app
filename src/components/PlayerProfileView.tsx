@@ -39,8 +39,8 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
   const { sessionToken } = useUser();
   const { width } = useWindowDimensions();
   const profile = useQuery(api.social.profile, { userId: userId as any, sessionToken: sessionToken ?? undefined });
-  const posts = useQuery(api.social.userPosts, { userId: userId as any });
-  const rooms = useQuery(api.social.userRooms, { userId: userId as any });
+  const posts = useQuery(api.social.userPosts, { userId: userId as any, sessionToken: sessionToken ?? undefined });
+  const rooms = useQuery(api.social.userRooms, { userId: userId as any, sessionToken: sessionToken ?? undefined });
   const follow = useMutation(api.social.follow);
   const unfollow = useMutation(api.social.unfollow);
   const [tab, setTab] = useState<Tab>('posts');

@@ -42,6 +42,8 @@ export const profile = query({
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
     const viewer = await optionalUser(ctx, args.sessionToken);
+    // Profiles are part of the community: logged-in players only.
+    if (!viewer) return null;
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_author_user", (q) => q.eq("authorUserId", user._id))
@@ -99,8 +101,9 @@ export const profile = query({
 
 /** A player's posts, newest first (the grid on the profile). */
 export const userPosts = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    if (!(await optionalUser(ctx, args.sessionToken))) return [];
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_author_user", (q) => q.eq("authorUserId", args.userId))
@@ -131,8 +134,9 @@ export const userPosts = query({
 
 /** Rooms the player reviewed in their posts (the "Rooms" tab). */
 export const userRooms = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.id("users"), sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    if (!(await optionalUser(ctx, args.sessionToken))) return [];
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_author_user", (q) => q.eq("authorUserId", args.userId))

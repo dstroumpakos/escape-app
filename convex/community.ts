@@ -8,6 +8,7 @@ import { optionalUser } from "./userSession";
  * The Community page (Facebook style): the feed ("for you" or only people
  * you follow / your friends), one post for shared links, and players to follow.
  * Posts by people you blocked, or who blocked you, never show.
+ * Only for logged-in players: logged-out visitors get nothing.
  */
 
 const FEED_SIZE = 50;
@@ -72,6 +73,7 @@ export const feed = query({
   },
   handler: async (ctx, args) => {
     const me = await optionalUser(ctx, args.sessionToken);
+    if (!me) return [];
     const hidden = await hiddenAuthors(ctx, me);
     let posts: Doc<"posts">[] = [];
 
@@ -113,6 +115,7 @@ export const post = query({
     const p = await ctx.db.get(args.postId);
     if (!p) return null;
     const me = await optionalUser(ctx, args.sessionToken);
+    if (!me) return null;
     const hidden = await hiddenAuthors(ctx, me);
     if (p.authorUserId && hidden.has(p.authorUserId)) return null;
     return (await enrich(ctx, [p], me))[0];
@@ -124,6 +127,7 @@ export const suggestions = query({
   args: { sessionToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const me = await optionalUser(ctx, args.sessionToken);
+    if (!me) return [];
     const hidden = await hiddenAuthors(ctx, me);
     const following = new Set<string>();
     if (me) {
