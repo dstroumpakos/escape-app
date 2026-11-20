@@ -58,6 +58,7 @@ export type RootStackParamList = {
   Friends: undefined;
   Leaderboard: undefined;
   RoomDetails: { id: string };
+  PlayerProfile: { userId: string };
   DateTimeSelect: { id: string; date?: string; time?: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };
   BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; bookingId: string; paymentStatus: string };

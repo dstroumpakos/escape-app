@@ -14,7 +14,9 @@ import {
   ScrollView,
   ActionSheetIOS,
   Platform,
+  Share,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation } from 'convex/react';
@@ -63,10 +65,18 @@ interface PostCardProps {
   onComment: (postId: Id<'posts'>) => void;
   onReport: (postId: Id<'posts'>) => void;
   onBlockUser: (authorUserId: string | undefined) => void;
+  onDelete: (postId: Id<'posts'>) => void;
 }
 
-function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, onBlockUser }: PostCardProps) {
+function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, onBlockUser, onDelete }: PostCardProps) {
   const { t } = useTranslation();
+  const navigation = useNavigation<any>();
+  const openAuthor = () => {
+    if (post.authorType === 'user' && post.authorUserId) navigation.navigate('PlayerProfile', { userId: post.authorUserId });
+  };
+  const share = () => {
+    Share.share({ message: `https://unlocked.gr/post/${post._id}` }).catch(() => {});
+  };
   const initials = post.authorName
     .split(' ')
     .map((n: string) => n[0])
@@ -78,7 +88,7 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
     <View style={styles.card}>
       {/* Author header */}
       <View style={styles.cardHeader}>
-        <View style={styles.authorRow}>
+        <TouchableOpacity style={styles.authorRow} onPress={openAuthor} activeOpacity={0.7}>
           {post.authorAvatar ? (
             <Image source={{ uri: post.authorAvatar }} style={styles.authorAvatar} />
           ) : (
@@ -98,9 +108,32 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
                 </View>
               )}
             </View>
+            {post.roomTitle ? (
+              <Text style={styles.timeText} numberOfLines={1}>
+                {t('social.at')}{' '}
+                <Text style={{ color: theme.colors.bone, fontWeight: '600' }} onPress={() => post.roomId && navigation.navigate('RoomDetails', { id: post.roomId })}>
+                  {post.roomTitle}
+                </Text>
+              </Text>
+            ) : null}
             <Text style={styles.timeText}>{timeAgo(post.createdAt, t)}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
+
+        {/* Own post: delete */}
+        {userId && post.authorUserId === userId && (
+          <TouchableOpacity
+            style={styles.moreBtn}
+            onPress={() =>
+              Alert.alert(t('social.deletePostTitle'), undefined, [
+                { text: t('cancel'), style: 'cancel' },
+                { text: t('social.deletePost'), style: 'destructive', onPress: () => onDelete(post._id) },
+              ])
+            }
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+        )}
 
         {/* Report / Block menu (Apple Guideline 1.2) */}
         {userId && post.authorUserId !== userId && (
@@ -137,13 +170,6 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
         )}
       </View>
 
-      {/* Room tag */}
-      {post.roomTitle ? (
-        <View style={styles.roomTag}>
-          <Ionicons name="key-outline" size={13} color={theme.colors.redPrimary} />
-          <Text style={styles.roomTagText}>{post.roomTitle}</Text>
-        </View>
-      ) : null}
 
       {/* Rating */}
       {post.rating ? (
@@ -176,32 +202,29 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
         </ScrollView>
       )}
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => onToggleLike(post._id)}
-        >
-          <Ionicons
-            name={isLiked ? 'heart' : 'heart-outline'}
-            size={22}
-            color={isLiked ? theme.colors.redPrimary : theme.colors.textSecondary}
-          />
-          <Text style={[styles.actionCount, isLiked && { color: theme.colors.redPrimary }]}>
-            {post.likes || 0}
-          </Text>
-        </TouchableOpacity>
+      {/* Counts */}
+      {(post.likes > 0 || post.commentCount > 0) && (
+        <View style={styles.countsRow}>
+          <Text style={styles.countsText}>{post.likes > 0 ? `❤️ ${post.likes}` : ''}</Text>
+          {post.commentCount > 0 && (
+            <Text style={styles.countsText} onPress={() => onComment(post._id)}>{t('social.commentsCount', { n: post.commentCount })}</Text>
+          )}
+        </View>
+      )}
 
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => onComment(post._id)}
-        >
-          <Ionicons name="chatbubble-outline" size={20} color={theme.colors.textSecondary} />
-          <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
+      {/* Actions (Facebook) */}
+      <View style={styles.fbActions}>
+        <TouchableOpacity style={styles.fbAction} onPress={() => onToggleLike(post._id)}>
+          <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? theme.colors.redPrimary : theme.colors.textSecondary} />
+          <Text style={[styles.fbActionText, isLiked && { color: theme.colors.redPrimary }]}>{t('social.like')}</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionBtn}>
-          <Ionicons name="share-outline" size={20} color={theme.colors.textSecondary} />
+        <TouchableOpacity style={styles.fbAction} onPress={() => onComment(post._id)}>
+          <Ionicons name="chatbubble-outline" size={19} color={theme.colors.textSecondary} />
+          <Text style={styles.fbActionText}>{t('social.comment')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.fbAction} onPress={share}>
+          <Ionicons name="share-social-outline" size={19} color={theme.colors.textSecondary} />
+          <Text style={styles.fbActionText}>{t('social.share')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -318,11 +341,25 @@ function CommentSection({
 /* ── Main Screen ── */
 export default function SocialScreen() {
   const { userId, sessionToken } = useUser();
-  const feed = useQuery(api.posts.getFeed);
-  const userLikes = useQuery(
-    api.posts.getUserLikes,
-    sessionToken ? { sessionToken } : 'skip'
-  );
+  const navigation = useNavigation<any>();
+  const [mode, setMode] = useState<'all' | 'following'>('all');
+  // Community feed (convex/community.ts), mapped to the fields PostCard reads.
+  const rawFeed = useQuery(api.community.feed, { sessionToken: sessionToken ?? undefined, mode });
+  const feed = rawFeed?.map((p: any) => ({
+    ...p,
+    authorName: p.author.name,
+    authorAvatar: p.author.avatar,
+    authorVerified: p.author.verified,
+    authorType: p.author.kind,
+    authorUserId: p.author.id,
+    roomTitle: p.room?.title ?? '',
+    roomId: p.room?.id ?? null,
+  }));
+  const me = useQuery(api.users.getById, sessionToken ? { sessionToken } : 'skip') as any;
+  const suggestions = useQuery(api.community.suggestions, { sessionToken: sessionToken ?? undefined });
+  const followMutation = useMutation(api.social.follow);
+  const deletePostMutation = useMutation(api.posts.deletePost);
+  const [followed, setFollowed] = useState<Set<string>>(new Set());
   const blockedUserIds = useQuery(
     api.moderation.getBlockedUserIds,
     sessionToken ? { sessionToken } : 'skip'
@@ -336,7 +373,7 @@ export default function SocialScreen() {
   const [commentPostId, setCommentPostId] = useState<Id<'posts'> | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const likedPostIds = new Set(userLikes || []);
+  const likedPostIds = new Set((feed || []).filter((p: any) => p.likedByMe).map((p: any) => p._id));
   const blockedSet = new Set(blockedUserIds || []);
 
   // Filter out posts from blocked users
@@ -417,6 +454,14 @@ export default function SocialScreen() {
     }
   };
 
+  const handleDelete = async (postId: Id<'posts'>) => {
+    try {
+      await deletePostMutation({ postId, sessionToken: sessionToken as string });
+    } catch (e: any) {
+      Alert.alert(t('error'), e.message);
+    }
+  };
+
   const handleBlockUser = (authorUserId: string | undefined) => {
     if (!userId || !authorUserId) return;
     Alert.alert(
@@ -477,6 +522,72 @@ export default function SocialScreen() {
             tintColor={theme.colors.redPrimary}
           />
         }
+        ListHeaderComponent={
+          <View>
+            {/* Composer */}
+            {userId && (
+              <View style={styles.composer}>
+                <TouchableOpacity onPress={() => navigation.navigate('PlayerProfile', { userId })}>
+                  {me?.avatar ? (
+                    <Image source={{ uri: me.avatar }} style={styles.authorAvatar} />
+                  ) : (
+                    <View style={styles.authorAvatarFallback}><Text style={styles.authorInitials}>{(me?.name || '?').charAt(0).toUpperCase()}</Text></View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.composerInput} onPress={() => setCreateModalVisible(true)}>
+                  <Text style={styles.composerText} numberOfLines={1}>{t('social.whatsNew', { name: (me?.name || '').split(' ')[0] })}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCreateModalVisible(true)}>
+                  <Ionicons name="images-outline" size={24} color={theme.colors.success} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* For you / Following */}
+            {userId && (
+              <View style={styles.modeRow}>
+                {(['all', 'following'] as const).map((m) => (
+                  <TouchableOpacity key={m} style={[styles.modeBtn, mode === m && styles.modeBtnOn]} onPress={() => setMode(m)}>
+                    <Text style={[styles.modeText, mode === m && { color: '#fff' }]}>{m === 'all' ? t('social.forYou') : t('social.followingTab')}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Players to follow */}
+            {userId && suggestions && suggestions.length > 0 && (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={styles.suggestTitle}>{t('social.suggested')}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                  {suggestions.map((u: any) => (
+                    <View key={u._id} style={styles.suggestCard}>
+                      <TouchableOpacity onPress={() => navigation.navigate('PlayerProfile', { userId: u._id })} style={{ alignItems: 'center' }}>
+                        {u.avatar ? (
+                          <Image source={{ uri: u.avatar }} style={styles.suggestAvatar} />
+                        ) : (
+                          <View style={[styles.suggestAvatar, styles.authorAvatarFallback]}><Text style={styles.authorInitials}>{u.name.charAt(0).toUpperCase()}</Text></View>
+                        )}
+                        <Text style={styles.suggestName} numberOfLines={1}>{u.name}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.suggestBtn, followed.has(u._id) && { backgroundColor: theme.colors.glass }]}
+                        disabled={followed.has(u._id)}
+                        onPress={async () => {
+                          try {
+                            await followMutation({ sessionToken: sessionToken as string, userId: u._id });
+                            setFollowed((f) => new Set([...f, u._id]));
+                          } catch {}
+                        }}
+                      >
+                        <Text style={styles.suggestBtnText}>{followed.has(u._id) ? t('pf.followingBtn') : t('pf.follow')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        }
         renderItem={({ item }) => (
           <PostCard
             post={item}
@@ -486,6 +597,7 @@ export default function SocialScreen() {
             onComment={(id) => setCommentPostId(id)}
             onReport={handleReportPost}
             onBlockUser={handleBlockUser}
+            onDelete={handleDelete}
           />
         )}
         ListEmptyComponent={
@@ -539,6 +651,27 @@ export default function SocialScreen() {
 }
 
 const styles = StyleSheet.create({
+  countsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
+  countsText: { fontSize: 12, color: theme.colors.textMuted },
+  fbActions: { flexDirection: 'row', marginTop: 8, paddingTop: 4, borderTopWidth: 1, borderTopColor: theme.colors.border },
+  fbAction: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9 },
+  fbActionText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  composer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 12, borderRadius: theme.radius.lg,
+    backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: theme.colors.border,
+  },
+  composerInput: { flex: 1, height: 40, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: theme.colors.glass },
+  composerText: { color: theme.colors.textMuted, fontSize: 14 },
+  modeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  modeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18, backgroundColor: theme.colors.glass },
+  modeBtnOn: { backgroundColor: theme.colors.redPrimary },
+  modeText: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 13 },
+  suggestTitle: { color: theme.colors.textSecondary, fontWeight: '600', fontSize: 13, marginBottom: 8 },
+  suggestCard: { width: 120, padding: 10, borderRadius: 14, alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: theme.colors.border },
+  suggestAvatar: { width: 56, height: 56, borderRadius: 28 },
+  suggestName: { color: theme.colors.bone, fontWeight: '600', fontSize: 13, marginTop: 6, maxWidth: 100 },
+  suggestBtn: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.redPrimary },
+  suggestBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
 
   /* Header */

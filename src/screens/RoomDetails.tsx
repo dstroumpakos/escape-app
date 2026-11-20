@@ -9,6 +9,8 @@ import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList } from '../types';
+import { BOOKING_ENABLED } from '../features';
+import { openBooking } from '../bookNow';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -289,12 +291,28 @@ export default function RoomDetails() {
           <Text style={styles.ctaPriceVal}>{room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}</Text>
           {!room.pricePerGroup?.length && <Text style={styles.ctaPriceLabel}>{t('perPerson')}</Text>}
         </View>
-        <PrimaryButton
-          label={t('roomDetails.unlockNow')}
-          icon="key"
-          pulse
-          onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
-        />
+        {BOOKING_ENABLED ? (
+          <PrimaryButton
+            label={t('roomDetails.unlockNow')}
+            icon="key"
+            pulse
+            onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
+          />
+        ) : room.bookingTarget ? (
+          <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
+            <PrimaryButton
+              label={room.bookingTarget.kind === 'phone' ? t('roomDetails.callToBook') : t('roomDetails.bookOnSite')}
+              icon={room.bookingTarget.kind === 'phone' ? 'call' : 'open-outline'}
+              pulse
+              onPress={() => openBooking(room.id, room.bookingTarget)}
+            />
+            {room.bookingTarget.kind === 'url' && !!room.companyName && (
+              <Text style={{ color: theme.colors.textMuted, fontSize: 11, marginTop: 4 }} numberOfLines={1}>
+                {t('roomDetails.bookOnSiteHint', { company: room.companyName })}
+              </Text>
+            )}
+          </View>
+        ) : null}
       </View>
     </View>
   );

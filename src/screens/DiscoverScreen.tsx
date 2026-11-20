@@ -25,6 +25,8 @@ import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
+import { BOOKING_ENABLED } from '../features';
+import { openBooking } from '../bookNow';
 import { useTranslation } from '../i18n';
 import { ROOM_THEMES, ROOM_THEME_VALUES } from '../roomThemes';
 
@@ -520,12 +522,21 @@ function SelectedRoomCard({ room, navigation }: { room: any; navigation: Nav }) 
               {room.pricePerGroup?.length ? t('fromPrice', { amount: Math.min(...room.pricePerGroup.map((g: any) => g.price)) }) : `€${room.price}`}
               {!room.pricePerGroup?.length && <Text style={styles.cardPriceSub}>{t('perPerson')}</Text>}
             </Text>
-            <PrimaryButton
-              small
-              label={t('discover.bookNow')}
-              icon="arrow-forward"
-              onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
-            />
+            {BOOKING_ENABLED ? (
+              <PrimaryButton
+                small
+                label={t('discover.bookNow')}
+                icon="arrow-forward"
+                onPress={() => navigation.navigate('DateTimeSelect', { id: room.id })}
+              />
+            ) : room.bookingTarget ? (
+              <PrimaryButton
+                small
+                label={room.bookingTarget.kind === 'phone' ? t('roomDetails.callToBook') : t('discover.bookNow')}
+                icon={room.bookingTarget.kind === 'phone' ? 'call' : 'open-outline'}
+                onPress={() => openBooking(room.id, room.bookingTarget)}
+              />
+            ) : null}
           </View>
         </View>
       </View>

@@ -33,6 +33,7 @@ async function batchEnrichRooms(ctx: any, rooms: any[]) {
       ...room,
       isEarlyAccessPartner: company ? !!company.subscriptionEnabled : false,
       companyName: company?.name ?? "",
+      bookingTarget: bookingTargetFor(room, company ?? null),
     };
   });
 }

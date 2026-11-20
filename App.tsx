@@ -23,6 +23,7 @@ import { UserProvider } from './src/UserContext';
 import { LanguageProvider, useTranslation } from './src/i18n';
 import { addNotificationResponseListener } from './src/notifications';
 import { syncPlayerPush, syncCompanyPush, unregisterPush } from './src/pushRegistration';
+import { BOOKING_ENABLED } from './src/features';
 import { useNotificationWatcher } from './src/useNotificationWatcher';
 import { ErrorBoundary } from './src/ErrorBoundary';
 import { initCrashReporting, setUser as setCrashUser } from './src/crashReporting';
@@ -41,6 +42,7 @@ import DiscoverScreen from './src/screens/DiscoverScreen';
 import TicketsScreen from './src/screens/TicketsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RoomDetails from './src/screens/RoomDetails';
+import PlayerProfileScreen from './src/screens/PlayerProfileScreen';
 import DateTimeSelect from './src/screens/DateTimeSelect';
 import Checkout from './src/screens/Checkout';
 import BookingConfirmation from './src/screens/BookingConfirmation';
@@ -179,6 +181,7 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {  c
           tabBarIcon: tabIcon('person.2.fill', 'people'),
         }}
       />
+      {BOOKING_ENABLED && (
       <Tab.Screen
         name="Tickets"
         component={TicketsScreen}
@@ -188,6 +191,7 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {  c
           tabBarIcon: tabIcon('ticket.fill', 'ticket'),
         }}
       />
+      )}
       <Tab.Screen
         name="Profile"
         options={{
@@ -597,6 +601,7 @@ export default function App() {
                   <Stack.Screen name="Friends" component={FriendsScreen} />
                   <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
+                  <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />

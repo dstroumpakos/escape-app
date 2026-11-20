@@ -12,6 +12,7 @@ import { theme } from '../theme';
 import { ChangePasswordModal, ConfirmDeleteModal } from '../components/PasswordModals';
 import { RootStackParamList } from '../types';
 import { useUser } from '../UserContext';
+import { PlayerProfileView } from '../components/PlayerProfileView';
 import { useTranslation } from '../i18n';
 import EditProfileModal from './EditProfileModal';
 import ReportsAboutMe, { LateCancelsAboutMe } from './reports/ReportsAboutMe';
@@ -126,61 +127,10 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Avatar */}
-          <View style={styles.avatarSection}>
-            <TouchableOpacity style={styles.avatarRing} onPress={() => setEditModalVisible(true)} activeOpacity={0.7}>
-              {user.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )}
-              <View style={styles.editBadge}>
-                <Ionicons name="pencil" size={12} color={theme.colors.bone} />
-              </View>
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Text style={styles.userName}>{user.name}</Text>
-              {premiumStatus?.isPremium && (
-                <View style={styles.premiumBadge}>
-                  <Ionicons name="diamond" size={12} color={theme.colors.gold} />
-                  <Text style={styles.premiumBadgeText}>PRO</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.userEmail}>{user.email}</Text>
-            {(user as any).phone && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                <Ionicons name="call-outline" size={12} color={theme.colors.textSecondary} />
-                <Text style={{ fontSize: 13, color: theme.colors.textSecondary }}>{(user as any).phone}</Text>
-              </View>
-            )}
-            <View style={styles.titleBadge}>
-              <Ionicons name="trophy" size={12} color={theme.colors.redPrimary} />
-              <Text style={styles.titleText}>{user.title}</Text>
-            </View>
-            <View style={styles.memberBadge}>
-              <Ionicons name="star" size={12} color={theme.colors.redPrimary} />
-              <Text style={styles.memberText}>{user.memberSince}</Text>
-            </View>
-          </View>
         </LinearGradient>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          {[
-            { label: t('profile.roomsPlayed'), value: user.played, icon: 'game-controller' as const },
-            { label: t('profile.roomsEscaped'), value: user.escaped, icon: 'key' as const },
-            { label: t('profile.awards'), value: user.awards, icon: 'trophy' as const },
-          ].map((stat, i) => (
-            <View key={i} style={styles.statCard}>
-              <Ionicons name={stat.icon} size={22} color={theme.colors.redPrimary} />
-              <Text style={styles.statVal}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
+        {/* Public profile, Instagram + Facebook style (convex/social.ts) */}
+        {!!userId && <PlayerProfileView userId={userId} onEditBasics={() => setEditModalVisible(true)} />}
 
         {/* Reports businesses filed about this player (only while active) */}
         {sessionToken && <ReportsAboutMe sessionToken={sessionToken} />}

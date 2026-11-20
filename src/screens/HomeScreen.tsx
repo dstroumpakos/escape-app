@@ -11,6 +11,7 @@ import { api } from '../../convex/_generated/api';
 import * as Location from 'expo-location';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
+import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -236,7 +237,7 @@ export default function HomeScreen() {
         )}
 
         {/* Last-minute offers */}
-        {offers.length > 0 && (
+        {BOOKING_ENABLED && offers.length > 0 && (
           <>
             <SectionHeader tag={t('offers.tag')} title={t('offers.title')} />
             <ScrollView {...carouselProps}>
