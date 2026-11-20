@@ -13,6 +13,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import CreatePostModal from '../screens/CreatePostModal';
+import { FOLLOW_ENABLED } from '../features';
 
 /**
  * A player's profile, Instagram + Facebook style (convex/social.ts): cover and
@@ -109,7 +110,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
                   <Ionicons name="add" size={18} color="#fff" />
                 </TouchableOpacity>
               </>
-            ) : profile.viewer.loggedIn ? (
+            ) : FOLLOW_ENABLED && profile.viewer.loggedIn ? (
               <TouchableOpacity style={profile.viewer.isFollowing ? styles.btnGhost : styles.btnRedWide} onPress={toggleFollow} disabled={busy}>
                 {busy ? <ActivityIndicator size="small" color="#fff" /> : (
                   <>
@@ -130,8 +131,8 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         {/* Counters (Instagram) */}
         <View style={styles.counts}>
           <Count n={profile.stats.posts} label={t('pf.posts')} />
-          <Count n={profile.stats.followers} label={t('pf.followers')} />
-          <Count n={profile.stats.following} label={t('pf.following')} />
+          {FOLLOW_ENABLED && <Count n={profile.stats.followers} label={t('pf.followers')} />}
+          {FOLLOW_ENABLED && <Count n={profile.stats.following} label={t('pf.following')} />}
           <Count n={profile.stats.played} label={t('pf.rooms')} />
         </View>
 

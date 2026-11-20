@@ -25,6 +25,7 @@ import { theme } from '../theme';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
 import CreatePostModal from './CreatePostModal';
+import { FOLLOW_ENABLED } from '../features';
 import type { Id } from '../../convex/_generated/dataModel';
 
 const { width } = Dimensions.get('window');
@@ -544,7 +545,7 @@ export default function SocialScreen() {
             )}
 
             {/* For you / Following */}
-            {userId && (
+            {FOLLOW_ENABLED && userId && (
               <View style={styles.modeRow}>
                 {(['all', 'following'] as const).map((m) => (
                   <TouchableOpacity key={m} style={[styles.modeBtn, mode === m && styles.modeBtnOn]} onPress={() => setMode(m)}>
@@ -555,7 +556,7 @@ export default function SocialScreen() {
             )}
 
             {/* Players to follow */}
-            {userId && suggestions && suggestions.length > 0 && (
+            {FOLLOW_ENABLED && userId && suggestions && suggestions.length > 0 && (
               <View style={{ marginBottom: 14 }}>
                 <Text style={styles.suggestTitle}>{t('social.suggested')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
