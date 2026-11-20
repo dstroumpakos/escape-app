@@ -45,6 +45,7 @@ import RoomDetails from './src/screens/RoomDetails';
 import PlayerProfileScreen from './src/screens/PlayerProfileScreen';
 import PassportScreen from './src/screens/PassportScreen';
 import ScanStampScreen from './src/screens/ScanStampScreen';
+import TowerScreen from './src/screens/TowerScreen';
 import CompanyPassport from './src/screens/company/CompanyPassport';
 import DateTimeSelect from './src/screens/DateTimeSelect';
 import Checkout from './src/screens/Checkout';
@@ -614,6 +615,7 @@ export default function App() {
                   <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
                   <Stack.Screen name="Passport" component={PassportScreen} />
                   <Stack.Screen name="ScanStamp" component={ScanStampScreen} />
+                  <Stack.Screen name="Tower" component={TowerScreen} options={{ animation: 'fade', gestureEnabled: false }} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />

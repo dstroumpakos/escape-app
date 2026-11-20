@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Polyline, Rect, Circle, Text as SvgText } from 'react-native-svg';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
@@ -25,11 +24,14 @@ export default function PassportScreen() {
   if (!data) {
     return <View style={[styles.container, styles.center]}><ActivityIndicator color={theme.colors.redPrimary} /></View>;
   }
+  // Progress is the stamps placed into the tower's doors (same as escape-web).
   const chambers = data.chambers;
-  const reached = chambers.filter((c) => data.total >= c).length - 1;
-  const next = chambers.find((c) => c > data.total);
-  const prev = chambers[reached];
-  const pct = next ? Math.round(((data.total - prev) / (next - prev)) * 100) : 100;
+  const placed = data.placed;
+  const pocket = Math.max(0, data.total - placed);
+  const doorsOpen = chambers.filter((c) => placed >= c).length - 1;
+  const next = chambers.find((c) => c > placed);
+  const prev = chambers[doorsOpen];
+  const pct = next ? Math.round(((placed - prev) / (next - prev)) * 100) : 100;
   const sealSize = Math.min(100, (width - 32 - 24) / 3);
   const slots = Math.max(9, Math.ceil((data.total + 2) / 3) * 3);
 
@@ -66,13 +68,13 @@ export default function PassportScreen() {
               <View key={l} style={styles.stat}><Text style={styles.statNum}>{v}</Text><Text style={styles.label}>{l}</Text></View>
             ))}
           </View>
-          <Text style={[styles.label, { marginTop: 12 }]}>{next ? t('pp.nextChamber', { n: next - data.total }) : t('pp.mazeDone')}</Text>
+          <Text style={[styles.label, { marginTop: 12 }]}>{next ? t('pp.towerProgress', { open: doorsOpen, n: next - placed }) : t('pp.towerSoon')}</Text>
           <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%` }]} /></View>
         </View>
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          {([['stamps', 'ribbon-outline', t('pp.tabStamps')], ['maze', 'map-outline', t('pp.tabMaze')]] as const).map(([k, icon, label]) => (
+          {([['stamps', 'ribbon-outline', t('pp.tabStamps')], ['maze', 'skull-outline', t('pp.tabTower')]] as const).map(([k, icon, label]) => (
             <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
               <Ionicons name={icon} size={16} color={tab === k ? '#fff' : theme.colors.textSecondary} />
               <Text style={[styles.tabText, tab === k && { color: '#fff' }]}>{label}</Text>
@@ -108,59 +110,18 @@ export default function PassportScreen() {
             </View>
           </>
         ) : (
-          <Maze total={data.total} chambers={chambers} />
+          <View style={styles.tower}>
+            <Ionicons name="moon-outline" size={34} color={theme.colors.gold} />
+            <Text style={styles.towerTitle}>{t('pp.towerTitle')}</Text>
+            <Text style={styles.towerText}>{t('pp.towerText')}</Text>
+            <Text style={styles.towerPocket}>{t('pp.towerPocket', { n: pocket })}</Text>
+            <TouchableOpacity style={styles.towerBtn} onPress={() => navigation.navigate('Tower')}>
+              <Ionicons name="enter-outline" size={18} color="#fff" />
+              <Text style={styles.scanText}>{t('pp.towerEnter')}</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </ScrollView>
-    </View>
-  );
-}
-
-// Corridor vertices; chamber i sits on vertex CH[i] (same layout as escape-web).
-const V: [number, number][] = [[70, 330], [250, 330], [250, 250], [430, 250], [430, 330], [610, 330], [610, 170], [430, 170], [430, 90], [250, 90], [250, 170], [70, 170], [70, 60]];
-const CH = [0, 1, 3, 5, 6, 8, 9, 10, 11, 12];
-
-function Maze({ total, chambers }: { total: number; chambers: number[] }) {
-  const { t } = useTranslation();
-  const [sel, setSel] = useState<number | null>(null);
-  // Clamped: the server now has 10 doors, this map shows 9 chambers.
-  const reached = Math.min(CH.length - 1, chambers.filter((c) => total >= c).length - 1);
-  const show = sel ?? Math.min(reached + 1, CH.length - 1);
-  const pts = (n: number) => V.slice(0, n + 1).map(([x, y]) => `${x},${y}`).join(' ');
-  const [px, py] = V[CH[reached]];
-
-  return (
-    <View>
-      <Svg viewBox="0 0 680 400" width="100%" height={undefined} style={{ aspectRatio: 680 / 400 }}>
-        <Polyline points={pts(V.length - 1)} fill="none" stroke="rgba(232,220,200,0.12)" strokeWidth={16} strokeLinecap="round" strokeLinejoin="round" />
-        {reached > 0 && <Polyline points={pts(CH[reached])} fill="none" stroke="#c99a2e" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />}
-        {CH.map((v, i) => {
-          const [x, y] = V[v];
-          const open = total >= chambers[i];
-          const isNext = !open && i === reached + 1;
-          return (
-            <React.Fragment key={i}>
-              <Rect x={x - 40} y={y - 27} width={80} height={54} rx={8} fill={open ? '#3a1210' : '#0d0807'} stroke={open ? '#e24b4a' : isNext ? '#c99a2e' : 'rgba(232,220,200,0.25)'} strokeWidth={sel === i ? 2.5 : 1.2} strokeDasharray={isNext ? '5 4' : undefined} onPress={() => setSel(i)} />
-              <SvgText x={x} y={y - 2} textAnchor="middle" fontSize={18} onPress={() => setSel(i)}>{open ? (i === 0 ? '🚪' : '🎁') : '🔒'}</SvgText>
-              <SvgText x={x} y={y + 18} textAnchor="middle" fontSize={11} fill={open ? '#f3e9d8' : 'rgba(232,220,200,0.6)'} onPress={() => setSel(i)}>
-                {i === 0 ? t('pp.entrance') : open ? t('pp.open') : t('pp.nStamps', { n: chambers[i] })}
-              </SvgText>
-            </React.Fragment>
-          );
-        })}
-        <Circle cx={px} cy={py - 38} r={12} fill="#c8101b" stroke="#f3e9d8" strokeWidth={2} />
-      </Svg>
-      <View style={[styles.info, { flexDirection: 'row', gap: 10 }]}>
-        <Ionicons name="gift-outline" size={20} color={theme.colors.gold} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: theme.colors.bone, fontWeight: '700' }}>
-            {show === 0 ? t('pp.entrance') : t(`pp.ch_${show}`)} · {show === 0 ? t('pp.start') : t('pp.nStamps', { n: chambers[show] })}
-          </Text>
-          <Text style={styles.infoText}>
-            {t(`pp.gift_${show}`)}
-            {show > 0 && (total >= chambers[show] ? ` · ${t('pp.won')}` : ` · ${t('pp.missing', { n: chambers[show] - total })}`)}
-          </Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -193,4 +154,9 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 10, color: theme.colors.textMuted, marginTop: 2 },
   info: { marginTop: 14, padding: 12, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.45)' },
   infoText: { color: theme.colors.textSecondary, fontSize: 13, lineHeight: 19 },
+  tower: { alignItems: 'center', padding: 22, borderRadius: 16, backgroundColor: '#0b0709', borderWidth: 1, borderColor: theme.colors.border },
+  towerTitle: { fontFamily: theme.fonts.display, fontSize: 22, color: theme.colors.bone, marginTop: 8 },
+  towerText: { color: theme.colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 8 },
+  towerPocket: { color: theme.colors.gold, fontSize: 13, fontWeight: '700', marginTop: 12 },
+  towerBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingHorizontal: 20, height: 44, borderRadius: 12, backgroundColor: theme.colors.redPrimary },
 });
