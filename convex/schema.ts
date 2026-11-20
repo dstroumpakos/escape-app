@@ -505,6 +505,34 @@ export default defineSchema({
   // Last-minute offers: a company discounts a free slot of today or tomorrow.
   // Only bookings made on UNLOCKED (web + app) get the discount, not the widget.
   // Expo push tokens of logged-in phones (see push.ts). One row per phone.
+  // My Passport (passport.ts): the end-of-game QR a company shows...
+  stampSessions: defineTable({
+    companyId: v.id("companies"),
+    roomId: v.id("rooms"),
+    players: v.number(),   // stamps this QR can give
+    claimed: v.number(),
+    escaped: v.boolean(),
+    escapeSeconds: v.optional(v.number()),
+    token: v.string(),     // random, 48 hex chars
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_company", ["companyId"]),
+
+  // ...and the stamps players collect with it: one per room per player.
+  stamps: defineTable({
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    companyId: v.id("companies"),
+    sessionId: v.id("stampSessions"),
+    escaped: v.boolean(),
+    escapeSeconds: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_room", ["userId", "roomId"]),
+
   // "Book now" clicks to the company's own site, per room per day (Athens date).
   bookClicks: defineTable({
     roomId: v.id("rooms"),

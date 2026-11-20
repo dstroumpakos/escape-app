@@ -40,6 +40,7 @@ import type * as migrations from "../migrations.js";
 import type * as moderation from "../moderation.js";
 import type * as notificationTexts from "../notificationTexts.js";
 import type * as notifications from "../notifications.js";
+import type * as passport from "../passport.js";
 import type * as passwordReset from "../passwordReset.js";
 import type * as passwordUtils from "../passwordUtils.js";
 import type * as plans from "../plans.js";
@@ -111,6 +112,7 @@ declare const fullApi: ApiFromModules<{
   moderation: typeof moderation;
   notificationTexts: typeof notificationTexts;
   notifications: typeof notifications;
+  passport: typeof passport;
   passwordReset: typeof passwordReset;
   passwordUtils: typeof passwordUtils;
   plans: typeof plans;
