@@ -34,6 +34,7 @@ import type * as externalLinks from "../externalLinks.js";
 import type * as friends from "../friends.js";
 import type * as games from "../games.js";
 import type * as googleAuth from "../googleAuth.js";
+import type * as instagram from "../instagram.js";
 import type * as http from "../http.js";
 import type * as merch from "../merch.js";
 import type * as merchPayments from "../merchPayments.js";
@@ -109,6 +110,7 @@ declare const fullApi: ApiFromModules<{
   friends: typeof friends;
   games: typeof games;
   googleAuth: typeof googleAuth;
+  instagram: typeof instagram;
   http: typeof http;
   merch: typeof merch;
   merchPayments: typeof merchPayments;

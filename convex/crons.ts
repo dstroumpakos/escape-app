@@ -39,4 +39,12 @@ crons.daily(
 // Leaderboard and homepage stats (see publicCache.ts).
 crons.interval("refresh public cache", { minutes: 10 }, internal.publicCache.refresh, {});
 
+// Companies' newest Instagram posts (see instagram.ts). One paid SearchApi call each.
+crons.daily(
+  "refresh instagram posts",
+  { hourUTC: 6, minuteUTC: 0 },
+  internal.instagram.refreshAll,
+  {}
+);
+
 export default crons;

@@ -27,6 +27,11 @@ export default defineSchema({
     description: v.string(),
     // Their own site: where "Book now" sends players (see externalLinks.ts)
     website: v.optional(v.string()),
+    // Instagram feed on their room pages (see instagram.ts), opt-in from Settings
+    instagramUsername: v.optional(v.string()),
+    instagramEnabled: v.optional(v.boolean()),
+    instagramSyncedAt: v.optional(v.number()),
+    instagramSyncError: v.optional(v.string()),
     password: v.string(), // hashed in production
     verified: v.boolean(),
     createdAt: v.number(),
@@ -552,6 +557,19 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_room", ["userId", "roomId"]),
+
+  // A company's newest Instagram posts, images copied into our storage (instagram.ts).
+  instagramPosts: defineTable({
+    companyId: v.id("companies"),
+    postId: v.string(),
+    permalink: v.string(),
+    type: v.string(),
+    caption: v.optional(v.string()),
+    storageId: v.id("_storage"),
+    imageUrl: v.string(),
+    position: v.number(),
+    fetchedAt: v.number(),
+  }).index("by_company", ["companyId"]),
 
   // "Book now" clicks to the company's own site, per room per day (Athens date).
   bookClicks: defineTable({
