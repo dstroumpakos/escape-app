@@ -4,6 +4,7 @@ import {
   TextInput, Alert, ActivityIndicator, Image, Clipboard, Switch,
   Animated, Linking,
 } from 'react-native';
+import { BOOKING_ENABLED } from '../../features';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
@@ -282,7 +283,7 @@ export default function CompanySettings({
     { key: 'profile', label: t('settings.tabProfile'), icon: 'business-outline' },
     { key: 'early-access', label: t('settings.tabEarlyAccess'), icon: 'flash-outline' },
     { key: 'photos', label: t('settings.tabPhotos'), icon: 'camera-outline' },
-    { key: 'widget', label: t('settings.tabWidget'), icon: 'code-slash-outline' },
+    ...(BOOKING_ENABLED ? [{ key: 'widget' as TabKey, label: t('settings.tabWidget'), icon: 'code-slash-outline' as const }] : []),
     { key: 'translations', label: t('settings.tabTranslations'), icon: 'language-outline' },
   ];
 
@@ -395,6 +396,7 @@ export default function CompanySettings({
             {/* Subscription Plan */}
             <Text style={styles.sectionTitle}>{t('settings.subscriptionPlan')}</Text>
             <View style={styles.card}>
+              {BOOKING_ENABLED && (
               <TouchableOpacity style={styles.menuItem} onPress={() => setPlanModalVisible(true)}>
                 <View style={styles.menuLeft}>
                   <Ionicons name="diamond-outline" size={20} color={theme.colors.redPrimary} />
@@ -407,9 +409,10 @@ export default function CompanySettings({
                   <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
                 </View>
               </TouchableOpacity>
+              )}
 
               {/* Billing link */}
-              {onNavigateBilling && (
+              {BOOKING_ENABLED && onNavigateBilling && (
                 <TouchableOpacity style={styles.menuItem} onPress={onNavigateBilling}>
                   <View style={styles.menuLeft}>
                     <Ionicons name="receipt-outline" size={20} color={theme.colors.redPrimary} />

@@ -4,6 +4,7 @@
  * done, or when the business hides it (remembered on this device).
  */
 import React, { useCallback, useState } from 'react';
+import { BOOKING_ENABLED } from '../../features';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Clipboard, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -78,16 +79,18 @@ export default function GettingStartedChecklist({
       action: openRoom,
     },
     {
+      booking: true,
       done: realRooms.some((r: any) => (r.defaultTimeSlots || []).length > 0),
       label: t('start.times'), desc: t('start.timesDesc'), icon: 'time-outline' as const,
       action: openRoom,
     },
     {
+      booking: true,
       done: widgetCopied,
       label: t('start.widget'), desc: t('start.widgetDesc'), icon: 'code-slash-outline' as const,
       action: shareWidget,
     },
-  ];
+  ].filter((s: { booking?: boolean }) => BOOKING_ENABLED || !s.booking);
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
   const nextIndex = steps.findIndex((s) => !s.done);

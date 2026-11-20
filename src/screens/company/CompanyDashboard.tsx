@@ -20,6 +20,7 @@ import { MerchDashboardCard } from './CompanyMerch';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 import { PLAN_STYLE, asPlanId } from './platformPlans';
+import { BOOKING_ENABLED } from '../../features';
 
 interface Props {
   companyId: string;
@@ -99,12 +100,14 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
               <Ionicons name="phone-portrait-outline" size={20} color={theme.colors.bone} />
             </TouchableOpacity>
           )}
+          {BOOKING_ENABLED && (
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => navigation.navigate('CompanyAddBooking', { companyId, date: dateStr })}
           >
             <Ionicons name="add" size={22} color={theme.colors.bone} />
           </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -115,10 +118,10 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             <Ionicons name="calendar" size={18} color={theme.colors.redPrimary} />
             <Text style={[styles.dateText, { textTransform: 'capitalize' }]}>{longToday}</Text>
           </View>
-          <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
+          {BOOKING_ENABLED && <View style={[styles.planBadge, { backgroundColor: planStyle.bg }]}>
             <Ionicons name={planStyle.icon as any} size={10} color={planStyle.text} />
             <Text style={[styles.planBadgeText, { color: planStyle.text }]}>{t(`plan.${plan}`)}</Text>
-          </View>
+          </View>}
         </View>
 
         <GettingStartedChecklist companyId={companyId} company={company} rooms={rooms} />
@@ -139,6 +142,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
 
         <MerchDashboardCard companyId={companyId} onOpen={() => navigation.navigate('CompanyMerch', { companyId })} />
 
+        {/* Bookings, revenue, analytics and today's schedule: only while UNLOCKED's own booking is on */}
+        {BOOKING_ENABLED && (<>
         {/* Overview + Room Capacity Row */}
         <Text style={styles.sectionTitle}>{t('dashboard.overview')}</Text>
         <View style={styles.overviewRow}>
@@ -324,6 +329,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             );
           })
         )}
+        </>)}
       </ScrollView>
     </View>
   );

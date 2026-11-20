@@ -472,18 +472,22 @@ export default function App() {
             }
           }} />}
         </CompanyTab.Screen>
+        {BOOKING_ENABLED && (
         <CompanyTab.Screen
           name="Slots"
           options={{ tabBarLabel: t('tabs.slots'), tabBarIcon: tabIcon('square.grid.3x3.fill', 'grid-outline') }}
         >
           {() => <CompanySlots companyId={companyId!} />}
         </CompanyTab.Screen>
+        )}
+        {BOOKING_ENABLED && (
         <CompanyTab.Screen
           name="Calendar"
           options={{ tabBarLabel: t('tabs.calendar'), tabBarIcon: tabIcon('calendar', 'calendar') }}
         >
           {() => <CompanyBookings companyId={companyId!} />}
         </CompanyTab.Screen>
+        )}
         <CompanyTab.Screen
           name="Rooms"
           options={{ tabBarLabel: t('tabs.rooms'), tabBarIcon: tabIcon('key.fill', 'key') }}

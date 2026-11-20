@@ -4,6 +4,7 @@
  * /company/payments page (same Convex functions, same password checks).
  */
 import React, { useEffect, useState } from 'react';
+import { BOOKING_ENABLED } from '../../features';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, Switch, Clipboard, KeyboardAvoidingView, Platform,
@@ -192,7 +193,7 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 120 }}>
-        <Text style={styles.subtitle}>{t('pay.subtitle')}</Text>
+        <Text style={styles.subtitle}>{t(BOOKING_ENABLED ? 'pay.subtitle' : 'pay.subtitleMerch')}</Text>
 
         {!settings.serverReady && (
           <View style={styles.warnCard}>
@@ -241,7 +242,7 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
 
               {confirmDisconnect && (
                 <View style={{ marginTop: 14 }}>
-                  <Text style={[styles.hint, { color: '#FFB4B4', marginBottom: 10 }]}>{t('pay.disconnectWarning')}</Text>
+                  <Text style={[styles.hint, { color: '#FFB4B4', marginBottom: 10 }]}>{t(BOOKING_ENABLED ? 'pay.disconnectWarning' : 'pay.disconnectWarningMerch')}</Text>
                   <Field label={t('pay.yourPassword')} value={disconnectPw} onChangeText={setDisconnectPw} secure />
                   <View style={styles.rowWrap}>
                     <TouchableOpacity
@@ -261,7 +262,7 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
             </View>
           )}
 
-          {!connected && <Text style={[styles.hint, { marginBottom: 14 }]}>{t('pay.notConnected')}</Text>}
+          {!connected && <Text style={[styles.hint, { marginBottom: 14 }]}>{t(BOOKING_ENABLED ? 'pay.notConnected' : 'pay.notConnectedMerch')}</Text>}
 
           {showForm && (
             <View>
@@ -369,7 +370,8 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
           )}
         </View>
 
-        {/* ── Deposit & fee ── */}
+        {/* ── Deposit & fee (room bookings only) ── */}
+        {BOOKING_ENABLED && (
         <View style={styles.card}>
           <View style={styles.cardTitleRow}>
             <Ionicons name="pie-chart-outline" size={18} color={theme.colors.redLight} />
@@ -432,6 +434,7 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
             <Text style={styles.primaryBtnText}>{t('pay.save')}</Text>
           </TouchableOpacity>
         </View>
+        )}
 
         {/* ── How it works ── */}
         <View style={styles.card}>
@@ -439,7 +442,7 @@ export default function CompanyPayments({ companyId, onBack }: Props) {
             <Ionicons name="card-outline" size={18} color={theme.colors.redLight} />
             <Text style={styles.cardTitle}>{t('pay.howTitle')}</Text>
           </View>
-          {[t('pay.how1'), t('pay.how2'), t('pay.how3'), t('pay.how4')].map((s, i) => (
+          {(BOOKING_ENABLED ? [t('pay.how1'), t('pay.how2'), t('pay.how3'), t('pay.how4')] : [t('pay.how1Merch'), t('pay.how2'), t('pay.how4')]).map((s, i) => (
             <Text key={i} style={styles.step}>• {s}</Text>
           ))}
         </View>
