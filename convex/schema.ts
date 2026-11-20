@@ -322,6 +322,9 @@ export default defineSchema({
     premiumExpiresAt: v.optional(v.number()),
     // Yearly Premium welcome gift: the Official order it shipped with.
     merchWelcomeGiftOrderId: v.optional(v.id("merchOrders")),
+    // Public profile (social.ts)
+    bio: v.optional(v.string()),
+    coverStorageId: v.optional(v.id("_storage")),
   }).index("by_email", ["email"])
     .index("by_apple_id", ["appleId"])
     .index("by_google_id", ["googleId"])
@@ -471,6 +474,15 @@ export default defineSchema({
     .index("by_author_user", ["authorUserId"])
     .index("by_author_company", ["authorCompanyId"])
     .index("by_room", ["roomId"]),
+
+  // Who follows whom (social.ts). One-way, like Instagram.
+  follows: defineTable({
+    followerId: v.id("users"),
+    followingId: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_follower", ["followerId", "followingId"])
+    .index("by_following", ["followingId"]),
 
   postLikes: defineTable({
     postId: v.id("posts"),
