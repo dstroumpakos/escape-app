@@ -123,6 +123,20 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
 
         <GettingStartedChecklist companyId={companyId} company={company} rooms={rooms} />
 
+        {/* End of game: QR for the players' passport stamps */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('CompanyPassport' as any)}
+          activeOpacity={0.85}
+          style={{ marginHorizontal: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(200,16,27,0.12)', borderWidth: 1, borderColor: 'rgba(200,16,27,0.4)' }}
+        >
+          <Ionicons name="qr-code-outline" size={26} color={theme.colors.redLight} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.colors.bone, fontWeight: '700', fontSize: 15 }}>{t('cpp.title')}</Text>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 }}>{t('cpp.cardDesc')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+        </TouchableOpacity>
+
         <MerchDashboardCard companyId={companyId} onOpen={() => navigation.navigate('CompanyMerch', { companyId })} />
 
         {/* Overview + Room Capacity Row */}

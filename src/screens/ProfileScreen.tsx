@@ -129,6 +129,15 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
             </Text>
             {mode === 'profile' && (
               <TouchableOpacity
+                style={[styles.settingsBtn, { marginLeft: 'auto', marginRight: 8 }]}
+                onPress={() => navigation.navigate('Passport')}
+                accessibilityLabel={t('pp.title')}
+              >
+                <Ionicons name="book-outline" size={22} color={theme.colors.gold} />
+              </TouchableOpacity>
+            )}
+            {mode === 'profile' && (
+              <TouchableOpacity
                 style={styles.settingsBtn}
                 onPress={() => navigation.navigate('ProfileMore')}
                 accessibilityLabel={t('profile.settingsTitle')}

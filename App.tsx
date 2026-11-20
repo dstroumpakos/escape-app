@@ -43,6 +43,9 @@ import TicketsScreen from './src/screens/TicketsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RoomDetails from './src/screens/RoomDetails';
 import PlayerProfileScreen from './src/screens/PlayerProfileScreen';
+import PassportScreen from './src/screens/PassportScreen';
+import ScanStampScreen from './src/screens/ScanStampScreen';
+import CompanyPassport from './src/screens/company/CompanyPassport';
 import DateTimeSelect from './src/screens/DateTimeSelect';
 import Checkout from './src/screens/Checkout';
 import BookingConfirmation from './src/screens/BookingConfirmation';
@@ -248,6 +251,10 @@ export default function App() {
       const data: any = response.notification.request.content.data || {};
       // Company pushes: the business app shows its own bookings.
       if (typeof data.type === 'string' && data.type.startsWith('company_')) return;
+      if (data.kind === 'passport') {
+        nav.navigate('Passport');
+        return;
+      }
       // Offer or a time that became free: open that slot.
       if (data.roomId && data.date && data.time && (data.kind === 'offer' || data.type === 'slot_available')) {
         nav.navigate('DateTimeSelect', { id: data.roomId, date: data.date, time: data.time });
@@ -558,6 +565,9 @@ export default function App() {
                   <Stack.Screen name="CompanyPhotos">
                     {() => <CompanyPhotos companyId={companyId} />}
                   </Stack.Screen>
+                  <Stack.Screen name="CompanyPassport">
+                    {() => <CompanyPassport companyId={companyId} />}
+                  </Stack.Screen>
                   <Stack.Screen name="CompanyGuide">
                     {(props) => <CompanyGuide onBack={() => (props as any).navigation.goBack()} />}
                   </Stack.Screen>
@@ -602,6 +612,8 @@ export default function App() {
                   <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+                  <Stack.Screen name="Passport" component={PassportScreen} />
+                  <Stack.Screen name="ScanStamp" component={ScanStampScreen} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />

@@ -22,7 +22,8 @@
         ],
         "NSLocationWhenInUseUsageDescription": "We use your location to show nearby escape rooms.",
         "NSPhotoLibraryUsageDescription": "Upload photos for your profile and social posts.",
-        "NSLocationDefaultAccuracyReduced": true
+        "NSLocationDefaultAccuracyReduced": true,
+        "NSCameraUsageDescription": "Scan the QR code at the end of a game to get the room stamp in your passport."
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -75,7 +76,14 @@
       ],
       "react-native-iap",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Unlocked to use the camera to scan the QR code at the end of a game.",
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "platforms": [
       "ios",

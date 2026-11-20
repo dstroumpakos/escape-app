@@ -59,6 +59,8 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   RoomDetails: { id: string };
   PlayerProfile: { userId: string };
+  Passport: undefined;
+  ScanStamp: undefined;
   DateTimeSelect: { id: string; date?: string; time?: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };
   BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; bookingId: string; paymentStatus: string };
@@ -89,6 +91,7 @@ export type RootStackParamList = {
   CompanyMerch: { companyId: string };
   CompanyMerchEditor: { companyId: string; productId?: string };
   CompanyGuide: undefined;
+  CompanyPassport: undefined;
   CompanyNotificationPrefs: undefined;
 };
 
