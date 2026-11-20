@@ -9,6 +9,7 @@ import { api } from '../../../convex/_generated/api';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { useCompanyMutation, useCompanyQuery } from '../../companySession';
+import { defaultStartTime, startTimeToMs, shiftTime, formatPlayed } from '../../playTime';
 
 // The QR opens the stamp page on the site; the UNLOCKED app scans the token itself.
 const SITE = 'https://unlocked.gr';
@@ -28,6 +29,7 @@ export default function CompanyPassport({ companyId }: { companyId: string }) {
   const [players, setPlayers] = useState(4);
   const [escaped, setEscaped] = useState(true);
   const [minutes, setMinutes] = useState('');
+  const [startTime, setStartTime] = useState(() => defaultStartTime());
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -40,7 +42,7 @@ export default function CompanyPassport({ companyId }: { companyId: string }) {
     setBusy(true);
     try {
       const m = minutes.trim() ? Number(minutes.replace(',', '.')) : undefined;
-      const r = await start({ roomId: roomId as any, players, escaped, escapeMinutes: escaped ? m : undefined });
+      const r = await start({ roomId: roomId as any, players, escaped, escapeMinutes: escaped ? m : undefined, playedAt: startTimeToMs(startTime) });
       setSessionId(r.sessionId);
     } catch (e: any) {
       Alert.alert(t('error'), typeof e?.data === 'string' ? e.data : e?.message || '');
@@ -70,6 +72,12 @@ export default function CompanyPassport({ companyId }: { companyId: string }) {
                 <Text style={styles.optionText} numberOfLines={1}>{r.title}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+          <Text style={styles.label}>{t('cpp.startTime')}</Text>
+          <View style={styles.stepper}>
+            <TouchableOpacity style={styles.stepBtn} onPress={() => setStartTime((v) => shiftTime(v, -15))}><Ionicons name="remove" size={20} color={theme.colors.bone} /></TouchableOpacity>
+            <Text style={styles.stepVal}>{startTime}</Text>
+            <TouchableOpacity style={styles.stepBtn} onPress={() => setStartTime((v) => shiftTime(v, 15))}><Ionicons name="add" size={20} color={theme.colors.bone} /></TouchableOpacity>
           </View>
           <Text style={styles.label}>{t('cpp.players')}</Text>
           <View style={styles.stepper}>
@@ -127,6 +135,7 @@ function LiveQr({ sessionId, onNew }: { sessionId: string; onNew: () => void }) 
     <View style={{ alignItems: 'center', padding: 20 }}>
       <Text style={styles.sub}>{t('cpp.scanNow')}</Text>
       <Text style={styles.roomTitle}>{s.roomTitle}</Text>
+      {s.playedAt ? <Text style={[styles.sub, { textAlign: 'center', marginTop: -6, marginBottom: 10 }]}>{formatPlayed(s.playedAt, Date.now())}</Text> : null}
       <View style={styles.qrBox}>
         {svg && !expired && !full ? <SvgXml xml={svg} width={260} height={260} /> : (
           <Text style={{ color: '#000', fontWeight: '700', textAlign: 'center' }}>{full ? t('cpp.allDone') : t('cpp.expired')}</Text>

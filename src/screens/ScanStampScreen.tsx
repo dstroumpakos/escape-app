@@ -10,6 +10,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import { StampSeal } from '../components/StampSeal';
+import { formatPlayed, shortPlayed } from '../playTime';
 
 const HEX = '0123456789abcdef';
 
@@ -111,11 +112,11 @@ export default function ScanStampScreen() {
           <Text style={styles.text}>{t('pp.invalid')}</Text>
         ) : (
           <>
-            <Text style={styles.kicker}>{info.companyName}</Text>
+            <Text style={styles.kicker}>{info.companyName} · {formatPlayed(info.playedAt, Date.now())}</Text>
             <Text style={styles.room}>{info.roomTitle}</Text>
             <View style={{ height: 170, justifyContent: 'center', marginVertical: 12 }}>
               {done && !done.already ? (
-                <StampSeal title={info.roomTitle} theme={info.roomTheme} date={new Date().toLocaleDateString()} escaped={info.escaped} tilt={-8} size={150} slam />
+                <StampSeal title={info.roomTitle} theme={info.roomTheme} date={shortPlayed(info.playedAt, Date.now())} escaped={info.escaped} tilt={-8} size={150} slam />
               ) : (
                 <View style={styles.placeholder}><Ionicons name="ribbon-outline" size={40} color={theme.colors.textMuted} /></View>
               )}

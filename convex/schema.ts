@@ -513,6 +513,7 @@ export default defineSchema({
     claimed: v.number(),
     escaped: v.boolean(),
     escapeSeconds: v.optional(v.number()),
+    playedAt: v.optional(v.number()), // when the team's game started (the slot, e.g. 9:30)
     token: v.string(),     // random, 48 hex chars
     expiresAt: v.number(),
     createdAt: v.number(),
@@ -535,6 +536,7 @@ export default defineSchema({
     sessionId: v.id("stampSessions"),
     escaped: v.boolean(),
     escapeSeconds: v.optional(v.number()),
+    playedAt: v.optional(v.number()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])

@@ -9,6 +9,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import { StampSeal, tiltFor } from '../components/StampSeal';
+import { formatPlayed, shortPlayed } from '../playTime';
 
 /** My Passport: the stamps of the rooms you played and the maze they open (convex/passport.ts). */
 export default function PassportScreen() {
@@ -86,7 +87,7 @@ export default function PassportScreen() {
           <>
             <View style={styles.grid}>
               {data.stamps.map((s) => (
-                <StampSeal key={s._id} size={sealSize} title={s.roomTitle} theme={s.theme} date={new Date(s.createdAt).toLocaleDateString()} escaped={s.escaped} tilt={tiltFor(s._id)} onPress={() => setPicked(s)} />
+                <StampSeal key={s._id} size={sealSize} title={s.roomTitle} theme={s.theme} date={shortPlayed(s.playedAt, s.createdAt)} escaped={s.escaped} tilt={tiltFor(s._id)} onPress={() => setPicked(s)} />
               ))}
               {Array.from({ length: slots - data.stamps.length }, (_, i) => (
                 <View key={`e${i}`} style={[styles.empty, { width: sealSize, height: sealSize, borderRadius: sealSize / 2 }]}>
@@ -99,7 +100,7 @@ export default function PassportScreen() {
               {picked ? (
                 <Text style={styles.infoText}>
                   <Text style={{ color: theme.colors.bone, fontWeight: '700' }} onPress={() => navigation.navigate('RoomDetails', { id: picked.roomId })}>{picked.roomTitle}</Text>
-                  {' · '}{picked.companyName}{' · '}{new Date(picked.createdAt).toLocaleDateString()}{' · '}
+                  {' · '}{picked.companyName}{' · '}{formatPlayed(picked.playedAt, picked.createdAt)}{' · '}
                   {picked.escaped
                     ? t('pp.escapedIn', { time: picked.escapeSeconds ? `${Math.floor(picked.escapeSeconds / 60)}:${String(picked.escapeSeconds % 60).padStart(2, '0')}` : '' })
                     : t('pp.trapped')}

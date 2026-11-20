@@ -49,6 +49,9 @@ export const startSession = mutation({
     players: v.number(),
     escaped: v.boolean(),
     escapeMinutes: v.optional(v.number()),
+    // When the team's game started (ms). The portal sends today's slot time,
+    // e.g. 9:30, worked out in the company's own time zone.
+    playedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const company = await requireCompany(ctx, { sessionToken: args.sessionToken }, "passport:startSession");
@@ -64,8 +67,12 @@ export const startSession = mutation({
       }
       escapeSeconds = Math.round(args.escapeMinutes * 60);
     }
-    await rateLimit(ctx, `stampSession:${company._id}`, 60, HOUR);
     const now = Date.now();
+    // A game that started in the last 12 hours (a few minutes of clock skew allowed).
+    if (args.playedAt !== undefined && (!Number.isFinite(args.playedAt) || args.playedAt > now + 15 * 60 * 1000 || args.playedAt < now - 12 * HOUR)) {
+      throw new ConvexError("Pick the time the team's game started today.");
+    }
+    await rateLimit(ctx, `stampSession:${company._id}`, 60, HOUR);
     const token = newToken();
     const id = await ctx.db.insert("stampSessions", {
       companyId: company._id,
@@ -74,6 +81,7 @@ export const startSession = mutation({
       claimed: 0,
       escaped: args.escaped,
       escapeSeconds,
+      playedAt: args.playedAt,
       token,
       expiresAt: now + STAMP_WINDOW_MS,
       createdAt: now,
@@ -96,6 +104,7 @@ export const sessionStatus = query({
       players: s.players,
       claimed: s.claimed,
       escaped: s.escaped,
+      playedAt: s.playedAt ?? null,
       expiresAt: s.expiresAt,
     };
   },
@@ -118,6 +127,7 @@ export const recentSessions = query({
         players: s.players,
         claimed: s.claimed,
         escaped: s.escaped,
+        playedAt: s.playedAt ?? null,
         expiresAt: s.expiresAt,
         createdAt: s.createdAt,
       }))
@@ -160,6 +170,7 @@ export const preview = query({
       companyName: company?.name ?? "",
       escaped: s.escaped,
       escapeSeconds: s.escapeSeconds ?? null,
+      playedAt: s.playedAt ?? s.createdAt,
       expired: Date.now() > s.expiresAt,
       full: s.claimed >= s.players,
       alreadyHave,
@@ -195,6 +206,7 @@ export const claim = mutation({
       sessionId: s._id,
       escaped: s.escaped,
       escapeSeconds: s.escapeSeconds,
+      playedAt: s.playedAt,
       createdAt: Date.now(),
     });
     await ctx.db.patch(s._id, { claimed: s.claimed + 1 });
@@ -246,6 +258,8 @@ export const mine = query({
           city: company?.city ?? "",
           escaped: st.escaped,
           escapeSeconds: st.escapeSeconds ?? null,
+          // null on older stamps: show the date only
+          playedAt: st.playedAt ?? null,
           createdAt: st.createdAt,
         };
       })
