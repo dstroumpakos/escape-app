@@ -678,6 +678,16 @@ export default defineSchema({
     .index("by_room_date", ["roomId", "date"])
     .index("by_company_date", ["companyId", "date"]),
 
+  // Room page views per room per day (companyStats.ts)
+  roomViews: defineTable({
+    roomId: v.id("rooms"),
+    companyId: v.id("companies"),
+    date: v.string(),
+    count: v.number(),
+  })
+    .index("by_room_date", ["roomId", "date"])
+    .index("by_company_date", ["companyId", "date"]),
+
   pushTokens: defineTable({
     token: v.string(),
     platform: v.union(v.literal("ios"), v.literal("android")),
@@ -755,7 +765,7 @@ export default defineSchema({
   reviews: defineTable({
     userId: v.id("users"),
     roomId: v.id("rooms"),
-    bookingId: v.id("bookings"),
+    bookingId: v.optional(v.id("bookings")), // unset when the proof is the room's stamp
     rating: v.number(), // 1-5 stars
     text: v.optional(v.string()),
     createdAt: v.number(),
@@ -763,6 +773,7 @@ export default defineSchema({
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])
     .index("by_booking", ["bookingId"])
+    .index("by_user_room", ["userId", "roomId"])
     .index("by_room_created", ["roomId", "createdAt"]),
 
   // ─── Content Reports (Guideline 1.2 — UGC moderation) ───

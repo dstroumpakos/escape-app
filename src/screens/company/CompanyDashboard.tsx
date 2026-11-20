@@ -16,6 +16,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import Svg, { Circle } from 'react-native-svg';
 import GettingStartedChecklist from './GettingStartedChecklist';
 import { MerchDashboardCard } from './CompanyMerch';
+import { CompanyStatsCard } from './CompanyStatsCard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -125,6 +126,8 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         </View>
 
         <GettingStartedChecklist companyId={companyId} company={company} rooms={rooms} />
+
+        <CompanyStatsCard companyId={companyId} />
 
         {/* End of game: QR for the players' passport stamps */}
         <TouchableOpacity

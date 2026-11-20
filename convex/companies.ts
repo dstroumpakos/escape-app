@@ -544,6 +544,30 @@ export const createRoom = mutation({
       isActive: true,
     });
 
+    // ── Tell the company's followers (companyPages.ts) ──
+    const told = new Set<string>();
+    if (companyIsPublic(company)) {
+      const follows = await ctx.db
+        .query("companyFollows")
+        .withIndex("by_company", (q) => q.eq("companyId", args.companyId))
+        .collect();
+      for (const f of follows) {
+        const follower = await ctx.db.get(f.userId);
+        if (!follower) continue;
+        told.add(f.userId);
+        const lang = follower.language;
+        await notifyUser(ctx, {
+          userId: f.userId,
+          type: "new_room" as any,
+          title: nt(lang, "new_room.title", { room: args.title }),
+          message: nt(lang, "new_room.follow_message", { company: company.name }),
+          read: false,
+          createdAt: Date.now(),
+          data: { roomId: id },
+        });
+      }
+    }
+
     // ── Notify premium users about the new room (EA Partner Benefit) ──
     // Only approved companies may notify Premium players about new rooms.
     if (company.subscriptionEnabled && companyIsPublic(company)) {
@@ -552,6 +576,7 @@ export const createRoom = mutation({
         .withIndex("by_premium", (q) => q.eq("isPremium", true))
         .collect();
       for (const premiumUser of premiumUsers) {
+        if (told.has(premiumUser._id)) continue;
         const lang = premiumUser.language;
         await notifyUser(ctx, {
           userId: premiumUser._id,

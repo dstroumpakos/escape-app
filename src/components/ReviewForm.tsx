@@ -9,8 +9,8 @@ import { useTranslation } from '../i18n';
 import { PrimaryButton } from './ui';
 
 /**
- * "Write a review" for a room, shown only to players with a completed booking
- * they have not reviewed yet (the same rule the website uses).
+ * "Write a review" for a room, only for players who played it: they have the
+ * room's stamp (team QR after the game). The same rule as the website.
  */
 export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | null; sessionToken: string | null; roomId: string }) {
   const { t } = useTranslation();
@@ -35,7 +35,16 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
       </View>
     );
   }
-  if (!userId || !eligibility?.canReview || !eligibility.bookingId) return null;
+  if (!userId || !eligibility) return null;
+  if (!eligibility.canReview) {
+    if (eligibility.reason !== 'need_stamp') return null;
+    return (
+      <View style={styles.hint}>
+        <Ionicons name="ribbon-outline" size={16} color={theme.colors.redLight} />
+        <Text style={styles.hintText}>{t('reviews.needStamp')}</Text>
+      </View>
+    );
+  }
 
   if (!open) {
     return (
@@ -54,7 +63,7 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
       await submitReview({
         sessionToken: sessionToken as string,
         roomId: roomId as Id<'rooms'>,
-        bookingId: eligibility.bookingId as Id<'bookings'>,
+        bookingId: (eligibility.bookingId ?? undefined) as Id<'bookings'> | undefined,
         rating,
         text: text.trim() || undefined,
       });
@@ -110,6 +119,8 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
 }
 
 const styles = StyleSheet.create({
+  hint: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginBottom: 14 },
+  hintText: { flex: 1, fontSize: 13, lineHeight: 19, color: theme.colors.textSecondary },
   openBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 12, marginBottom: 14,

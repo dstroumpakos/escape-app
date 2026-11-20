@@ -24,6 +24,7 @@ import type * as community from "../community.js";
 import type * as companies from "../companies.js";
 import type * as companyPages from "../companyPages.js";
 import type * as companyPayments from "../companyPayments.js";
+import type * as companyStats from "../companyStats.js";
 import type * as companyPaymentsData from "../companyPaymentsData.js";
 import type * as companyRules from "../companyRules.js";
 import type * as companySession from "../companySession.js";
@@ -103,6 +104,7 @@ declare const fullApi: ApiFromModules<{
   companies: typeof companies;
   companyPages: typeof companyPages;
   companyPayments: typeof companyPayments;
+  companyStats: typeof companyStats;
   companyPaymentsData: typeof companyPaymentsData;
   companyRules: typeof companyRules;
   companySession: typeof companySession;

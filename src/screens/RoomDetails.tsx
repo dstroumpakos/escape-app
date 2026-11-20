@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,6 +42,12 @@ export default function RoomDetails() {
   const { userId, sessionToken } = useUser();
   const user = useQuery(api.users.getById, sessionToken ? { sessionToken } : 'skip');
   const toggleWishlist = useMutation(api.users.toggleWishlist);
+
+  // Count the visit for the company's stats (companyStats.ts)
+  const trackView = useMutation(api.companyStats.trackRoomView);
+  useEffect(() => {
+    if (roomId) trackView({ roomId: roomId as Id<'rooms'> }).catch(() => {});
+  }, [roomId, trackView]);
   const liked = !!room && !!(user as any)?.wishlist?.includes(room.id);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
