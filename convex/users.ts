@@ -16,6 +16,7 @@ import type { MutationCtx } from "./_generated/server";
 import { assertUpload, MAX_IMAGE_BYTES, UPLOADS_PER_HOUR_USER, isOwnStorageUrl } from "./uploads";
 import { filterPublicRooms } from "./companyRules";
 import { removeUserFromChats } from "./messages";
+import { deletePlayerPlays } from "./plays";
 
 export const getByEmail = internalQuery({
   args: { email: v.string() },
@@ -733,6 +734,9 @@ export const deleteAccount = mutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     for (const b of badges) await ctx.db.delete(b._id);
+
+    // 1b. Rooms Played: their play logs, proofs and vouch requests
+    await deletePlayerPlays(ctx, userId);
 
     // 2. Delete bookings
     const bookings = await ctx.db

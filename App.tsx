@@ -45,6 +45,7 @@ import RoomDetails from './src/screens/RoomDetails';
 import PlayerProfileScreen from './src/screens/PlayerProfileScreen';
 import PassportScreen from './src/screens/PassportScreen';
 import ScanStampScreen from './src/screens/ScanStampScreen';
+import AddPlayScreen from './src/screens/plays/AddPlayScreen';
 import TowerScreen from './src/screens/TowerScreen';
 import CompanyPassport from './src/screens/company/CompanyPassport';
 import DateTimeSelect from './src/screens/DateTimeSelect';
@@ -254,6 +255,11 @@ export default function App() {
       if (typeof data.type === 'string' && data.type.startsWith('company_')) return;
       if (data.kind === 'passport') {
         nav.navigate('Passport');
+        return;
+      }
+      // Rooms Played (convex/plays.ts): verified, vouch requests, teammates.
+      if (data.kind === 'plays' || data.kind === 'vouch' || data.kind === 'plays_teammate') {
+        nav.navigate('Passport', { tab: 'played' });
         return;
       }
       // Offer or a time that became free: open that slot.
@@ -615,6 +621,7 @@ export default function App() {
                   <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
                   <Stack.Screen name="Passport" component={PassportScreen} />
                   <Stack.Screen name="ScanStamp" component={ScanStampScreen} />
+                  <Stack.Screen name="AddPlay" component={AddPlayScreen} />
                   <Stack.Screen name="Tower" component={TowerScreen} options={{ animation: 'fade', gestureEnabled: false }} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />

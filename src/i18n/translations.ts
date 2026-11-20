@@ -1,3 +1,5 @@
+import { playsTranslations } from './playsTranslations';
+
 // ─── i18n translations ───
 // Every user-facing string in the app, keyed for easy lookup.
 // Usage:  const { t } = useTranslation();  t('home.title')
@@ -3960,3 +3962,7 @@ export const translations: Record<Language, Record<string, string>> = {
     'playerSettings.deleteFailed': 'Δεν διαγράφηκε ο λογαριασμός. Δοκιμάστε ξανά.',
   },
 };
+
+// Rooms Played texts (playsTranslations.ts).
+Object.assign(translations.en, playsTranslations.en);
+Object.assign(translations.el, playsTranslations.el);

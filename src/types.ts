@@ -59,8 +59,9 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   RoomDetails: { id: string };
   PlayerProfile: { userId: string };
-  Passport: undefined;
+  Passport: { tab?: 'stamps' | 'played' | 'map' | 'maze' } | undefined;
   ScanStamp: undefined;
+  AddPlay: undefined;
   Tower: undefined;
   DateTimeSelect: { id: string; date?: string; time?: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };

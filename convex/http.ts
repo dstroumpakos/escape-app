@@ -279,4 +279,66 @@ const appStoreNotifications = httpAction(async (ctx, request) => {
 
 http.route({ path: "/appstore-notifications", method: "POST", handler: appStoreNotifications });
 
+// ── Rooms Played: forwarded booking emails, Postmark inbound (plays.ingestEmail) ──
+// Postmark → Servers → Inbound → Webhook URL:
+//   https://inbound:<INBOUND_EMAIL_SECRET>@<deployment>.convex.site/inbound-email
+// Postmark sends the user:password as HTTP Basic auth. Off (404) until
+// INBOUND_EMAIL_SECRET is set. Players forward to their personal address
+// (INBOUND_EMAIL_ADDRESS with "+<code>", see plays.inboundAddressFor), which
+// arrives as MailboxHash; the sender address is the fallback.
+function sameSecret(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function basicAuthPassword(header: string | null): string {
+  if (!header?.startsWith("Basic ")) return "";
+  try {
+    const decoded = atob(header.slice(6).trim());
+    const i = decoded.indexOf(":");
+    return i >= 0 ? decoded.slice(i + 1) : "";
+  } catch {
+    return "";
+  }
+}
+
+const inboundEmail = httpAction(async (ctx, request) => {
+  const secret = process.env.INBOUND_EMAIL_SECRET;
+  if (!secret) return new Response("Not found", { status: 404 });
+  const given = basicAuthPassword(request.headers.get("authorization")) || new URL(request.url).searchParams.get("secret") || "";
+  if (!sameSecret(given, secret)) return new Response("Forbidden", { status: 403 });
+  if (Number(request.headers.get("content-length") ?? 0) > 5_000_000) return new Response("Too large", { status: 413 });
+
+  let m: Record<string, any>;
+  try {
+    m = (await request.json()) as Record<string, any>;
+  } catch {
+    return new Response("Bad request", { status: 400 });
+  }
+  const from = String(m?.FromFull?.Email ?? m?.From ?? "");
+  const subject = String(m?.Subject ?? "");
+  // The plus part of the address it was sent to ("…+<code>@…").
+  const hashes = [m?.MailboxHash, ...(Array.isArray(m?.ToFull) ? m.ToFull.map((t: any) => t?.MailboxHash) : [])];
+  const mailboxHash = String(hashes.find((h) => typeof h === "string" && h) ?? "");
+  let text = String(m?.TextBody || "");
+  if (!text && m?.HtmlBody) {
+    // HTML only: keep the words.
+    text = String(m.HtmlBody).replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ");
+  }
+  text = text.replace(/\s+/g, " ").slice(0, 20000);
+  // Always 200 once authenticated: Postmark retries anything else.
+  if (!from && !mailboxHash) return new Response("OK", { status: 200 });
+  await ctx.runMutation(internal.plays.ingestEmail, {
+    from: from.slice(0, 300),
+    mailboxHash: mailboxHash.slice(0, 100),
+    subject: subject.slice(0, 300),
+    text,
+  });
+  return new Response("OK", { status: 200 });
+});
+
+http.route({ path: "/inbound-email", method: "POST", handler: inboundEmail });
+
 export default http;

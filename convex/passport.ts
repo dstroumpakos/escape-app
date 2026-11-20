@@ -6,6 +6,7 @@ import { requireCompany, requireRoomOf } from "./companySession";
 import { companyIsPublic } from "./companyRules";
 import { rateLimit, HOUR } from "./rateLimit";
 import { notifyUser } from "./push";
+import { countedPlays, absorbPlayLog } from "./plays";
 
 /**
  * My Passport: a stamp for every room a player has played, collected by
@@ -137,8 +138,10 @@ export const recentSessions = query({
 
 // ─── Players ───────────────────────────────────────────────
 
+/** QR stamps + verified/vouched Rooms Played entries (plays.ts): both open maze doors. */
 async function countStamps(ctx: { db: any }, userId: Id<"users">): Promise<number> {
-  return (await ctx.db.query("stamps").withIndex("by_user", (q: any) => q.eq("userId", userId)).collect()).length;
+  const stamps = (await ctx.db.query("stamps").withIndex("by_user", (q: any) => q.eq("userId", userId)).collect()).length;
+  return stamps + (await countedPlays(ctx as any, userId));
 }
 
 /** What a scanned QR is for (shown before the player takes the stamp). */
@@ -198,6 +201,8 @@ export const claim = mutation({
     if (existing) return { already: true, total: await countStamps(ctx, me._id), opened: null };
     if (s.claimed >= s.players) throw new ConvexError("All the players of this game already took their stamp.");
 
+    // Added this room by hand before? The stamp replaces that entry.
+    const absorbed = await absorbPlayLog(ctx, me._id, s.roomId);
     const before = await countStamps(ctx, me._id);
     await ctx.db.insert("stamps", {
       userId: me._id,
@@ -211,11 +216,15 @@ export const claim = mutation({
     });
     await ctx.db.patch(s._id, { claimed: s.claimed + 1 });
     // Counts on the profile too ("rooms played" / "escaped").
-    await ctx.db.patch(me._id, { played: (me.played ?? 0) + 1, escaped: (me.escaped ?? 0) + (s.escaped ? 1 : 0) });
+    await ctx.db.patch(me._id, {
+      played: Math.max(0, (me.played ?? 0) - absorbed.played) + 1,
+      escaped: Math.max(0, (me.escaped ?? 0) - absorbed.escaped) + (s.escaped ? 1 : 0),
+    });
 
     const total = before + 1;
-    // Enough stamps for the next door of the maze game.
-    const opened = (PASSPORT_CHAMBERS as readonly number[]).indexOf(total);
+    // Enough stamps for the next door of the maze game (not when the stamp
+    // only replaced a verified entry: that door was announced already).
+    const opened = absorbed.played ? -1 : (PASSPORT_CHAMBERS as readonly number[]).indexOf(total);
     if (opened > 0) {
       const el = me.language === "el";
       await notifyUser(ctx, {
@@ -271,7 +280,8 @@ export const mine = query({
       passportNo: `UNL-${String(me._id).slice(-8).toUpperCase()}`,
       memberSince: me.memberSince,
       stamps,
-      total: stamps.length,
+      // Verified/vouched Rooms Played entries count like stamps (plays.ts).
+      total: stamps.length + (await countedPlays(ctx, me._id)),
       cities: cities.size,
       escapedPct: stamps.length ? Math.round((stamps.filter((s) => s.escaped).length / stamps.length) * 100) : 0,
       chambers: [...PASSPORT_CHAMBERS],

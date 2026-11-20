@@ -47,4 +47,12 @@ crons.daily(
   {}
 );
 
+// Rooms Played: matching proof photos nobody answered in 14 days (see plays.ts).
+crons.daily(
+  "auto-verify played rooms",
+  { hourUTC: 2, minuteUTC: 30 },
+  internal.plays.autoVerify,
+  {}
+);
+
 export default crons;

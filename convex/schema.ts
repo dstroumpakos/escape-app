@@ -558,6 +558,93 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_room", ["userId", "roomId"]),
 
+  // ─── Rooms Played (plays.ts) ───
+  // Rooms a player adds to their passport by hand, for games without a QR
+  // stamp. Each one has a trust level; only "verified" and "vouched" ones
+  // count (profile totals, maze, badges). One per room per player.
+  playLogs: defineTable({
+    userId: v.id("users"),
+    // Exactly one of these two: a room of the catalog, or a community room.
+    roomId: v.optional(v.id("rooms")),
+    communityRoomId: v.optional(v.id("communityRooms")),
+    companyId: v.optional(v.id("companies")), // the room's company: whose queue it is in
+    playedOn: v.string(),                     // YYYY-MM-DD
+    escaped: v.boolean(),
+    escapeSeconds: v.optional(v.number()),
+    hintsUsed: v.optional(v.number()),
+    teammateIds: v.array(v.id("users")),
+    status: v.union(
+      v.literal("declared"),  // no proof yet: personal log only
+      v.literal("pending"),   // proof sent, waiting for the company or the team
+      v.literal("verified"),  // proof approved
+      v.literal("vouched"),   // a teammate with a stamp for the same game confirmed it
+      v.literal("rejected")
+    ),
+    method: v.optional(v.union(
+      v.literal("company"), v.literal("admin"), v.literal("vouch"), v.literal("auto")
+    )),
+    proofKind: v.optional(v.union(v.literal("photo"), v.literal("receipt"), v.literal("email"))),
+    proofStorageId: v.optional(v.id("_storage")),
+    proofText: v.optional(v.string()),        // forwarded booking email (trimmed)
+    // Read from the photo's EXIF on the server (plays.readProof). Hints for the reviewer.
+    photoTakenAt: v.optional(v.string()),     // YYYY-MM-DD
+    photoLat: v.optional(v.number()),
+    photoLng: v.optional(v.number()),
+    proofCheck: v.optional(v.union(v.literal("match"), v.literal("mismatch"), v.literal("unknown"))),
+    vouchedBy: v.optional(v.id("users")),
+    reviewedBy: v.optional(v.string()),       // "company:<id>" | "admin:<email>" | "auto"
+    reviewNote: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
+    proofAt: v.optional(v.number()),          // when the proof was sent (review clock)
+    counted: v.boolean(),                     // included in users.played / escaped
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_room", ["userId", "roomId"])
+    .index("by_user_community", ["userId", "communityRoomId"])
+    .index("by_company_status", ["companyId", "status"])
+    .index("by_status", ["status"])
+    .index("by_room", ["roomId"])
+    .index("by_community", ["communityRoomId"]),
+
+  // "Did you play this with me?": a teammate asked to vouch for a play log.
+  playVouches: defineTable({
+    logId: v.id("playLogs"),
+    ownerId: v.id("users"),     // the player who added the play
+    voucherId: v.id("users"),   // the teammate asked
+    status: v.union(v.literal("open"), v.literal("accepted"), v.literal("declined")),
+    createdAt: v.number(),
+  })
+    .index("by_voucher_status", ["voucherId", "status"])
+    .index("by_log", ["logId"]),
+
+  // Escape rooms that are not on UNLOCKED yet, added by players (plays.ts).
+  // Every one is a lead: "N players logged your room, claim your page".
+  communityRooms: defineTable({
+    name: v.string(),
+    companyName: v.string(),
+    city: v.string(),
+    country: v.string(),
+    website: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    key: v.string(),            // normalised name|city, for duplicates
+    createdBy: v.id("users"),
+    status: v.union(
+      v.literal("pending"),     // new, not checked yet (still usable by its creator)
+      v.literal("approved"),    // checked: listed for everybody in the search
+      v.literal("rejected"),
+      v.literal("merged")       // the company joined: plays moved to mergedIntoRoomId
+    ),
+    mergedIntoRoomId: v.optional(v.id("rooms")),
+    players: v.number(),        // players who logged it (lead score)
+    createdAt: v.number(),
+    reviewedAt: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_status", ["status"])
+    .searchIndex("search_name", { searchField: "name", filterFields: ["status"] }),
+
   // A company's newest Instagram posts, images copied into our storage (instagram.ts).
   instagramPosts: defineTable({
     companyId: v.id("companies"),

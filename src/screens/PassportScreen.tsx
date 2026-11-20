@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -10,6 +10,8 @@ import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import { StampSeal, tiltFor } from '../components/StampSeal';
 import { formatPlayed, shortPlayed } from '../playTime';
+import PlaysTab from './plays/PlaysTab';
+import PlaysMap from './plays/PlaysMap';
 
 /** My Passport: the stamps of the rooms you played and the maze they open (convex/passport.ts). */
 export default function PassportScreen() {
@@ -18,7 +20,13 @@ export default function PassportScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useUser();
   const data = useQuery(api.passport.mine, sessionToken ? { sessionToken } : 'skip');
-  const [tab, setTab] = useState<'stamps' | 'maze'>('stamps');
+  const route = useRoute<any>();
+  // Notifications open the Rooms played tab ({ tab: 'played' }).
+  const [tab, setTab] = useState<'stamps' | 'played' | 'map' | 'maze'>(route.params?.tab ?? 'stamps');
+  useEffect(() => {
+    if (route.params?.tab) setTab(route.params.tab);
+  }, [route.params?.tab]);
+  const plays = useQuery(api.plays.mine, sessionToken ? { sessionToken } : 'skip');
   const [picked, setPicked] = useState<any>(null);
   const { width } = useWindowDimensions();
 
@@ -74,16 +82,20 @@ export default function PassportScreen() {
         </View>
 
         {/* Tabs */}
-        <View style={styles.tabs}>
-          {([['stamps', 'ribbon-outline', t('pp.tabStamps')], ['maze', 'skull-outline', t('pp.tabTower')]] as const).map(([k, icon, label]) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+          {([['stamps', 'ribbon-outline', t('pp.tabStamps')], ['played', 'list-outline', t('pl.tab')], ['map', 'map-outline', t('pl.map_tab')], ['maze', 'skull-outline', t('pp.tabTower')]] as const).map(([k, icon, label]) => (
             <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
               <Ionicons name={icon} size={16} color={tab === k ? '#fff' : theme.colors.textSecondary} />
               <Text style={[styles.tabText, tab === k && { color: '#fff' }]}>{label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
-        {tab === 'stamps' ? (
+        {tab === 'played' ? (
+          <PlaysTab data={plays} stampCount={data.stamps.length} />
+        ) : tab === 'map' ? (
+          <PlaysMap pins={plays?.pins ?? []} />
+        ) : tab === 'stamps' ? (
           <>
             <View style={styles.grid}>
               {data.stamps.map((s) => (
