@@ -144,18 +144,37 @@ export async function deletePlayerPlays(ctx: MutationCtx, userId: Id<"users">) {
     .collect()) {
     await ctx.db.delete(vr._id);
   }
+  for (const r of await ctx.db.query("inboundCodes").withIndex("by_user", (q) => q.eq("userId", userId)).collect()) {
+    await ctx.db.delete(r._id);
+  }
 }
 
 // ─── Postmark inbound: personal forwarding addresses ───
 // INBOUND_EMAIL_ADDRESS is the Postmark inbound address (…@inbound.postmarkapp.com
-// or a custom inbound domain). Each player forwards to "<local>+<userId>-<sig>@<domain>";
-// Postmark passes the "+" part as MailboxHash. The signature stops anyone from
-// guessing another player's address from their (public) user id.
+// or a custom inbound domain). Each player forwards to "<local>+<code>@<domain>";
+// Postmark passes the "+" part as MailboxHash. The code is 8 characters derived
+// from the user id with an HMAC, so it can't be guessed from the (public) user id;
+// the inboundCodes table maps it back. The older long form "<userId>-<sig>" is
+// still accepted.
+
+async function hmacBytes(message: string, secret: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message)));
+}
 
 async function inboundSig(userId: string, secret: string): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`inbound:${userId}`)));
+  const mac = await hmacBytes(`inbound:${userId}`, secret);
   return Array.from(mac.slice(0, 5), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// No 0/o, 1/l/i: easy to read and type.
+const CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+const CODE_LENGTH = 8;
+const CODE_RE = new RegExp(`^[${CODE_ALPHABET}]{${CODE_LENGTH}}$`);
+
+async function inboundCode(userId: string, secret: string): Promise<string> {
+  const mac = await hmacBytes(`inbound-code:${userId}`, secret);
+  return Array.from(mac.slice(0, CODE_LENGTH), (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
 
 export async function inboundAddressFor(userId: Id<"users">): Promise<string | null> {
@@ -163,18 +182,48 @@ export async function inboundAddressFor(userId: Id<"users">): Promise<string | n
   const secret = process.env.INBOUND_EMAIL_SECRET;
   if (!base || !secret || !base.includes("@")) return null;
   const [local, domain] = base.split("@");
-  return `${local}+${userId}-${await inboundSig(userId, secret)}@${domain}`;
+  return `${local}+${await inboundCode(userId, secret)}@${domain}`;
+}
+
+/** Stores the player's short code so an email to it can be matched (addPlay). */
+async function ensureInboundCode(ctx: MutationCtx, userId: Id<"users">) {
+  const secret = process.env.INBOUND_EMAIL_SECRET;
+  if (!secret) return;
+  const code = await inboundCode(userId, secret);
+  const rows = await ctx.db.query("inboundCodes").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+  if (rows.some((r) => r.code === code)) return;
+  for (const r of rows) await ctx.db.delete(r._id); // the secret changed
+  await ctx.db.insert("inboundCodes", { code, userId });
 }
 
 /** The player a MailboxHash belongs to, or null when it isn't a valid one. */
 async function userFromMailboxHash(ctx: Ctx, hash: string): Promise<Doc<"users"> | null> {
   const secret = process.env.INBOUND_EMAIL_SECRET;
-  const m = /^([a-z0-9]{20,40})-([0-9a-f]{10})$/.exec(hash.trim().toLowerCase());
-  if (!secret || !m) return null;
+  if (!secret) return null;
+  const h = hash.trim().toLowerCase();
+  if (CODE_RE.test(h)) {
+    const rows = await ctx.db.query("inboundCodes").withIndex("by_code", (q) => q.eq("code", h)).take(2);
+    // Two players on one code (a tiny chance): fall back to the sender address.
+    if (rows.length !== 1 || (await inboundCode(rows[0].userId, secret)) !== h) return null;
+    return await ctx.db.get(rows[0].userId);
+  }
+  const m = /^([a-z0-9]{20,40})-([0-9a-f]{10})$/.exec(h);
+  if (!m) return null;
   if ((await inboundSig(m[1], secret)) !== m[2]) return null;
   const id = ctx.db.normalizeId("users", m[1]);
   return id ? await ctx.db.get(id) : null;
 }
+
+/** One-off: codes for players who added plays before short codes existed. */
+export const backfillInboundCodes = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const users = new Set<Id<"users">>();
+    for (const l of await ctx.db.query("playLogs").collect()) users.add(l.userId);
+    for (const u of users) await ensureInboundCode(ctx, u);
+    return { users: users.size };
+  },
+});
 
 async function areFriends(ctx: Ctx, a: Id<"users">, b: Id<"users">): Promise<boolean> {
   const ab = await ctx.db.query("friendships").withIndex("by_pair", (q) => q.eq("requesterId", a).eq("receiverId", b)).first();
@@ -455,6 +504,7 @@ export const addPlay = mutation({
     });
     const log = (await ctx.db.get(logId))!;
     await askTeammates(ctx, me, log, teammateIds);
+    await ensureInboundCode(ctx, me._id);
     return { logId };
   },
 });

@@ -618,6 +618,16 @@ export default defineSchema({
     .index("by_room", ["roomId"])
     .index("by_community", ["communityRoomId"]),
 
+  // Short personal forwarding codes for booking emails (plays.inboundAddressFor):
+  // "proofs+<code>@…". Written when the player adds a play; the code itself is
+  // derived from the user id (HMAC), this table is only the reverse lookup.
+  inboundCodes: defineTable({
+    code: v.string(),
+    userId: v.id("users"),
+  })
+    .index("by_code", ["code"])
+    .index("by_user", ["userId"]),
+
   // "Did you play this with me?": a teammate asked to vouch for a play log.
   playVouches: defineTable({
     logId: v.id("playLogs"),
