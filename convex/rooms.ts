@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { bookingTargetFor } from "./externalLinks";
 import { v } from "convex/values";
 import { companyIsPublic } from "./companyRules";
@@ -19,6 +19,8 @@ async function batchEnrichRooms(ctx: any, rooms: any[]) {
 
   // Filter out rooms from free-plan companies
   const visibleRooms = rooms.filter((room) => {
+    // Switched off in the portal (Rooms → Inactive): hidden from every public list.
+    if (room.isActive === false) return false;
     if (!room.companyId) return true; // non-company rooms always visible
     const company = companyMap.get(room.companyId as string);
     if (!company) return true;
@@ -142,5 +144,22 @@ export const search = query({
         r.theme.toLowerCase().includes(q))
     );
     return await batchEnrichRooms(ctx, filtered);
+  },
+});
+
+// Team-only (CLI / dashboard, needs the deploy key): switch rooms on or off,
+// e.g. to hide test and demo rooms. Same as the portal's Active/Inactive toggle.
+// npx convex run --prod rooms:setActiveInternal '{"roomIds":["..."],"isActive":false}'
+export const setActiveInternal = internalMutation({
+  args: { roomIds: v.array(v.id("rooms")), isActive: v.boolean() },
+  handler: async (ctx, { roomIds, isActive }) => {
+    const changed: string[] = [];
+    for (const id of roomIds) {
+      const room = await ctx.db.get(id);
+      if (!room) continue;
+      await ctx.db.patch(id, { isActive });
+      changed.push(room.title);
+    }
+    return changed;
   },
 });
