@@ -1,5 +1,6 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { notifyUser, slotFreed } from "./push";
+import { cleanExternalUrl } from "./externalLinks";
 import { ConvexError, v } from "convex/values";
 import { newBookingCode } from "./codes";
 import { internal } from "./_generated/api";
@@ -234,14 +235,16 @@ export const updateProfile = mutation({
     logo: v.optional(v.string()),
     subscriptionEnabled: v.optional(v.boolean()),
     autoTranslateEnabled: v.optional(v.boolean()),
+    website: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     checkLengths([["Name", args.name, 120], ["Phone", args.phone, 40], ["Address", args.address, 200], ["City", args.city, 100], ["VAT number", args.vatNumber, 40], ["Description", args.description, 2000], ["Logo", args.logo, 1000]]);
     // Logo: only one of our own stored files (shown publicly in the widget and photos).
     if (args.logo && !isOwnStorageUrl(args.logo)) throw new ConvexError("Please upload the logo");
-    const { id, sessionToken, ...fields } = args;
+    const { id, sessionToken, website, ...fields } = args;
     const company = await requireCompany(ctx, { companyId: id, sessionToken }, "companies:updateProfile");
-    await ctx.db.patch(company._id, fields);
+    const site = cleanExternalUrl(website);
+    await ctx.db.patch(company._id, site === undefined ? fields : { ...fields, website: site || undefined });
   },
 });
 
@@ -510,10 +513,12 @@ export const createRoom = mutation({
     defaultTimeSlots: v.optional(v.array(v.object({ time: v.string(), price: v.number() }))),
     overflowSlot: v.optional(v.object({ time: v.string(), price: v.number(), pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))), days: v.array(v.number()) })),
     releaseDate: v.optional(v.string()),
+    bookingUrl: v.optional(v.string()),
   },
   handler: async (ctx, { sessionToken, ...args }) => {
     const company = await requireCompany(ctx, { companyId: args.companyId, sessionToken }, "companies:createRoom");
     checkRoomInput(args);
+    args.bookingUrl = cleanExternalUrl(args.bookingUrl) || undefined;
     // ── Enforce room limit based on plan ──
     const limit = getRoomLimit(company.platformPlan);
     const existingRooms = await ctx.db
@@ -596,6 +601,7 @@ export const updateRoom = mutation({
     isActive: v.optional(v.boolean()),
     isFeatured: v.optional(v.boolean()),
     releaseDate: v.optional(v.string()),
+    bookingUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { roomId, sessionToken, ...fields } = args;
@@ -616,6 +622,8 @@ export const updateRoom = mutation({
     if (fields.depositPercent !== undefined) {
       updates.depositPercent = fields.depositPercent > 0 ? clampDepositPercent(fields.depositPercent) : undefined;
     }
+    // "" clears the link (Book now then goes to the company website)
+    if (fields.bookingUrl !== undefined) updates.bookingUrl = cleanExternalUrl(fields.bookingUrl) || undefined;
     await ctx.db.patch(roomId, updates);
   },
 });

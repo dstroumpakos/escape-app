@@ -1,4 +1,5 @@
 import { query } from "./_generated/server";
+import { bookingTargetFor } from "./externalLinks";
 import { v } from "convex/values";
 import { companyIsPublic } from "./companyRules";
 
@@ -40,14 +41,17 @@ async function batchEnrichRooms(ctx: any, rooms: any[]) {
 async function enrichRoom(ctx: any, room: any) {
   let isEarlyAccessPartner = false;
   let companyName = "";
+  let company: any = null;
   if (room.companyId) {
-    const company = await ctx.db.get(room.companyId);
+    company = await ctx.db.get(room.companyId);
     if (company) {
       isEarlyAccessPartner = !!company.subscriptionEnabled;
       companyName = company.name;
     }
   }
-  return { ...room, isEarlyAccessPartner, companyName };
+  // Where "Book now" sends players (the escape room's own site, see externalLinks.ts)
+  const bookingTarget = bookingTargetFor(room, company);
+  return { ...room, isEarlyAccessPartner, companyName, bookingTarget };
 }
 
 export const list = query({

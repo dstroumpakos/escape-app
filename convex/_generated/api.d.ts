@@ -27,6 +27,7 @@ import type * as companySession from "../companySession.js";
 import type * as crons from "../crons.js";
 import type * as email from "../email.js";
 import type * as emailVerify from "../emailVerify.js";
+import type * as externalLinks from "../externalLinks.js";
 import type * as friends from "../friends.js";
 import type * as games from "../games.js";
 import type * as googleAuth from "../googleAuth.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   email: typeof email;
   emailVerify: typeof emailVerify;
+  externalLinks: typeof externalLinks;
   friends: typeof friends;
   games: typeof games;
   googleAuth: typeof googleAuth;

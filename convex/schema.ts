@@ -25,6 +25,8 @@ export default defineSchema({
     city: v.string(),
     vatNumber: v.optional(v.string()),
     description: v.string(),
+    // Their own site: where "Book now" sends players (see externalLinks.ts)
+    website: v.optional(v.string()),
     password: v.string(), // hashed in production
     verified: v.boolean(),
     createdAt: v.number(),
@@ -269,6 +271,8 @@ export default defineSchema({
     })),
     // Early Access: date the room goes public (YYYY-MM-DD). Premium players see it 3 days before.
     releaseDate: v.optional(v.string()),
+    // Booking page for this room on the company site (else the company website)
+    bookingUrl: v.optional(v.string()),
     // Photos-only rooms (created from photos.unlocked.gr) — hidden from main site listings
     photosOnly: v.optional(v.boolean()),
   })
@@ -489,6 +493,16 @@ export default defineSchema({
   // Last-minute offers: a company discounts a free slot of today or tomorrow.
   // Only bookings made on UNLOCKED (web + app) get the discount, not the widget.
   // Expo push tokens of logged-in phones (see push.ts). One row per phone.
+  // "Book now" clicks to the company's own site, per room per day (Athens date).
+  bookClicks: defineTable({
+    roomId: v.id("rooms"),
+    companyId: v.id("companies"),
+    date: v.string(),
+    count: v.number(),
+  })
+    .index("by_room_date", ["roomId", "date"])
+    .index("by_company_date", ["companyId", "date"]),
+
   pushTokens: defineTable({
     token: v.string(),
     platform: v.union(v.literal("ios"), v.literal("android")),
