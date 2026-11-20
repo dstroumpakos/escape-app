@@ -1,5 +1,5 @@
 import { query, internalMutation } from "./_generated/server";
-import { bookingTargetFor } from "./externalLinks";
+import { bookingTargetFor, cleanExternalUrl } from "./externalLinks";
 import { v } from "convex/values";
 import { companyIsPublic } from "./companyRules";
 
@@ -161,5 +161,38 @@ export const setActiveInternal = internalMutation({
       changed.push(room.title);
     }
     return changed;
+  },
+});
+
+// Team-only: the rating a room has on another site, shown with its source
+// ("4.9 from 1,061 reviews on EscapeAll"). Companies can't set this themselves.
+// npx convex run --prod rooms:setExternalRatingInternal '{"roomId":"...","source":"EscapeAll","rating":4.9,"count":1061,"url":"https://..."}'
+// Pass "clear": true to remove it.
+export const setExternalRatingInternal = internalMutation({
+  args: {
+    roomId: v.id("rooms"),
+    source: v.optional(v.string()),
+    rating: v.optional(v.number()),
+    count: v.optional(v.number()),
+    url: v.optional(v.string()),
+    clear: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const room = await ctx.db.get(args.roomId);
+    if (!room) throw new Error("Room not found");
+    if (args.clear) {
+      await ctx.db.patch(args.roomId, { externalRating: undefined });
+      return `${room.title}: cleared`;
+    }
+    const source = (args.source ?? "").trim();
+    const { rating, count } = args;
+    if (!source || source.length > 40) throw new Error("source is required (max 40 chars)");
+    if (rating === undefined || !(rating >= 0 && rating <= 5)) throw new Error("rating must be 0-5");
+    if (count === undefined || !Number.isInteger(count) || count < 0) throw new Error("count must be a whole number");
+    const url = cleanExternalUrl(args.url) || undefined;
+    await ctx.db.patch(args.roomId, {
+      externalRating: { source, rating, count, url, updatedAt: Date.now() },
+    });
+    return `${room.title}: ${rating} from ${count} reviews on ${source}`;
   },
 });
