@@ -611,6 +611,9 @@ export default function App() {
                   <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} />
                   <Stack.Screen name="NotificationPrefs" component={NotificationPrefsScreen} />
                   <Stack.Screen name="PlayerSettings" component={PlayerSettings} />
+                  <Stack.Screen name="ProfileMore">
+                    {() => <ProfileScreen mode="more" onSwitchToCompany={handleSwitchToCompany} />}
+                  </Stack.Screen>
                   <Stack.Screen name="Shop" component={ShopScreen} />
                   <Stack.Screen name="Product" component={ProductScreen} />
                   <Stack.Screen name="Cart" component={CartScreen} />

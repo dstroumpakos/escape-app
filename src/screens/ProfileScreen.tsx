@@ -22,9 +22,11 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 interface ProfileProps {
   onSwitchToCompany: () => void;
+  /** 'profile' = the Profile tab (only the profile); 'more' = settings & more (gear button). */
+  mode?: 'profile' | 'more';
 }
 
-export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
+export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: ProfileProps) {
   const navigation = useNavigation<Nav>();
   const { userId, sessionToken, onLogout } = useUser();
   const { t, language, setLanguage } = useTranslation();
@@ -117,20 +119,32 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
           style={styles.headerBg}
         >
           <View style={styles.topRow}>
-            <Text style={styles.screenTitle}>{t('profile.title')}</Text>
-            <TouchableOpacity
-              style={styles.settingsBtn}
-              onPress={() => navigation.navigate('PlayerSettings')}
-              accessibilityLabel={t('profile.settingsTitle')}
-            >
-              <Ionicons name="settings-outline" size={22} color={theme.colors.bone} />
-            </TouchableOpacity>
+            {mode === 'more' && (
+              <TouchableOpacity style={styles.settingsBtn} onPress={() => navigation.goBack()} accessibilityLabel={t('profile.back')}>
+                <Ionicons name="arrow-back" size={22} color={theme.colors.bone} />
+              </TouchableOpacity>
+            )}
+            <Text style={[styles.screenTitle, mode === 'more' && { flex: 1, marginLeft: 12 }]}>
+              {mode === 'more' ? t('profile.moreTitle') : t('profile.title')}
+            </Text>
+            {mode === 'profile' && (
+              <TouchableOpacity
+                style={styles.settingsBtn}
+                onPress={() => navigation.navigate('ProfileMore')}
+                accessibilityLabel={t('profile.settingsTitle')}
+              >
+                <Ionicons name="settings-outline" size={22} color={theme.colors.bone} />
+              </TouchableOpacity>
+            )}
           </View>
 
         </LinearGradient>
 
         {/* Public profile, Instagram + Facebook style (convex/social.ts) */}
-        {!!userId && <PlayerProfileView userId={userId} onEditBasics={() => setEditModalVisible(true)} />}
+        {mode === 'profile' && !!userId && <PlayerProfileView userId={userId} onEditBasics={() => setEditModalVisible(true)} />}
+
+        {/* Everything else lives behind the gear button (ProfileMore) */}
+        {mode === 'more' && (<>
 
         {/* Reports businesses filed about this player (only while active) */}
         {sessionToken && <ReportsAboutMe sessionToken={sessionToken} />}
@@ -270,6 +284,7 @@ export default function ProfileScreen({ onSwitchToCompany }: ProfileProps) {
           <Ionicons name="business-outline" size={20} color={theme.colors.redPrimary} />
           <Text style={styles.switchBusinessText}>{t('profile.switchBusiness')}</Text>
         </TouchableOpacity>
+        </>)}
 
       </ScrollView>
       {/* Edit Profile Modal */}

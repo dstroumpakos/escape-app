@@ -9,6 +9,8 @@ export const translations: Record<Language, Record<string, string>> = {
   //  ENGLISH
   // ═══════════════════════════════════════════════════════════
   en: {
+    'profile.moreTitle': 'Settings & more',
+    'profile.back': 'Back',
     'social.at': 'at',
     'social.like': 'Like',
     'social.comment': 'Comment',
@@ -1906,6 +1908,8 @@ export const translations: Record<Language, Record<string, string>> = {
   //  GREEK (Ελληνικά)
   // ═══════════════════════════════════════════════════════════
   el: {
+    'profile.moreTitle': 'Ρυθμίσεις & περισσότερα',
+    'profile.back': 'Πίσω',
     'social.at': 'στο',
     'social.like': 'Μου αρέσει',
     'social.comment': 'Σχόλιο',
