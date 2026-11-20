@@ -7,6 +7,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import { syncPlayerPush } from '../pushRegistration';
+import { BOOKING_ENABLED } from '../features';
 
 const PREF_KEY = '@notification_preferences';
 
@@ -53,19 +54,20 @@ export default function NotificationPrefsScreen() {
     AsyncStorage.setItem(PREF_KEY, JSON.stringify(updated)).then(() => syncPlayerPush(sessionToken));
   };
 
+  // Booking and time-slot settings only while UNLOCKED's own booking is on.
   const sections = [
-    {
+    ...(BOOKING_ENABLED ? [{
       title: t('notifPrefs.bookingSection'),
       items: [
         { key: 'bookingConfirmations' as const, label: t('notifPrefs.bookingConfirmations'), desc: t('notifPrefs.bookingConfirmationsDesc') },
         { key: 'bookingReminders' as const, label: t('notifPrefs.bookingReminders'), desc: t('notifPrefs.bookingRemindersDesc') },
       ],
-    },
+    }] : []),
     {
       title: t('notifPrefs.discoverySection'),
       items: [
         { key: 'newRooms' as const, label: t('notifPrefs.newRooms'), desc: t('notifPrefs.newRoomsDesc') },
-        { key: 'slotAlerts' as const, label: t('notifPrefs.slotAlerts'), desc: t('notifPrefs.slotAlertsDesc') },
+        ...(BOOKING_ENABLED ? [{ key: 'slotAlerts' as const, label: t('notifPrefs.slotAlerts'), desc: t('notifPrefs.slotAlertsDesc') }] : []),
       ],
     },
     {

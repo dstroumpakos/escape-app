@@ -193,7 +193,7 @@ export default function Onboarding({ onComplete, userId, sessionToken }: Props) 
             <Text style={styles.desc}>{t('onboarding.bookDesc')}</Text>
             <View style={styles.mockCard}>
               <View style={styles.mockHeader}>
-                <Ionicons name="flash" size={16} color={theme.colors.redPrimary} />
+                <Ionicons name="ribbon" size={16} color={theme.colors.redPrimary} />
                 <Text style={styles.mockHeaderText}>{t('onboarding.mockHeader')}</Text>
               </View>
               <View style={styles.mockBody}>
