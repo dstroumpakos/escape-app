@@ -59,6 +59,8 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   RoomDetails: { id: string };
   PlayerProfile: { userId: string };
+  Companies: undefined;
+  CompanyProfile: { companyId: string };
   Passport: { tab?: 'stamps' | 'played' | 'map' | 'maze' } | undefined;
   ScanStamp: undefined;
   AddPlay: undefined;

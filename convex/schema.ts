@@ -492,6 +492,16 @@ export default defineSchema({
     .index("by_room", ["roomId"]),
 
   // Who follows whom (social.ts). One-way, like Instagram.
+  // Players following an escape room company (companyPages.ts)
+  companyFollows: defineTable({
+    userId: v.id("users"),
+    companyId: v.id("companies"),
+    createdAt: v.number(),
+  })
+    .index("by_user_company", ["userId", "companyId"])
+    .index("by_company", ["companyId"])
+    .index("by_user", ["userId"]),
+
   follows: defineTable({
     followerId: v.id("users"),
     followingId: v.id("users"),

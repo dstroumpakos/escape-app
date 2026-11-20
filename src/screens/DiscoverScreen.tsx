@@ -314,6 +314,14 @@ export default function DiscoverScreen() {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerBtn}
+              onPress={() => navigation.navigate('Companies')}
+              accessibilityRole="button"
+              accessibilityLabel={t('co.title')}
+            >
+              <Ionicons name="business-outline" size={18} color={theme.colors.bone} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerBtn}
               onPress={() => {
                 setListMode(!listMode);
                 setSelectedRoom(null);

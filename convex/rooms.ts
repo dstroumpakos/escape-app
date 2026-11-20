@@ -6,7 +6,7 @@ import { companyIsPublic } from "./companyRules";
 // Helper: batch-enrich rooms with company partner info
 // Loads all unique companies in ONE pass, then maps them
 // Also filters out rooms from free-plan companies (not shown on public site)
-async function batchEnrichRooms(ctx: any, rooms: any[]) {
+export async function batchEnrichRooms(ctx: any, rooms: any[]) {
   // Collect unique companyIds
   const companyIds = Array.from(new Set(rooms.map((r) => r.companyId).filter(Boolean)));
 

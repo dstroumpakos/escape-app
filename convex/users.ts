@@ -738,6 +738,13 @@ export const deleteAccount = mutation({
     // 1b. Rooms Played: their play logs, proofs and vouch requests
     await deletePlayerPlays(ctx, userId);
 
+    // 1c. Companies they follow (companyPages.ts)
+    const companyFollows = await ctx.db
+      .query("companyFollows")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const f of companyFollows) await ctx.db.delete(f._id);
+
     // 2. Delete bookings
     const bookings = await ctx.db
       .query("bookings")

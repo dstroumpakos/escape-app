@@ -43,6 +43,8 @@ import TicketsScreen from './src/screens/TicketsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import RoomDetails from './src/screens/RoomDetails';
 import PlayerProfileScreen from './src/screens/PlayerProfileScreen';
+import CompaniesScreen from './src/screens/CompaniesScreen';
+import CompanyProfileScreen from './src/screens/CompanyProfileScreen';
 import PassportScreen from './src/screens/PassportScreen';
 import ScanStampScreen from './src/screens/ScanStampScreen';
 import AddPlayScreen from './src/screens/plays/AddPlayScreen';
@@ -623,6 +625,8 @@ export default function App() {
                   <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+                  <Stack.Screen name="Companies" component={CompaniesScreen} />
+                  <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
                   <Stack.Screen name="Passport" component={PassportScreen} />
                   <Stack.Screen name="ScanStamp" component={ScanStampScreen} />
                   <Stack.Screen name="AddPlay" component={AddPlayScreen} />
