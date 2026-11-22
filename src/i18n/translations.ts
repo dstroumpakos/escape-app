@@ -1,4 +1,5 @@
 import { playsTranslations } from './playsTranslations';
+import { leaderboardTranslations } from './leaderboardTranslations';
 import { chatTranslations } from './chatTranslations';
 
 // ─── i18n translations ───
@@ -4061,3 +4062,7 @@ Object.assign(translations.el, playsTranslations.el);
 // Chat and the other website features (chatTranslations.ts).
 Object.assign(translations.en, chatTranslations.en);
 Object.assign(translations.el, chatTranslations.el);
+
+// Leaderboard with scores (leaderboardTranslations.ts).
+Object.assign(translations.en, leaderboardTranslations.en);
+Object.assign(translations.el, leaderboardTranslations.el);
