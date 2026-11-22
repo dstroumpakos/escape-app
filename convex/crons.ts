@@ -55,4 +55,12 @@ crons.daily(
   {}
 );
 
+// Company stats: forget who visited which room, two days later (companyStats.ts).
+crons.daily(
+  "prune visitor marks",
+  { hourUTC: 3, minuteUTC: 15 },
+  internal.companyStats.pruneVisitorMarks,
+  {}
+);
+
 export default crons;

@@ -25,23 +25,29 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState('');
+  const [pending, setPending] = useState(false);
 
   if (done) {
     return (
       <View style={styles.success}>
         <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
-        <Text style={styles.successText}>{t('reviews.success')}</Text>
+        <Text style={styles.successText}>{pending ? t('reviews.pending') : t('reviews.success')}</Text>
       </View>
     );
   }
   if (!userId || !eligibility) return null;
   if (!eligibility.canReview) {
-    if (eligibility.reason !== 'need_stamp') return null;
+    const hint =
+      eligibility.reason === 'need_stamp' ? t('reviews.needStamp')
+      : eligibility.reason === 'need_email' ? t('reviews.needEmail')
+      : eligibility.reason === 'too_late' ? t('reviews.tooLate')
+      : '';
+    if (!hint) return null;
     return (
       <View style={styles.hint}>
         <Ionicons name="ribbon-outline" size={16} color={theme.colors.redLight} />
-        <Text style={styles.hintText}>{t('reviews.needStamp')}</Text>
+        <Text style={styles.hintText}>{hint}</Text>
       </View>
     );
   }
@@ -58,18 +64,19 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
   const submit = async () => {
     if (rating === 0 || submitting) return;
     setSubmitting(true);
-    setFailed(false);
+    setFailed('');
     try {
-      await submitReview({
+      const res = await submitReview({
         sessionToken: sessionToken as string,
         roomId: roomId as Id<'rooms'>,
         bookingId: (eligibility.bookingId ?? undefined) as Id<'bookings'> | undefined,
         rating,
         text: text.trim() || undefined,
       });
+      setPending(!!res?.pending);
       setDone(true);
-    } catch {
-      setFailed(true);
+    } catch (e: any) {
+      setFailed(typeof e?.data === 'string' && e.data.length < 200 ? e.data : t('checkout.bookingFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +114,7 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
         maxLength={1000}
         textAlignVertical="top"
       />
-      {failed && <Text style={styles.error}>{t('checkout.bookingFailed')}</Text>}
+      {!!failed && <Text style={styles.error}>{failed}</Text>}
       <PrimaryButton
         label={submitting ? t('reviews.submitting') : t('reviews.submit')}
         onPress={submit}

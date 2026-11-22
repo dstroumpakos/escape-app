@@ -71,7 +71,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const createRoom = useCompanyMutation(api.companies.createRoom);
   const updateRoom = useCompanyMutation(api.companies.updateRoom);
   const generateUploadUrl = useCompanyMutation(api.companies.generateUploadUrl);
-  const getUrl = useMutation(api.companies.getUrlMutation);
+  const getUrl = useCompanyMutation(api.companies.getUrlMutation);
   const dashStats = useCompanyQuery(api.companies.getDashboardStats, {
     companyId: companyId as Id<"companies">,
   });
@@ -130,7 +130,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
   const savePreset = useCompanyMutation(api.bookingPhotos.savePreset);
   const generateUploadUrl2 = useCompanyMutation(api.companies.generateUploadUrl);
-  const getUrlMutation2 = useMutation(api.companies.getUrlMutation);
+  const getUrlMutation2 = useCompanyMutation(api.companies.getUrlMutation);
   const [photoBrandingOpen, setPhotoBrandingOpen] = useState(false);
   const [presetForm, setPresetForm] = useState({
     logoPosition: 'bottom-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom-center',

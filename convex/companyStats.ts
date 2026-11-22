@@ -1,5 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { optionalUser } from "./userSession";
 import type { Id } from "./_generated/dataModel";
 import { underCap } from "./rateLimit";
 import { requireCompany, sessionTokenV } from "./companySession";
@@ -14,20 +17,58 @@ import { companyIsPublic } from "./companyRules";
 
 const DAY = 24 * 60 * 60 * 1000;
 
-function athensDate(ms: number): string {
+export function athensDate(ms: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens" }).format(new Date(ms));
 }
 
-/** Counts a room page view. The site and app call it once per room per visit. Capped so it can't be inflated. */
+const VISITOR_RE = /^[a-z0-9]{16,40}$/;
+
+/**
+ * Who is counting: the logged-in player, else the random id the site/app
+ * keeps on the device. Null = don't count (no id, or a malformed one).
+ */
+export async function visitorKey(ctx: MutationCtx, sessionToken?: string, visitorId?: string): Promise<string | null> {
+  const user = sessionToken ? await optionalUser(ctx, sessionToken) : null;
+  if (user) return `u:${user._id}`;
+  if (visitorId && VISITOR_RE.test(visitorId)) return `v:${visitorId}`;
+  return null;
+}
+
+/** True the first time this visitor does this for this room today (and remembers it). */
+export async function firstToday(ctx: MutationCtx, roomId: Id<"rooms">, kind: "view" | "click", key: string, date: string) {
+  const seen = await ctx.db
+    .query("visitorMarks")
+    .withIndex("by_mark", (q) => q.eq("roomId", roomId).eq("kind", kind).eq("key", key).eq("date", date))
+    .first();
+  if (seen) return false;
+  await ctx.db.insert("visitorMarks", { roomId, kind, key, date });
+  return true;
+}
+
+/** Cron: forget who visited, two days later (batches of 500). */
+export const pruneVisitorMarks = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = athensDate(Date.now() - 2 * DAY);
+    const old = await ctx.db.query("visitorMarks").withIndex("by_date", (q) => q.lt("date", cutoff)).take(500);
+    for (const r of old) await ctx.db.delete(r._id);
+    if (old.length === 500) await ctx.scheduler.runAfter(0, internal.companyStats.pruneVisitorMarks, {});
+  },
+});
+
+/** Counts a room page view: once per visitor per room per day, capped per hour so it can't be inflated. */
 export const trackRoomView = mutation({
-  args: { roomId: v.id("rooms") },
+  args: { roomId: v.id("rooms"), sessionToken: v.optional(v.string()), visitorId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
     if (!room?.companyId || room.isActive === false) return;
     const company = await ctx.db.get(room.companyId);
     if (!companyIsPublic(company)) return;
-    if (!(await underCap(ctx, `roomView:${room._id}`, 1000))) return;
+    const key = await visitorKey(ctx, args.sessionToken, args.visitorId);
+    if (!key) return;
     const date = athensDate(Date.now());
+    if (!(await firstToday(ctx, room._id, "view", key, date))) return;
+    if (!(await underCap(ctx, `roomView:${room._id}`, 300))) return;
     const row = await ctx.db
       .query("roomViews")
       .withIndex("by_room_date", (q) => q.eq("roomId", room._id).eq("date", date))

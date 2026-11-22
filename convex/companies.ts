@@ -466,9 +466,12 @@ export const generateUploadUrl = mutation({
   },
 });
 
+/** The link of a file just uploaded (company portal, admin shop). */
 export const getUrlMutation = mutation({
-  args: { storageId: v.id("_storage") },
+  args: { storageId: v.id("_storage"), sessionToken: sessionTokenV, adminToken: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    if (args.adminToken) await requireAdminSession(ctx, args.adminToken);
+    else await requireCompany(ctx, { sessionToken: args.sessionToken }, "companies:getUrlMutation");
     return await ctx.storage.getUrl(args.storageId);
   },
 });

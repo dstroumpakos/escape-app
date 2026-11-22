@@ -4,6 +4,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { underCap } from "./rateLimit";
 import { requireCompany, sessionTokenV } from "./companySession";
 import { companyIsPublic } from "./companyRules";
+import { visitorKey, firstToday } from "./companyStats";
 
 /**
  * "Book now" sends players to the escape room's own site (UNLOCKED's own
@@ -80,16 +81,24 @@ function athensDate(ms: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Athens" }).format(new Date(ms));
 }
 
-/** Counts a "Book now" click (for the company's stats). Capped so it can't be inflated. */
+/**
+ * Counts a "Book now" click (for the company's stats): once per visitor per
+ * room per day, capped per hour. Old app builds send no visitor id: they
+ * count under a small shared cap.
+ */
 export const trackBookClick = mutation({
-  args: { roomId: v.id("rooms") },
+  args: { roomId: v.id("rooms"), sessionToken: v.optional(v.string()), visitorId: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const room = await ctx.db.get(args.roomId);
     if (!room?.companyId) return;
     const company = await ctx.db.get(room.companyId);
     if (!companyIsPublic(company)) return;
-    if (!(await underCap(ctx, `bookClick:${room._id}`, 300))) return;
     const date = athensDate(Date.now());
+    const key = await visitorKey(ctx, args.sessionToken, args.visitorId);
+    if (key) {
+      if (!(await firstToday(ctx, room._id, "click", key, date))) return;
+    } else if (!(await underCap(ctx, `bookClick:legacy:${room._id}`, 20))) return;
+    if (!(await underCap(ctx, `bookClick:${room._id}`, 100))) return;
     const row = await ctx.db
       .query("bookClicks")
       .withIndex("by_room_date", (q) => q.eq("roomId", room._id).eq("date", date))

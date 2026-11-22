@@ -24,6 +24,8 @@ import { countedPlays, absorbPlayLog } from "./plays";
 
 export const STAMP_WINDOW_MS = 30 * 60 * 1000;
 const MAX_PLAYERS = 20;
+const ROOM_GAP_MS = 30 * 60 * 1000;
+const ROOM_QRS_PER_DAY = 16;
 
 /**
  * The maze game has 10 doors. PASSPORT_CHAMBERS[i] = stamps placed in the
@@ -74,6 +76,19 @@ export const startSession = mutation({
       throw new ConvexError("Pick the time the team's game started today.");
     }
     await rateLimit(ctx, `stampSession:${company._id}`, 60, HOUR);
+    // Real games take time: one QR per room every 30 minutes, 16 a day.
+    const lastDay = await ctx.db
+      .query("stampSessions")
+      .withIndex("by_room_created", (q) => q.eq("roomId", room._id).gte("createdAt", now - 24 * HOUR))
+      .collect();
+    const latest = lastDay.reduce((m, x) => Math.max(m, x.createdAt), 0);
+    if (latest && now - latest < ROOM_GAP_MS) {
+      const mins = Math.ceil((ROOM_GAP_MS - (now - latest)) / 60000);
+      throw new ConvexError(`A QR for this room was made ${Math.floor((now - latest) / 60000)} minutes ago. You can make the next one in ${mins} minutes.`);
+    }
+    if (lastDay.length >= ROOM_QRS_PER_DAY) {
+      throw new ConvexError(`This room already had ${ROOM_QRS_PER_DAY} QRs in the last 24 hours.`);
+    }
     const token = newToken();
     const id = await ctx.db.insert("stampSessions", {
       companyId: company._id,

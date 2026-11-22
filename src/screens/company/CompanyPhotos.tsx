@@ -24,7 +24,7 @@ export default function CompanyPhotos({ companyId }: Props) {
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: cId });
 
   const generateUploadUrl = useCompanyMutation(api.companies.generateUploadUrl);
-  const getUrlMutation = useMutation(api.companies.getUrlMutation);
+  const getUrlMutation = useCompanyMutation(api.companies.getUrlMutation);
   const addPhoto = useCompanyMutation(api.bookingPhotos.addPhoto);
   const deletePhoto = useCompanyMutation(api.bookingPhotos.deletePhoto);
   const markPhotoProcessed = useCompanyMutation(api.bookingPhotos.markPhotoProcessed);

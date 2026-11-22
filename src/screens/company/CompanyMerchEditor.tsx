@@ -53,7 +53,7 @@ export default function CompanyMerchEditor({ companyId, productId, onBack }: Pro
   const rooms = useCompanyQuery(api.companies.getRooms, { companyId: cId });
   const save = useCompanyMutation(api.merch.saveProduct);
   const generateUploadUrl = useCompanyMutation(api.companies.generateUploadUrl);
-  const getUrl = useMutation(api.companies.getUrlMutation);
+  const getUrl = useCompanyMutation(api.companies.getUrlMutation);
   const existing = productId ? products?.find((p) => p._id === productId) : undefined;
 
   const [loaded, setLoaded] = useState(!productId);

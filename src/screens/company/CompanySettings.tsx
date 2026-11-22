@@ -67,7 +67,7 @@ export default function CompanySettings({
   const photoPreset = useQuery(api.bookingPhotos.getPreset, { companyId: companyId as Id<"companies"> });
   const savePreset = useCompanyMutation(api.bookingPhotos.savePreset);
   const generateUploadUrl = useCompanyMutation(api.companies.generateUploadUrl);
-  const getUrlMutation = useMutation(api.companies.getUrlMutation);
+  const getUrlMutation = useCompanyMutation(api.companies.getUrlMutation);
   const [presetForm, setPresetForm] = useState({
     logoPosition: 'bottom-right' as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'bottom-center',
     brandColor: theme.colors.redLight,

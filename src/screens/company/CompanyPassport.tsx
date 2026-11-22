@@ -45,7 +45,13 @@ export default function CompanyPassport({ companyId }: { companyId: string }) {
       const r = await start({ roomId: roomId as any, players, escaped, escapeMinutes: escaped ? m : undefined, playedAt: startTimeToMs(startTime) });
       setSessionId(r.sessionId);
     } catch (e: any) {
-      Alert.alert(t('error'), typeof e?.data === 'string' ? e.data : e?.message || '');
+      const msg: string = typeof e?.data === 'string' ? e.data : e?.message || '';
+      const soon = /^A QR for this room was made (\d+) minutes ago\. You can make the next one in (\d+) minutes\./.exec(msg);
+      const day = /^This room already had (\d+) QRs/.exec(msg);
+      Alert.alert(
+        t('error'),
+        soon ? t('st.qrTooSoon', { ago: soon[1], mins: soon[2] }) : day ? t('st.qrDayLimit', { n: day[1] }) : msg,
+      );
     } finally {
       setBusy(false);
     }

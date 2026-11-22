@@ -11,6 +11,7 @@ import { theme } from '../theme';
 import { RootStackParamList } from '../types';
 import { BOOKING_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
+import { visitorId } from '../visitorId';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -46,7 +47,8 @@ export default function RoomDetails() {
   // Count the visit for the company's stats (companyStats.ts)
   const trackView = useMutation(api.companyStats.trackRoomView);
   useEffect(() => {
-    if (roomId) trackView({ roomId: roomId as Id<'rooms'> }).catch(() => {});
+    if (!roomId) return;
+    visitorId().then((vid) => trackView({ roomId: roomId as Id<'rooms'>, visitorId: vid })).catch(() => {});
   }, [roomId, trackView]);
   const liked = !!room && !!(user as any)?.wishlist?.includes(room.id);
   const [showAllReviews, setShowAllReviews] = useState(false);

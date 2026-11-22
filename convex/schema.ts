@@ -545,7 +545,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_token", ["token"])
-    .index("by_company", ["companyId"]),
+    .index("by_company", ["companyId"])
+    .index("by_room_created", ["roomId", "createdAt"]),
 
   // Maze game: how many of their stamps a player has put into the doors.
   passportProgress: defineTable({
@@ -678,6 +679,17 @@ export default defineSchema({
     .index("by_room_date", ["roomId", "date"])
     .index("by_company_date", ["companyId", "date"]),
 
+  // Who was counted today, so a visitor counts once per room per day (companyStats.ts).
+  // key = "u:<userId>" or "v:<random visitor id>". Rows older than 2 days are deleted by a cron.
+  visitorMarks: defineTable({
+    roomId: v.id("rooms"),
+    kind: v.union(v.literal("view"), v.literal("click")),
+    key: v.string(),
+    date: v.string(),
+  })
+    .index("by_mark", ["roomId", "kind", "key", "date"])
+    .index("by_date", ["date"]),
+
   // Room page views per room per day (companyStats.ts)
   roomViews: defineTable({
     roomId: v.id("rooms"),
@@ -769,12 +781,15 @@ export default defineSchema({
     rating: v.number(), // 1-5 stars
     text: v.optional(v.string()),
     createdAt: v.number(),
+    // unset = published (older reviews); "pending" = held for the admin (reviews.ts)
+    status: v.optional(v.union(v.literal("published"), v.literal("pending"), v.literal("rejected"))),
   })
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])
     .index("by_booking", ["bookingId"])
     .index("by_user_room", ["userId", "roomId"])
-    .index("by_room_created", ["roomId", "createdAt"]),
+    .index("by_room_created", ["roomId", "createdAt"])
+    .index("by_status", ["status"]),
 
   // ─── Content Reports (Guideline 1.2 — UGC moderation) ───
   reports: defineTable({
