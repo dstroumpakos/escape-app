@@ -1,4 +1,5 @@
 import { playsTranslations } from './playsTranslations';
+import { chatTranslations } from './chatTranslations';
 
 // ─── i18n translations ───
 // Every user-facing string in the app, keyed for easy lookup.
@@ -4040,3 +4041,7 @@ export const translations: Record<Language, Record<string, string>> = {
 // Rooms Played texts (playsTranslations.ts).
 Object.assign(translations.en, playsTranslations.en);
 Object.assign(translations.el, playsTranslations.el);
+
+// Chat and the other website features (chatTranslations.ts).
+Object.assign(translations.en, chatTranslations.en);
+Object.assign(translations.el, chatTranslations.el);

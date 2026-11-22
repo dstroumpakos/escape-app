@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useAction } from 'convex/react';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { GOOGLE_SIGNIN_AVAILABLE, googleIdToken } from '../googleSignIn';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { ForgotPasswordModal } from '../components/PasswordModals';
@@ -45,6 +46,7 @@ export default function LoginScreen({ onLogin }: Props) {
   const [forgotVisible, setForgotVisible] = useState(false);
   const [code, setCode] = useState('');
   const loginWithAppleMutation = useAction(api.users.loginWithApple);
+  const loginWithGoogleAction = useAction(api.users.loginWithGoogle);
 
   useEffect(() => {
     AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable);
@@ -81,6 +83,24 @@ export default function LoginScreen({ onLogin }: Props) {
       if (err.code !== 'ERR_REQUEST_CANCELED') {
         Alert.alert(t('login.appleSignInFailed'), err.message || t('login.somethingWentWrong'));
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const idToken = await googleIdToken();
+      if (!idToken) return; // closed the picker
+      setLoading(true);
+      const { userId, sessionToken } = await loginWithGoogleAction({ idToken, lang: language, client: 'app' });
+      onLogin(userId, sessionToken);
+    } catch (err: any) {
+      const code = typeof err?.data === 'string' ? err.data : '';
+      Alert.alert(
+        t('login.googleSignInFailed'),
+        code === 'GOOGLE_EMAIL_UNVERIFIED' ? t('login.googleEmailUnverified') : t('login.somethingWentWrong')
+      );
     } finally {
       setLoading(false);
     }
@@ -379,21 +399,35 @@ export default function LoginScreen({ onLogin }: Props) {
             </TouchableOpacity>
           </View>
 
-          {/* Apple Sign In */}
-          {appleAuthAvailable && (
+          {/* Apple / Google Sign In */}
+          {(appleAuthAvailable || GOOGLE_SIGNIN_AVAILABLE) && (
             <View style={styles.appleSection}>
               <View style={styles.dividerRow}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.dividerText}>{t('or')}</Text>
                 <View style={styles.dividerLine} />
               </View>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                cornerRadius={14}
-                style={styles.appleButton}
-                onPress={handleAppleSignIn}
-              />
+              {appleAuthAvailable && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                  cornerRadius={14}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+              )}
+              {GOOGLE_SIGNIN_AVAILABLE && (
+                <TouchableOpacity
+                  style={[styles.googleButton, appleAuthAvailable && { marginTop: 12 }]}
+                  onPress={handleGoogleSignIn}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('login.continueWithGoogle')}
+                >
+                  <Ionicons name="logo-google" size={18} color="#1f1f1f" />
+                  <Text style={styles.googleText}>{t('login.continueWithGoogle')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
           <ForgotPasswordModal visible={forgotVisible} kind="player" onClose={() => setForgotVisible(false)} />
@@ -534,5 +568,20 @@ const styles = StyleSheet.create({
   appleButton: {
     width: '100%',
     height: 54,
+  },
+  googleButton: {
+    width: '100%',
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleText: {
+    color: '#1f1f1f',
+    fontSize: 17,
+    fontWeight: '600',
   },
 });

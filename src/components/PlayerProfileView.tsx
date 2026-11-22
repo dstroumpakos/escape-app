@@ -47,6 +47,8 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [composing, setComposing] = useState(false);
+  const [openPost, setOpenPost] = useState<any>(null);
+  const [followList, setFollowList] = useState<'followers' | 'following' | null>(null);
 
   if (profile === undefined) return <ActivityIndicator color={theme.colors.redPrimary} style={{ marginTop: 60 }} />;
   if (profile === null) return <Text style={styles.muted}>{t('pf.notFound')}</Text>;
@@ -72,11 +74,11 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
     }
   };
 
-  const Count = ({ n, label }: { n: number; label: string }) => (
-    <View style={styles.count}>
+  const Count = ({ n, label, onPress }: { n: number; label: string; onPress?: () => void }) => (
+    <TouchableOpacity style={styles.count} onPress={onPress} disabled={!onPress}>
       <Text style={styles.countNum}>{n}</Text>
       <Text style={styles.countLabel}>{label}</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -110,6 +112,20 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
                   <Ionicons name="add" size={18} color="#fff" />
                 </TouchableOpacity>
               </>
+            ) : profile.viewer.isFriend ? (
+              <>
+                <TouchableOpacity style={styles.btnRedWide} onPress={() => navigation.navigate('Messages', { to: profile._id })}>
+                  <Ionicons name="chatbubble-ellipses" size={15} color="#fff" />
+                  <Text style={styles.btnGhostText}>{t('pf.message')}</Text>
+                </TouchableOpacity>
+                {FOLLOW_ENABLED && (
+                  <TouchableOpacity style={styles.btnGhost} onPress={toggleFollow} disabled={busy}>
+                    {busy ? <ActivityIndicator size="small" color="#fff" /> : (
+                      <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'footsteps'} size={15} color={theme.colors.bone} />
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
             ) : FOLLOW_ENABLED && profile.viewer.loggedIn ? (
               <TouchableOpacity style={profile.viewer.isFollowing ? styles.btnGhost : styles.btnRedWide} onPress={toggleFollow} disabled={busy}>
                 {busy ? <ActivityIndicator size="small" color="#fff" /> : (
@@ -131,8 +147,8 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         {/* Counters (Instagram) */}
         <View style={styles.counts}>
           <Count n={profile.stats.posts} label={t('pf.posts')} />
-          {FOLLOW_ENABLED && <Count n={profile.stats.followers} label={profile.stats.followers === 1 ? t('pf.followerOne') : t('pf.followers')} />}
-          {FOLLOW_ENABLED && <Count n={profile.stats.following} label={t('pf.following')} />}
+          {FOLLOW_ENABLED && <Count n={profile.stats.followers} label={profile.stats.followers === 1 ? t('pf.followerOne') : t('pf.followers')} onPress={() => setFollowList('followers')} />}
+          {FOLLOW_ENABLED && <Count n={profile.stats.following} label={t('pf.following')} onPress={() => setFollowList('following')} />}
           <Count n={profile.stats.played} label={t('pf.rooms')} />
         </View>
 
@@ -167,7 +183,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
             {posts.map((p) => {
               const img = p.media.find((m: any) => m.type === 'image')?.url;
               return (
-                <View key={p._id} style={{ width: tile, height: tile, backgroundColor: theme.colors.bgCardSolid }}>
+                <TouchableOpacity key={p._id} activeOpacity={0.85} onPress={() => setOpenPost(p)} style={{ width: tile, height: tile, backgroundColor: theme.colors.bgCardSolid }}>
                   {img ? (
                     <Image source={{ uri: img }} style={StyleSheet.absoluteFill} />
                   ) : (
@@ -179,7 +195,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
                     <Ionicons name="heart" size={11} color="#fff" />
                     <Text style={styles.tileStatText}>{p.likes}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
           </View>
@@ -224,6 +240,10 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
 
       {composing && <CreatePostModal visible onClose={() => setComposing(false)} />}
 
+      {openPost && <PostSheet post={openPost} authorName={profile.name} onClose={() => setOpenPost(null)} />}
+
+      {followList && <FollowListSheet userId={profile._id} which={followList} onClose={() => setFollowList(null)} />}
+
       {editing && sessionToken && (
         <EditBioCover
           token={sessionToken}
@@ -234,6 +254,143 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         />
       )}
     </View>
+  );
+}
+
+/** Followers / following (convex/social.ts followList). */
+function FollowListSheet({ userId, which, onClose }: { userId: string; which: 'followers' | 'following'; onClose: () => void }) {
+  const { t } = useTranslation();
+  const navigation = useNavigation<any>();
+  const people = useQuery(api.social.followList, { userId: userId as any, which });
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.sheetWrap}>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHead}>
+            <Text style={styles.sheetTitle}>{which === 'followers' ? t('pf.followers') : t('pf.following')}</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={theme.colors.bone} /></TouchableOpacity>
+          </View>
+          <ScrollView>
+            {people === undefined ? (
+              <ActivityIndicator color={theme.colors.redPrimary} style={{ margin: 24 }} />
+            ) : people.length === 0 ? (
+              <Text style={styles.muted}>{t('pf.nobody')}</Text>
+            ) : (
+              people.map((u: any) => (
+                <TouchableOpacity
+                  key={u._id}
+                  style={styles.sheetRow}
+                  onPress={() => {
+                    onClose();
+                    navigation.push('PlayerProfile', { userId: u._id });
+                  }}
+                >
+                  <View style={styles.smallAvatar}>
+                    {u.avatar ? <Image source={{ uri: u.avatar }} style={{ width: 36, height: 36 }} /> : <Text style={styles.smallLetter}>{u.name.charAt(0).toUpperCase()}</Text>}
+                  </View>
+                  <Text style={styles.sheetRowText}>{u.name}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** One post from the grid with its likes and comments (website: ProfileView PostModal). */
+function PostSheet({ post, authorName, onClose }: { post: any; authorName: string; onClose: () => void }) {
+  const { t } = useTranslation();
+  const navigation = useNavigation<any>();
+  const { sessionToken } = useUser();
+  const { width } = useWindowDimensions();
+  const comments = useQuery(api.posts.getComments, { postId: post._id });
+  const likes = useQuery(api.posts.getUserLikes, sessionToken ? { sessionToken } : 'skip');
+  const toggleLike = useMutation(api.posts.toggleLike);
+  const addComment = useMutation(api.posts.addComment);
+  const [text, setText] = useState('');
+  const [likeCount, setLikeCount] = useState<number>(post.likes);
+  const [sending, setSending] = useState(false);
+  const liked = (likes ?? []).includes(post._id);
+  const img = post.media?.find((m: any) => m.type === 'image')?.url;
+
+  const like = async () => {
+    if (!sessionToken) return;
+    try {
+      const now = await toggleLike({ postId: post._id, sessionToken });
+      setLikeCount((c) => c + (now ? 1 : -1));
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.data || e?.message || '');
+    }
+  };
+  const send = async () => {
+    if (!sessionToken || !text.trim()) return;
+    setSending(true);
+    try {
+      await addComment({ postId: post._id, sessionToken, text: text.trim() });
+      setText('');
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.data || e?.message || '');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
+        <View style={[styles.sheet, { maxHeight: '92%' }]}>
+          <View style={styles.sheetHead}>
+            <Text style={styles.sheetTitle} numberOfLines={1}>{authorName}</Text>
+            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={theme.colors.bone} /></TouchableOpacity>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            {img && <Image source={{ uri: img }} style={{ width: width - 36, height: width - 36, backgroundColor: '#000', borderRadius: 8 }} resizeMode="contain" />}
+            <View style={{ paddingVertical: 14, gap: 10 }}>
+              {!!post.roomTitle && !!post.roomId && (
+                <TouchableOpacity onPress={() => { onClose(); navigation.navigate('RoomDetails', { id: post.roomId }); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="location" size={13} color={theme.colors.redLight} />
+                  <Text style={{ color: theme.colors.redLight, fontSize: 13 }}>{post.roomTitle}</Text>
+                </TouchableOpacity>
+              )}
+              {!!post.text && <Text style={styles.cardText}>{post.text}</Text>}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+                <TouchableOpacity onPress={like} disabled={!sessionToken} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? theme.colors.redLight : theme.colors.bone} />
+                  <Text style={{ color: theme.colors.bone }}>{likeCount}</Text>
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="chatbubble-outline" size={20} color={theme.colors.textMuted} />
+                  <Text style={{ color: theme.colors.textMuted }}>{(comments ?? []).length}</Text>
+                </View>
+              </View>
+              {(comments ?? []).map((c: any) => (
+                <Text key={c._id} style={styles.cardText}>
+                  <Text style={{ fontWeight: '700', color: theme.colors.bone }} onPress={() => { onClose(); navigation.push('PlayerProfile', { userId: c.userId }); }}>{c.userName}</Text>
+                  {'  '}{c.text}
+                </Text>
+              ))}
+            </View>
+          </ScrollView>
+          {!!sessionToken && (
+            <View style={styles.commentRow}>
+              <TextInput
+                value={text}
+                onChangeText={setText}
+                maxLength={2000}
+                placeholder={t('pf.addComment')}
+                placeholderTextColor={theme.colors.textMuted}
+                style={styles.commentInput}
+              />
+              <TouchableOpacity onPress={send} disabled={sending || !text.trim()}>
+                {sending ? <ActivityIndicator color={theme.colors.redLight} /> : <Text style={{ color: theme.colors.redLight, fontWeight: '700', opacity: text.trim() ? 1 : 0.4 }}>{t('pf.postComment')}</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -385,4 +542,8 @@ const styles = StyleSheet.create({
   charCount: { color: theme.colors.textMuted, fontSize: 11, textAlign: 'right', marginTop: 4 },
   saveBtn: { marginTop: 14, height: 48, borderRadius: 12, backgroundColor: theme.colors.redPrimary, alignItems: 'center', justifyContent: 'center' },
   saveText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  smallAvatar: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', backgroundColor: theme.colors.bgPrimary, alignItems: 'center', justifyContent: 'center' },
+  smallLetter: { color: theme.colors.redLight, fontWeight: '700' },
+  commentRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 12 },
+  commentInput: { flex: 1, color: theme.colors.textPrimary, fontSize: 15, paddingVertical: 8 },
 });

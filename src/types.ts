@@ -59,11 +59,15 @@ export type RootStackParamList = {
   Leaderboard: undefined;
   RoomDetails: { id: string };
   PlayerProfile: { userId: string };
+  // Encrypted chat (convex/messages.ts)
+  Messages: { to?: string } | undefined;
+  Chat: { conversationId: string };
   Companies: undefined;
   CompanyProfile: { companyId: string };
   Passport: { tab?: 'stamps' | 'played' | 'map' | 'maze' } | undefined;
   ScanStamp: undefined;
   AddPlay: undefined;
+  PlayedRoom: { id: string };
   Tower: undefined;
   DateTimeSelect: { id: string; date?: string; time?: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };

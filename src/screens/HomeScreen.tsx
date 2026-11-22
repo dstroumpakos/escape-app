@@ -86,6 +86,11 @@ export default function HomeScreen() {
     api.notifications.unreadCount,
     sessionToken ? { sessionToken } : 'skip',
   ) ?? 0;
+  // Chats with unread messages (convex/messages.ts)
+  const unreadChats = useQuery(
+    api.messages.unreadCount,
+    sessionToken ? { sessionToken } : 'skip',
+  ) ?? 0;
 
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
@@ -159,8 +164,24 @@ export default function HomeScreen() {
             ]}
           />
           <View style={styles.topBar}>
-            {/* Same width as the bell, so the logo sits in the exact middle */}
-            <View style={styles.topBarSpacer} />
+            {/* Messages: same width as the bell, so the logo sits in the exact middle */}
+            {sessionToken ? (
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => navigation.navigate('Messages')}
+                accessibilityRole="button"
+                accessibilityLabel={t('nav.messages')}
+              >
+                <Ionicons
+                  name={unreadChats > 0 ? 'chatbubbles' : 'chatbubbles-outline'}
+                  size={20}
+                  color={theme.colors.bone}
+                />
+                {unreadChats > 0 && <View style={styles.notifDot} />}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.topBarSpacer} />
+            )}
             <View style={styles.brand}>
               <EyeKeyhole size={30} />
               <Flicker period={7000} delay={1500}>

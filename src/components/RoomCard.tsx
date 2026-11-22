@@ -7,6 +7,7 @@ import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
 import { DifficultySkulls } from './ui';
+import { shownRating, formatRating } from '../roomMedia';
 
 /** Tag colour per stored theme value; anything else gets the neutral tag. */
 const THEME_COLORS: Record<string, string> = {
@@ -82,7 +83,9 @@ export function RoomCard({
 }) {
   const { t } = useTranslation();
   const { price, perPerson } = useRoomPrice(room);
-  const hasReviews = (room.reviews ?? 0) > 0;
+  // Our reviews, or another site's when it has more (roomMedia.ts)
+  const shown = shownRating(room);
+  const hasReviews = !!shown;
 
   return (
     <TouchableOpacity
@@ -145,8 +148,12 @@ export function RoomCard({
             size={13}
             color={hasReviews ? theme.colors.gold : theme.colors.textMuted}
           />
-          {hasReviews && <Text style={styles.rating}>{room.rating}</Text>}
-          <Text style={styles.reviews}>{t('roomDetails.reviews', { count: room.reviews ?? 0 })}</Text>
+          {shown && <Text style={styles.rating}>{formatRating(shown.rating)}</Text>}
+          <Text style={styles.reviews} numberOfLines={1}>
+            {shown?.source
+              ? t('room.reviews_on', { count: shown.count.toLocaleString(), source: shown.source })
+              : t('roomDetails.reviews', { count: shown?.count ?? 0 })}
+          </Text>
         </View>
 
         <View style={styles.meta}>
@@ -184,7 +191,9 @@ export function RoomRow({
 }) {
   const { t } = useTranslation();
   const { price } = useRoomPrice(room);
-  const hasReviews = (room.reviews ?? 0) > 0;
+  // Our reviews, or another site's when it has more (roomMedia.ts)
+  const shown = shownRating(room);
+  const hasReviews = !!shown;
   const where = [distanceKm != null ? `${distanceKm.toFixed(1)} km` : null, room.location]
     .filter(Boolean)
     .join(' · ');
@@ -222,7 +231,7 @@ export function RoomRow({
               size={12}
               color={hasReviews ? theme.colors.gold : theme.colors.textMuted}
             />
-            <Text style={styles.rating}>{hasReviews ? room.rating : t('discover.new')}</Text>
+            <Text style={styles.rating}>{shown ? formatRating(shown.rating) : t('discover.new')}</Text>
           </View>
           {BOOKING_ENABLED && <Text style={styles.rowPrice}>{price}</Text>}
         </View>

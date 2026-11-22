@@ -14,13 +14,18 @@ import { formatPlayed, shortPlayed } from '../playTime';
 
 const HEX = '0123456789abcdef';
 
-/** The token in an end-of-game QR (https://<site>/stamp/<48 hex>), or null. */
-function tokenFrom(data: string): string | null {
-  const i = data.indexOf('/stamp/');
-  if (i < 0) return null;
-  const tok = data.slice(i + 7, i + 7 + 48).toLowerCase();
-  if (tok.length !== 48 || ![...tok].every((c) => HEX.includes(c))) return null;
-  return tok;
+/**
+ * The token in an end-of-game QR: a stamp (https://<site>/stamp/<48 hex>) or a
+ * group game seat (https://<site>/g/<48 hex>, convex/games.ts). Null otherwise.
+ */
+function tokenFrom(data: string): { kind: 'stamp' | 'game'; token: string } | null {
+  for (const [kind, path] of [['stamp', '/stamp/'], ['game', '/g/']] as const) {
+    const i = data.indexOf(path);
+    if (i < 0) continue;
+    const tok = data.slice(i + path.length, i + path.length + 48).toLowerCase();
+    if (tok.length === 48 && [...tok].every((c) => HEX.includes(c))) return { kind, token: tok };
+  }
+  return null;
 }
 
 /** Scan the QR the escape room shows at the end of the game and take the room's stamp. */
@@ -30,7 +35,8 @@ export default function ScanStampScreen() {
   const { t } = useTranslation();
   const { sessionToken } = useUser();
   const [permission, requestPermission] = useCameraPermissions();
-  const [token, setToken] = useState<string | null>(null);
+  const [scanned, setScanned] = useState<{ kind: 'stamp' | 'game'; token: string } | null>(null);
+  const token = scanned?.kind === 'stamp' ? scanned.token : null;
   const [badScan, setBadScan] = useState(false);
   const info = useQuery(api.passport.preview, token ? { token, sessionToken: sessionToken ?? undefined } : 'skip');
   const claim = useMutation(api.passport.claim);
@@ -39,11 +45,11 @@ export default function ScanStampScreen() {
   const [done, setDone] = useState<{ total: number; opened: number | null; already: boolean } | null>(null);
 
   const onScan = ({ data }: { data: string }) => {
-    if (token) return;
+    if (scanned) return;
     const tok = tokenFrom(data);
     if (tok) {
       setBadScan(false);
-      setToken(tok);
+      setScanned(tok);
     } else {
       setBadScan(true);
     }
@@ -88,7 +94,7 @@ export default function ScanStampScreen() {
   }
 
   // 2. Scanning
-  if (!token) {
+  if (!scanned) {
     return (
       <View style={styles.container}>
         <CameraView style={StyleSheet.absoluteFill} facing="back" barcodeScannerSettings={{ barcodeTypes: ['qr'] }} onBarcodeScanned={onScan} />
@@ -101,7 +107,17 @@ export default function ScanStampScreen() {
     );
   }
 
-  // 3. Take the stamp
+  // 3a. A seat in a group game
+  if (scanned.kind === 'game') {
+    return (
+      <View style={styles.container}>
+        {Header}
+        <GameClaim token={scanned.token} />
+      </View>
+    );
+  }
+
+  // 3b. Take the stamp
   return (
     <View style={styles.container}>
       {Header}
@@ -142,6 +158,69 @@ export default function ScanStampScreen() {
           </>
         )}
       </View>
+    </View>
+  );
+}
+
+/** What a player sees after scanning a group game QR (escape-web /g/[token]). */
+function GameClaim({ token }: { token: string }) {
+  const navigation = useNavigation<any>();
+  const { t, language } = useTranslation();
+  const { sessionToken } = useUser();
+  const preview = useQuery(api.games.previewClaim, { token });
+  const claim = useMutation(api.games.claimSeat);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<'joined' | 'already_in' | null>(null);
+  const [err, setErr] = useState('');
+
+  const join = async () => {
+    if (!sessionToken) return;
+    setBusy(true);
+    setErr('');
+    try {
+      const r = await claim({ token, sessionToken });
+      setResult(r.result);
+      if (r.result === 'joined') Vibration.vibrate(80);
+    } catch (e: any) {
+      setErr(typeof e?.data === 'string' ? e.data : e?.message || t('error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (preview === undefined) {
+    return <View style={styles.center}><ActivityIndicator color={theme.colors.redPrimary} /></View>;
+  }
+  if (preview.state === 'invalid') {
+    return <View style={styles.center}><Text style={styles.text}>{t('game.invalid')}</Text></View>;
+  }
+  const date = preview.date
+    ? new Date(preview.date + 'T00:00:00').toLocaleDateString(language === 'el' ? 'el-GR' : 'en-GB', { day: 'numeric', month: 'long' })
+    : '';
+  return (
+    <View style={styles.center}>
+      <Ionicons name="people" size={44} color={theme.colors.gold} />
+      <Text style={styles.kicker}>{t('game.title')}</Text>
+      <Text style={styles.room}>{preview.roomName}</Text>
+      {!!date && <Text style={styles.kicker}>{[date, preview.time].filter(Boolean).join(' · ')}</Text>}
+      {result ? (
+        <>
+          <Text style={styles.text}>{result === 'joined' ? t('game.joined') : t('game.already_in')}</Text>
+          <TouchableOpacity style={styles.btn} onPress={() => navigation.goBack()}><Text style={styles.btnText}>OK</Text></TouchableOpacity>
+        </>
+      ) : preview.state === 'expired' ? (
+        <Text style={styles.text}>{t('game.expired')}</Text>
+      ) : preview.state === 'full' ? (
+        <Text style={styles.text}>{t('game.full')}</Text>
+      ) : (
+        <>
+          <Text style={styles.text}>{t('game.seats', { n: preview.seatsLeft })}</Text>
+          <TouchableOpacity style={styles.btn} onPress={join} disabled={busy}>
+            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('game.join')}</Text>}
+          </TouchableOpacity>
+        </>
+      )}
+      {!!err && <Text style={[styles.text, { color: theme.colors.redLight }]}>{err}</Text>}
     </View>
   );
 }

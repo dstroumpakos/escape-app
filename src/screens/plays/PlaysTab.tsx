@@ -145,7 +145,18 @@ function PlayRow({ p }: { p: any }) {
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.rowTitle} onPress={p.roomId ? () => navigation.navigate('RoomDetails', { id: p.roomId }) : undefined}>{p.title}</Text>
+            <Text
+              style={styles.rowTitle}
+              onPress={
+                p.roomId
+                  ? () => navigation.navigate('RoomDetails', { id: p.roomId })
+                  : p.communityRoomId
+                    ? () => navigation.navigate('PlayedRoom', { id: p.communityRoomId })
+                    : undefined
+              }
+            >
+              {p.title}
+            </Text>
             <LevelChip level={p.status} />
           </View>
           <Text style={styles.rowMeta}>

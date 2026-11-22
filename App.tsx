@@ -48,6 +48,7 @@ import CompanyProfileScreen from './src/screens/CompanyProfileScreen';
 import PassportScreen from './src/screens/PassportScreen';
 import ScanStampScreen from './src/screens/ScanStampScreen';
 import AddPlayScreen from './src/screens/plays/AddPlayScreen';
+import PlayedRoomScreen from './src/screens/plays/PlayedRoomScreen';
 import TowerScreen from './src/screens/TowerScreen';
 import CompanyPassport from './src/screens/company/CompanyPassport';
 import DateTimeSelect from './src/screens/DateTimeSelect';
@@ -58,6 +59,9 @@ import SocialScreen from './src/screens/SocialScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
+import MessagesScreen from './src/screens/chat/MessagesScreen';
+import ChatScreen from './src/screens/chat/ChatScreen';
+import { useBackgroundKeySharing } from './src/chat/useChat';
 
 // Legal & Settings Screens (Apple Guidelines compliance)
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
@@ -158,8 +162,17 @@ const DarkNavTheme = {
   },
 };
 
-function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {  const { t } = useTranslation();
+/** Passes chat keys on to friends' new devices while the app is open (src/chat/useChat.ts). */
+function ChatKeySharing() {
+  useBackgroundKeySharing();
+  return null;
+}
+
+function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {
+  const { t } = useTranslation();
   return (
+    <>
+    <ChatKeySharing />
     <Tab.Navigator
       {...tabNavigatorProps}
       screenOptions={tabScreenOptions}
@@ -206,9 +219,10 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {  c
           tabBarIcon: tabIcon('person.fill', 'person'),
         }}
       >
-{() => <ProfileScreen onSwitchToCompany={onSwitchToCompany} />}     
- </Tab.Screen>
+{() => <ProfileScreen onSwitchToCompany={onSwitchToCompany} />}
+      </Tab.Screen>
     </Tab.Navigator>
+    </>
   );
 }
 
@@ -625,11 +639,14 @@ export default function App() {
                   <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
                   <Stack.Screen name="RoomDetails" component={RoomDetails} />
                   <Stack.Screen name="PlayerProfile" component={PlayerProfileScreen} />
+                  <Stack.Screen name="Messages" component={MessagesScreen} />
+                  <Stack.Screen name="Chat" component={ChatScreen} />
                   <Stack.Screen name="Companies" component={CompaniesScreen} />
                   <Stack.Screen name="CompanyProfile" component={CompanyProfileScreen} />
                   <Stack.Screen name="Passport" component={PassportScreen} />
                   <Stack.Screen name="ScanStamp" component={ScanStampScreen} />
                   <Stack.Screen name="AddPlay" component={AddPlayScreen} />
+                  <Stack.Screen name="PlayedRoom" component={PlayedRoomScreen} />
                   <Stack.Screen name="Tower" component={TowerScreen} options={{ animation: 'fade', gestureEnabled: false }} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />

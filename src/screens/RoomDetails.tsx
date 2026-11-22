@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -20,6 +20,8 @@ import { DifficultySkulls, PrimaryButton, TypeLabel } from '../components/ui';
 import { FadeUp } from '../components/motion';
 import { ReviewForm } from '../components/ReviewForm';
 import { RoomMerchStrip } from '../components/RoomMerch';
+import { InstagramStrip } from '../components/InstagramStrip';
+import { shownRating, formatRating, trailerOf } from '../roomMedia';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'RoomDetails'>;
@@ -77,7 +79,9 @@ export default function RoomDetails() {
     );
   }
 
-  const hasReviews = (room.reviews ?? 0) > 0;
+  // Our own reviews, or the room's rating on another site if that has more
+  const shown = shownRating(room);
+  const trailer = trailerOf(room.videoUrl);
   const themeKey = ROOM_THEME_KEYS[room.theme];
   const tags: string[] = room.tags ?? [];
 
@@ -156,12 +160,21 @@ export default function RoomDetails() {
 
           <View style={styles.ratingRow}>
             <Ionicons
-              name={hasReviews ? 'star' : 'star-outline'}
+              name={shown ? 'star' : 'star-outline'}
               size={16}
-              color={hasReviews ? theme.colors.gold : theme.colors.textMuted}
+              color={shown ? theme.colors.gold : theme.colors.textMuted}
             />
-            {hasReviews && <Text style={styles.ratingVal}>{room.rating}</Text>}
-            <Text style={styles.reviewsText}>{t('roomDetails.reviews', { count: room.reviews ?? 0 })}</Text>
+            {shown && <Text style={styles.ratingVal}>{formatRating(shown.rating)}</Text>}
+            {shown?.source ? (
+              <Text
+                style={[styles.reviewsText, !!shown.url && { textDecorationLine: 'underline' }]}
+                onPress={shown.url ? () => Linking.openURL(shown.url!).catch(() => {}) : undefined}
+              >
+                {t('room.reviews_on', { count: shown.count.toLocaleString(), source: shown.source })}
+              </Text>
+            ) : (
+              <Text style={styles.reviewsText}>{t('roomDetails.reviews', { count: shown?.count ?? 0 })}</Text>
+            )}
           </View>
 
           {/* Release Countdown */}
@@ -213,6 +226,26 @@ export default function RoomDetails() {
             </View>
           )}
 
+          {/* Trailer: opens in the YouTube / Vimeo app */}
+          {trailer && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('room.trailer')}</Text>
+              <TouchableOpacity
+                style={styles.trailer}
+                activeOpacity={0.85}
+                onPress={() => Linking.openURL(trailer.open).catch(() => {})}
+                accessibilityRole="link"
+                accessibilityLabel={`${room.title} – ${t('room.trailer')}`}
+              >
+                {trailer.thumb ? <Image source={{ uri: trailer.thumb }} style={StyleSheet.absoluteFill} /> : null}
+                <View style={styles.trailerShade} />
+                <View style={styles.playBtn}>
+                  <Ionicons name="play" size={30} color="#fff" style={{ marginLeft: 4 }} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Experience Tags */}
           {tags.length > 0 && (
             <View style={styles.section}>
@@ -229,6 +262,9 @@ export default function RoomDetails() {
 
           {/* Merch */}
           <RoomMerchStrip roomId={room.id} />
+
+          {/* The company's Instagram */}
+          <InstagramStrip companyId={room.companyId} />
 
           {/* Reviews */}
           <View style={styles.section}>
@@ -390,6 +426,15 @@ const styles = StyleSheet.create({
   infoValue: { fontFamily: theme.fonts.display, fontSize: 17, color: theme.colors.bone },
 
   section: { marginBottom: 28 },
+  trailer: {
+    width: '100%', aspectRatio: 16 / 9, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: '#000',
+    borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center',
+  },
+  trailerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
+  playBtn: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.redPrimary, alignItems: 'center', justifyContent: 'center',
+    ...theme.shadow.red,
+  },
   sectionTitle: { fontFamily: theme.fonts.display, fontSize: 22, color: theme.colors.bone, marginBottom: 12 },
   reviewCount: { fontFamily: undefined, fontSize: 15, color: theme.colors.textMuted },
   storyText: { fontSize: 15, lineHeight: 25, color: theme.colors.textSecondary },
