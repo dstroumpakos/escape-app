@@ -47,11 +47,21 @@ export const getByUser = query({
   handler: async (ctx, args) => {
     const user = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!user) return [];
-    return await ctx.db
+    const list = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
       .take(50);
+    // Friend requests carry where they stand now, so the Accept / Decline
+    // buttons only show while the request is still open ("gone" = withdrawn).
+    return await Promise.all(
+      list.map(async (n) => {
+        if (n.type !== "friend_request" || !n.data?.friendshipId) return n;
+        const id = ctx.db.normalizeId("friendships", String(n.data.friendshipId));
+        const f = id ? await ctx.db.get(id) : null;
+        return { ...n, friendStatus: (f?.status ?? "gone") as string };
+      })
+    );
   },
 });
 

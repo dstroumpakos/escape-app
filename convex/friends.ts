@@ -170,6 +170,8 @@ export const acceptRequest = mutation({
     if (!friendship) throw new Error("Friend request not found");
     if (friendship.receiverId !== receiver._id)
       throw new Error("Only the receiver can accept");
+    // Accepted already (from the app, the friends page or a double tap): nothing to do
+    if (friendship.status === "accepted") return;
     if (friendship.status !== "pending")
       throw new Error("Request already handled");
 

@@ -104,7 +104,9 @@ export default function NotificationsScreen() {
             const icon = ICON_MAP[notif.type as NotifType] || ICON_MAP.system;
             const isFriendRequest = notif.type === 'friend_request' && notif.data?.friendshipId;
             const isBookingInvite = notif.type === 'booking_invite' && notif.data?.bookingInviteId;
-            const showActions = (isFriendRequest || isBookingInvite) && !notif.read;
+            // A friend request answered elsewhere (or withdrawn) has no buttons (convex/notifications.ts friendStatus)
+            const friendOpen = !(notif as any).friendStatus || (notif as any).friendStatus === 'pending';
+            const showActions = ((isFriendRequest && friendOpen) || isBookingInvite) && !notif.read;
             return (
               <TouchableOpacity
                 key={notif._id}
