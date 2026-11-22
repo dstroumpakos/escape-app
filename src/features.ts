@@ -9,8 +9,8 @@
 export const BOOKING_ENABLED = process.env.EXPO_PUBLIC_BOOKING_ENABLED === '1';
 
 /**
- * FOLLOW_ENABLED: following players (follow button, followers / following
- * counts, the "Following" feed, players to follow). Off for now; the code
- * stays. EXPO_PUBLIC_FOLLOW_ENABLED=1 brings it back.
+ * FOLLOW_ENABLED: following players, worded as "following their trail"
+ * (button, trackers / on the trail counts, the "Trails" feed, trails to
+ * follow). On; EXPO_PUBLIC_FOLLOW_ENABLED=0 hides it.
  */
-export const FOLLOW_ENABLED = process.env.EXPO_PUBLIC_FOLLOW_ENABLED === '1';
+export const FOLLOW_ENABLED = process.env.EXPO_PUBLIC_FOLLOW_ENABLED !== '0';

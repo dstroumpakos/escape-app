@@ -181,8 +181,8 @@ export const follow = mutation({
       await notifyUser(ctx, {
         userId: target._id,
         type: "friend_accepted",
-        title: el ? "Νέος follower" : "New follower",
-        message: el ? `Ο/Η ${me.name} σε ακολουθεί.` : `${me.name} started following you.`,
+        title: el ? "🔍 Νέος ιχνηλάτης" : "🔍 New tracker",
+        message: el ? `Ο/Η ${me.name} ακολουθεί τα ίχνη σου.` : `${me.name} is now on your trail.`,
         read: false,
         createdAt: Date.now(),
         data: { kind: "follow", userId: me._id },

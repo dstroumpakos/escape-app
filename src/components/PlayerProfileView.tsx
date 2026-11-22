@@ -114,7 +114,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
               <TouchableOpacity style={profile.viewer.isFollowing ? styles.btnGhost : styles.btnRedWide} onPress={toggleFollow} disabled={busy}>
                 {busy ? <ActivityIndicator size="small" color="#fff" /> : (
                   <>
-                    <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'person-add'} size={15} color={theme.colors.bone} />
+                    <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'footsteps'} size={15} color={theme.colors.bone} />
                     <Text style={styles.btnGhostText}>{profile.viewer.isFollowing ? t('pf.followingBtn') : t('pf.follow')}</Text>
                   </>
                 )}
@@ -131,7 +131,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         {/* Counters (Instagram) */}
         <View style={styles.counts}>
           <Count n={profile.stats.posts} label={t('pf.posts')} />
-          {FOLLOW_ENABLED && <Count n={profile.stats.followers} label={t('pf.followers')} />}
+          {FOLLOW_ENABLED && <Count n={profile.stats.followers} label={profile.stats.followers === 1 ? t('pf.followerOne') : t('pf.followers')} />}
           {FOLLOW_ENABLED && <Count n={profile.stats.following} label={t('pf.following')} />}
           <Count n={profile.stats.played} label={t('pf.rooms')} />
         </View>
