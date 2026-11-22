@@ -220,6 +220,10 @@ export default defineSchema({
     // Per-player-count pricing: [{ players: 2, price: 50 }, { players: 3, price: 42 }, ...]
     pricePerGroup: v.optional(v.array(v.object({ players: v.number(), price: v.number() }))),
     theme: v.string(),
+    // How scary it is, set by the company: "none" = puzzle side only, "some" =
+    // both sides (marked "a little fear"), "high" = horror side only.
+    // Unset = taken from the theme (lib/mode.ts fearOf).
+    fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),

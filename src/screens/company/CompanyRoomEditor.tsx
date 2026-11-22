@@ -90,6 +90,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [price, setPrice] = useState('');
   const [pricePerGroup, setPricePerGroup] = useState<Record<number, string>>({});
   const [selectedTheme, setSelectedTheme] = useState('Horror');
+  // How scary it is (rooms.fearLevel). '' = not picked: follows the theme.
+  const [fearLevel, setFearLevel] = useState<'' | 'none' | 'some' | 'high'>('');
+  const fear = fearLevel || (['Horror', 'Thriller', 'Paranormal'].includes(selectedTheme) ? 'high' : 'none');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [story, setStory] = useState('');
@@ -284,6 +287,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         setPricePerGroup(map);
       }
       setSelectedTheme(existingRoom.theme);
+      setFearLevel(((existingRoom as any).fearLevel ?? '') as '' | 'none' | 'some' | 'high');
       setSelectedTags(existingRoom.tags);
       setDescription(existingRoom.description);
       setStory(existingRoom.story);
@@ -385,6 +389,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           playersMax: pMax,
           price: parseFloat(price) || 0,
           theme: selectedTheme,
+          fearLevel: fear,
           tags: selectedTags,
           description: description.trim(),
           story: story.trim(),
@@ -418,6 +423,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           playersMax: pMax,
           price: parseFloat(price) || 0,
           theme: selectedTheme,
+          fearLevel: fear,
           tags: selectedTags,
           description: description.trim(),
           story: story.trim(),
@@ -735,6 +741,29 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* How scary: decides the puzzle / horror side on the website */}
+        <Text style={styles.sectionTitle}>{t('fear.label')}</Text>
+        <Text style={styles.fearHint}>{t('fear.hint')}</Text>
+        <View style={styles.fearRow}>
+          {(['none', 'some', 'high'] as const).map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.fearOption, fear === f && styles.chipActive]}
+              onPress={() => setFearLevel(f)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: fear === f }}
+            >
+              <Ionicons
+                name={f === 'none' ? 'key-outline' : f === 'some' ? 'moon-outline' : 'skull-outline'}
+                size={18}
+                color={fear === f ? theme.colors.redPrimary : theme.colors.textSecondary}
+              />
+              <Text style={[styles.chipText, fear === f && styles.chipTextActive]}>{t(`fear.${f}`)}</Text>
+              <Text style={styles.fearDesc}>{t(`fear.${f}_desc`)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* Tags */}
         <Text style={styles.sectionTitle}>{t('roomEditor.tagsSection')}</Text>
@@ -1427,6 +1456,18 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: theme.colors.glassBorder,
   },
   chipActive: { backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary },
+  fearHint: { fontSize: 12, color: theme.colors.textMuted, marginHorizontal: 20, marginTop: -6, marginBottom: 10 },
+  fearRow: { marginHorizontal: 20, marginBottom: 20, gap: 8 },
+  fearOption: {
+    borderWidth: 1,
+    borderColor: theme.colors.glassBorder,
+    backgroundColor: theme.colors.glass,
+    borderRadius: theme.radius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  fearDesc: { fontSize: 12, color: theme.colors.textMuted },
   chipText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
   chipTextActive: { color: theme.colors.redPrimary },
 

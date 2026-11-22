@@ -511,6 +511,7 @@ export const createRoom = mutation({
     releaseDate: v.optional(v.string()),
     bookingUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
+    fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
   },
   handler: async (ctx, { sessionToken, ...args }) => {
     const company = await requireCompany(ctx, { companyId: args.companyId, sessionToken }, "companies:createRoom");
@@ -626,6 +627,7 @@ export const updateRoom = mutation({
     releaseDate: v.optional(v.string()),
     bookingUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
+    fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
   },
   handler: async (ctx, args) => {
     const { roomId, sessionToken, ...fields } = args;
