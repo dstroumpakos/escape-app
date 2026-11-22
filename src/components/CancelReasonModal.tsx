@@ -68,7 +68,9 @@ export default function CancelReasonModal({
   const hint = reason && reasonHint ? reasonHint(reason) : null;
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => !saving && onClose()}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => {
+      if (!saving) onClose();
+    }}>
       <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{title}</Text>

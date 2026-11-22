@@ -177,7 +177,7 @@ export default function ChatScreen() {
             <Text style={[styles.center, { transform: [{ scaleY: -1 }] }]}>{t('msg.no_messages')}</Text>
           )
         }
-        ListFooterComponent={status === 'LoadingMore' ? <ActivityIndicator color={theme.colors.textMuted} style={{ margin: 10 }} /> : null}
+        ListFooterComponent={status === 'LoadingMore' ? <ActivityIndicator color={theme.colors.textMuted} style={{ margin: 10 }} /> : undefined}
         renderItem={({ item: m, index }) => {
           const older = messages[index + 1];
           const newDay = !older || new Date(older.createdAt).toDateString() !== new Date(m.createdAt).toDateString();

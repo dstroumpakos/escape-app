@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   placeholder: { width: 150, height: 150, borderRadius: 75, borderWidth: 2, borderStyle: 'dashed', borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center' },
   btn: { marginTop: 10, minWidth: 220, height: 50, borderRadius: 12, backgroundColor: theme.colors.redPrimary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  frameWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  frameWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   frame: { width: 250, height: 250, borderRadius: 24, borderWidth: 3, borderColor: theme.colors.gold },
   hint: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', paddingHorizontal: 24 },
   hintText: { color: '#fff', fontSize: 15, textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, overflow: 'hidden' },

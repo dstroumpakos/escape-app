@@ -20,7 +20,8 @@ export default function TowerScreen() {
   const { sessionToken } = useUser();
   const data = useQuery(api.passport.mine, sessionToken ? { sessionToken } : 'skip');
   const placeStamp = useMutation(api.passport.placeStamp);
-  const web = useRef<WebView>(null);
+  // react-native-webview 14 types the component without a ref; postMessage is all we use
+  const web = useRef<{ postMessage: (message: string) => void } | null>(null);
   const ready = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -61,7 +62,7 @@ export default function TowerScreen() {
     <View style={styles.container}>
       <StatusBar hidden />
       <WebView
-        ref={web}
+        {...({ ref: web } as object)}
         source={{ uri: URL_ }}
         style={styles.container}
         onMessage={onMessage}

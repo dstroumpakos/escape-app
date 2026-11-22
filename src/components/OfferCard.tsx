@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)', borderWidth: 1, borderColor: 'rgba(200, 16, 27, 0.35)',
   },
   imageBox: { height: 140, backgroundColor: theme.colors.bgCardSolid },
-  placeholder: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  placeholder: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   percent: {
     position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: theme.colors.redPrimary, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6,

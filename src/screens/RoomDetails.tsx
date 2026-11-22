@@ -106,7 +106,7 @@ export default function RoomDetails() {
           <LinearGradient
             colors={['rgba(8,5,5,0.55)', 'rgba(8,5,5,0)', 'rgba(8,5,5,0.5)', theme.colors.bgPrimary]}
             locations={[0, 0.3, 0.72, 1]}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
 
           <TouchableOpacity
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
 
   headerImg: { height: 320, overflow: 'hidden', backgroundColor: '#150A0A' },
   heroImage: { width: '100%', height: '100%' },
-  headerTint: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(40, 0, 4, 0.25)' },
+  headerTint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(40, 0, 4, 0.25)' },
   squareBtn: {
     position: 'absolute', width: 40, height: 40, borderRadius: theme.radius.lg,
     backgroundColor: 'rgba(0,0,0,0.65)', alignItems: 'center', justifyContent: 'center',
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     width: '100%', aspectRatio: 16 / 9, borderRadius: theme.radius.lg, overflow: 'hidden', backgroundColor: '#000',
     borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center',
   },
-  trailerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
+  trailerShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.3)' },
   playBtn: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.redPrimary, alignItems: 'center', justifyContent: 'center',
     ...theme.shadow.red,

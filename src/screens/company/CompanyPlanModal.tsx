@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   selectBtnText: { color: theme.colors.bone, fontSize: 16, fontWeight: '700' },
 
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center', justifyContent: 'center',
   },

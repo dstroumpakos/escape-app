@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   },
   mediaImage: { width: '100%', height: '100%' },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center',
     justifyContent: 'center',

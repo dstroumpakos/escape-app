@@ -98,7 +98,7 @@ export default function MapView() {
       {/* Real Map */}
       <RNMapView
         ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         provider={PROVIDER_DEFAULT}
         initialRegion={defaultRegion}
         showsUserLocation
