@@ -65,16 +65,17 @@ export async function findUserSession(ctx: Ctx, token: string): Promise<Doc<"use
 
 // ── Old app builds ──────────────────────────────────────────────────────
 // App builds up to 1.1.0 send the player's userId instead of a session token.
-// Until PLAYER_AUTH_ENFORCE is "1", a call with no token but a userId still
-// works exactly as before and logs "[player-auth:legacy]", so we can see when
-// the old builds are gone. Then set PLAYER_AUTH_ENFORCE=1 on prod. A call that
-// sends a token never falls back, even if the token has expired.
+// Such calls are refused, unless PLAYER_AUTH_ENFORCE is set to "0" (a
+// temporary escape hatch: they then work as before and log
+// "[player-auth:legacy]"). Secure by default. A call that sends a token never
+// falls back, even if the token has expired.
 
 /** Validator for the userId that old app builds send (each function lists it under the name the old build used). */
 export const legacyUserIdV = v.optional(v.id("users"));
 
 export function playerAuthEnforced(): boolean {
-  return process.env.PLAYER_AUTH_ENFORCE === "1";
+  const flag = process.env.PLAYER_AUTH_ENFORCE;
+  return flag !== "0" && flag !== "false";
 }
 
 async function legacyUser(ctx: Ctx, legacyUserId: Id<"users"> | undefined): Promise<Doc<"users"> | null> {

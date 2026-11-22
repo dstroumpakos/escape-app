@@ -26,7 +26,8 @@ export async function assertUpload(
   const meta = await ctx.db.system.get(storageId);
   if (!meta) throw new ConvexError("Upload not found");
   const type = meta.contentType ?? "";
-  if (!kinds.some((k) => type.startsWith(`${k}/`))) {
+  // SVG can carry scripts: never accept it as a photo.
+  if (!kinds.some((k) => type.startsWith(`${k}/`)) || type.includes("svg")) {
     throw new ConvexError(kinds.includes("video") ? "Only photos and videos can be uploaded" : "Only images can be uploaded");
   }
   if (meta.size > maxBytes) {

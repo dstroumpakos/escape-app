@@ -11,10 +11,10 @@ import type { Doc, Id } from "./_generated/dataModel";
 // its SHA-256. Every company-scoped function resolves the calling company
 // from the token instead of trusting a `companyId` argument.
 //
-// Transition: older app builds don't send a token. Until the env var
-// COMPANY_AUTH_ENFORCE is "1", calls without a token still work exactly as
-// before but log a "[company-auth:legacy]" warning so we can see who still
-// uses them. Once those logs stop, set COMPANY_AUTH_ENFORCE=1 on prod.
+// Older app builds don't send a token. Calls without one are refused, unless
+// the env var COMPANY_AUTH_ENFORCE is set to "0" (a temporary escape hatch:
+// they then work as before and log "[company-auth:legacy]"). Secure by
+// default, so a new deployment without the variable is never open.
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // sliding, see resumeSession
 /** Clients match on this exact text to send the user back to the login page. */
@@ -28,7 +28,7 @@ type Ctx = QueryCtx | MutationCtx;
 
 function enforced(): boolean {
   const flag = process.env.COMPANY_AUTH_ENFORCE;
-  return flag === "1" || flag === "true";
+  return flag !== "0" && flag !== "false";
 }
 
 function toHex(bytes: Uint8Array): string {
