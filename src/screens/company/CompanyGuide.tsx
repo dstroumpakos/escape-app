@@ -388,7 +388,7 @@ export default function CompanyGuide({ onBack }: { onBack: () => void }) {
           <Card>
             <Bullets items={[
               g('Τα δωμάτιά σας εμφανίζονται στο Featured Spotlight της αρχικής σελίδας', 'Your rooms appear in the Featured Spotlight on the home page'),
-              g('Ορίζετε ημερομηνία κυκλοφορίας και οι Premium παίκτες κλείνουν έως 3 ημέρες νωρίτερα', 'You set a release date and Premium players can book up to 3 days early'),
+              g('Ορίζετε ημερομηνία κυκλοφορίας και οι Premium παίκτες το βλέπουν έως 3 ημέρες νωρίτερα', 'You set a release date and Premium players see it up to 3 days early'),
               g('Οι Premium παίκτες ειδοποιούνται όταν προσθέτετε νέο δωμάτιο', 'Premium players are notified when you add a new room'),
               g('Τα δωμάτιά σας έχουν το σήμα "Early Access"', 'Your rooms show the "Early Access" badge'),
             ]} />

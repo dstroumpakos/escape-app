@@ -887,25 +887,30 @@ export const leaderboard = query({
 export async function computeLeaderboard(ctx: QueryCtx, max: number) {
     
 
-    // Fetch all users and only completed bookings (use status index)
-    const [allUsers, completedBookings] = await Promise.all([
+    // Games count from stamps (the team QR after a game, so they are verified)
+    // plus completed bookings from the old booking system. Rooms added by hand
+    // (roomsPlayed) are not verified and do not count here.
+    const [allUsers, completedBookings, allStamps] = await Promise.all([
       ctx.db.query("users").collect(),
       ctx.db.query("bookings").withIndex("by_status", (q) => q.eq("status", "completed")).collect(),
+      ctx.db.query("stamps").collect(),
     ]);
 
-    // Compute dynamic stats per user using a Map for O(1) lookups
-    const userBookingsMap = new Map<string, typeof completedBookings>();
-    for (const b of completedBookings) {
-      if (!b.userId) continue;
-      const uid = b.userId as string;
-      if (!userBookingsMap.has(uid)) userBookingsMap.set(uid, []);
-      userBookingsMap.get(uid)!.push(b);
-    }
+    // Per user: room -> escaped? (one game per room, an escape wins)
+    const userRooms = new Map<string, Map<string, boolean>>();
+    const mark = (uid: string, roomId: string, escaped: boolean) => {
+      if (!userRooms.has(uid)) userRooms.set(uid, new Map());
+      const rooms = userRooms.get(uid)!;
+      rooms.set(roomId, (rooms.get(roomId) ?? false) || escaped);
+    };
+    for (const b of completedBookings) if (b.userId) mark(b.userId as string, b.roomId as string, true);
+    for (const st of allStamps) mark(st.userId as string, st.roomId as string, st.escaped);
 
     const userStats = allUsers.map((user) => {
-      const userBookings = userBookingsMap.get(user._id as string) ?? [];
-      const played = userBookings.length;
-      const escaped = new Set(userBookings.map((b) => b.roomId)).size;
+      const rooms = userRooms.get(user._id as string);
+      const played = rooms?.size ?? 0;
+      let escaped = 0;
+      rooms?.forEach((e) => { if (e) escaped++; });
       return { ...user, played, escaped };
     });
 
@@ -981,6 +986,12 @@ export async function computeLeaderboard(ctx: QueryCtx, max: number) {
     const allBookings = await ctx.db.query("bookings").collect();
 
     const roomStats: Record<string, { completed: number; total: number }> = {};
+    for (const st of allStamps) {
+      const rid = st.roomId as string;
+      if (!roomStats[rid]) roomStats[rid] = { completed: 0, total: 0 };
+      roomStats[rid].total += 1;
+      if (st.escaped) roomStats[rid].completed += 1;
+    }
     for (const booking of allBookings) {
       if (booking.status === "cancelled") continue;
       const rid = booking.roomId as string;

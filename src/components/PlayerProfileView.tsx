@@ -33,8 +33,11 @@ const RANKS: Record<string, string> = {
 
 type Tab = 'posts' | 'about' | 'rooms';
 
+const EN_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const EL_MONTHS = ['Ιαν', 'Φεβ', 'Μαρ', 'Απρ', 'Μαΐ', 'Ιουν', 'Ιουλ', 'Αυγ', 'Σεπ', 'Οκτ', 'Νοε', 'Δεκ'];
+
 export function PlayerProfileView({ userId, onEditBasics }: { userId: string; onEditBasics?: () => void }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const navigation = useNavigation<any>();
   const { sessionToken } = useUser();
   const { width } = useWindowDimensions();
@@ -58,7 +61,10 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
     return v === key ? fallback : v;
   };
   const rank = profile.title ? (RANKS[profile.title] ? tr(RANKS[profile.title], profile.title) : profile.title) : '';
-  const since = (profile.memberSince || '').replace('Member since', '').trim();
+  // memberSince is stored as "Member since Nov 2026"; Greek month names by hand (Hermes may lack el dates).
+  const sinceEn = (profile.memberSince || '').replace('Member since', '').trim();
+  const mi = EN_MONTHS.indexOf(sinceEn.slice(0, 3));
+  const since = language === 'el' && mi >= 0 ? sinceEn.replace(/^[A-Z][a-z]{2}/, EL_MONTHS[mi]) : sinceEn;
   const tile = (width - 4) / 3;
 
   const toggleFollow = async () => {

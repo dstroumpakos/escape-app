@@ -37,7 +37,7 @@ const texts: Record<Lang, Record<string, string>> = {
 
     // New room (premium notification)
     "new_room.title": "🆕 New Room: {{room}}",
-    "new_room.message": "{{company}} just added a new escape room! As a Premium member, you can book it before anyone else.",
+    "new_room.message": "{{company}} just added a new escape room! As a Premium member, you see it before anyone else.",
     "new_room.follow_message": "{{company}}, which you follow, just added a new escape room. Take a look!",
 
     // Last-minute offers
@@ -77,7 +77,7 @@ const texts: Record<Lang, Record<string, string>> = {
 
     // New room (premium notification)
     "new_room.title": "🆕 Νέο Δωμάτιο: {{room}}",
-    "new_room.message": "Η {{company}} μόλις πρόσθεσε ένα νέο escape room! Ως Premium μέλος, μπορείς να το κλείσεις πριν από όλους.",
+    "new_room.message": "Η {{company}} μόλις πρόσθεσε ένα νέο escape room! Ως Premium μέλος, το βλέπεις πριν από όλους.",
     "new_room.follow_message": "Η {{company}}, που ακολουθείς, μόλις πρόσθεσε νέο escape room. Ρίξε μια ματιά!",
 
     // Last-minute offers

@@ -2027,7 +2027,7 @@ export const translations: Record<Language, Record<string, string>> = {
   //  GREEK (Ελληνικά)
   // ═══════════════════════════════════════════════════════════
   el: {
-    'pp.title': "My Passport",
+    'pp.title': "Το Passport μου",
     'pp.scan': "Σκάναρε",
     'pp.scanTitle': "Σκάναρε το QR",
     'pp.scanHint': "Στόχευσε το QR που σου δείχνει το escape room στο τέλος του παιχνιδιού.",
