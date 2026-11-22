@@ -39,6 +39,7 @@ import type * as games from "../games.js";
 import type * as googleAuth from "../googleAuth.js";
 import type * as http from "../http.js";
 import type * as instagram from "../instagram.js";
+import type * as leaderboardScore from "../leaderboardScore.js";
 import type * as merch from "../merch.js";
 import type * as merchPayments from "../merchPayments.js";
 import type * as merchRules from "../merchRules.js";
@@ -119,6 +120,7 @@ declare const fullApi: ApiFromModules<{
   googleAuth: typeof googleAuth;
   http: typeof http;
   instagram: typeof instagram;
+  leaderboardScore: typeof leaderboardScore;
   merch: typeof merch;
   merchPayments: typeof merchPayments;
   merchRules: typeof merchRules;

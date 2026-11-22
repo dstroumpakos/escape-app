@@ -1,6 +1,7 @@
 import { query, mutation, action, internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 import { removeOwnerTokens } from "./push";
 import { readPublicCache } from "./publicCache";
+import { scoreUsers, athensMonth, type ScoreParts } from "./leaderboardScore";
 import type { Id } from "./_generated/dataModel";
 import { verifyAppleIdentityToken } from "./appleAuth";
 import { verifyGoogleIdToken } from "./googleAuth";
@@ -914,60 +915,52 @@ export async function computeLeaderboard(ctx: QueryCtx, max: number) {
       return { ...user, played, escaped };
     });
 
-    // Sort by escaped count descending, then by played ascending (fewer games = better rate)
-    const sorted = userStats
-      .filter((u) => u.played > 0)
-      .sort((a, b) => {
-        if (b.escaped !== a.escaped) return b.escaped - a.escaped;
-        return a.played - b.played;
+    // ── Score (leaderboardScore.ts): all-time and this month ──
+    const [allReviews, allBadges, allPosts] = await Promise.all([
+      ctx.db.query("reviews").collect(),
+      ctx.db.query("badges").collect(),
+      ctx.db.query("posts").collect(),
+    ]);
+    const month = athensMonth(Date.now());
+    const scored = scoreUsers(allUsers, { stamps: allStamps, bookings: completedBookings, reviews: allReviews, badges: allBadges, posts: allPosts }, month);
+    const userById = new Map(allUsers.map((u) => [u._id as string, u]));
+
+    const board = async (parts: Map<string, ScoreParts>) => {
+      const ranked = [...parts.entries()]
+        .filter(([id, p]) => p.score > 0 && userById.has(id))
+        .sort((x, y) => y[1].score - x[1].score || y[1].escapes - x[1].escapes);
+      const top = ranked.slice(0, max);
+      const avatars = await Promise.all(
+        top.map(async ([id]) => {
+          const u = userById.get(id)!;
+          return (u.avatarStorageId ? await ctx.storage.getUrl(u.avatarStorageId) : null) || u.avatar || "";
+        })
+      );
+      const players = top.map(([id, p], i) => {
+        const u = userById.get(id)!;
+        // Shared place for equal scores (1, 2, 2, 4)
+        const rank = i > 0 && top[i - 1][1].score === p.score ? -1 : i + 1;
+        return {
+          rank,
+          id: u._id,
+          name: u.name,
+          avatar: avatars[i],
+          initials: u.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2),
+          title: u.title ?? "",
+          // Kept for older app builds (LeaderboardScreen)
+          played: p.games,
+          escaped: p.escapes,
+          rate: p.games > 0 ? Math.round((p.escapes / p.games) * 100) : 0,
+          isPremium: u.isPremium ?? false,
+          ...p,
+        };
       });
-
-    const topUsers = sorted.slice(0, max);
-
-    // Batch-fetch badges for all top users in parallel
-    const badgeCounts = await Promise.all(
-      topUsers.map(async (user) => {
-        const badges = await ctx.db
-          .query("badges")
-          .withIndex("by_user", (q) => q.eq("userId", user._id))
-          .collect();
-        return badges.length;
-      })
-    );
-
-    // Batch-resolve avatars for users with storageIds
-    const avatarUrls = await Promise.all(
-      topUsers.map(async (user) => {
-        if (user.avatarStorageId) {
-          return await ctx.storage.getUrl(user.avatarStorageId);
-        }
-        return null;
-      })
-    );
-
-    const players = topUsers.map((user, i) => {
-      const avatar = avatarUrls[i] || user.avatar;
-      const rate = user.played > 0 ? Math.round((user.escaped / user.played) * 100) : 0;
-      const initials = user.name
-        .split(" ")
-        .map((w: string) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-
-      return {
-        rank: i + 1,
-        id: user._id,
-        name: user.name,
-        avatar,
-        initials,
-        played: user.played,
-        escaped: user.escaped,
-        rate,
-        badges: badgeCounts[i],
-        isPremium: user.isPremium ?? false,
-      };
-    });
+      for (let i = 0; i < players.length; i++) if (players[i].rank === -1) players[i].rank = players[i - 1].rank;
+      return { players, scores: ranked.map(([, p]) => p.score) };
+    };
+    const allTimeBoard = await board(scored.allTime);
+    const monthBoard = await board(scored.month);
+    const players = allTimeBoard.players;
 
     // Aggregate stats across ALL users (dynamic)
     const totalEscapes = userStats.reduce((sum, u) => sum + u.escaped, 0);
@@ -976,7 +969,7 @@ export async function computeLeaderboard(ctx: QueryCtx, max: number) {
 
     // Total badges — count from the already-loaded badge queries for top users
     // For accuracy we still need the full count, but we can use a single query
-    const allBadgesCount = (await ctx.db.query("badges").collect()).length;
+    const allBadgesCount = allBadges.length;
 
     // ── Per-room escape stats (computed from bookings) ──
     const allRooms = await filterPublicRooms(ctx, await ctx.db.query("rooms").collect());
@@ -1041,6 +1034,11 @@ export async function computeLeaderboard(ctx: QueryCtx, max: number) {
 
     return {
       players,
+      monthPlayers: monthBoard.players,
+      month,
+      // Every score above 0, high to low: "my position" counts the ones above you
+      scores: allTimeBoard.scores,
+      monthScores: monthBoard.scores,
       topRooms: topRoomsEnriched,
       stats: {
         totalEscapes,
