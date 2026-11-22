@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   },
   mediaImage: { width: '100%', height: '100%' },
   playOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -812,11 +812,11 @@ const styles = StyleSheet.create({
 
   /* Comment overlay */
   commentOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 100,
   },
   commentBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   commentSheet: {

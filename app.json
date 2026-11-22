@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "unlocked",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#080505"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.unlocked.escapeapp",
@@ -82,6 +77,15 @@
         {
           "cameraPermission": "Allow Unlocked to use the camera to scan the QR code at the end of a game.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#080505"
         }
       ]
     ],

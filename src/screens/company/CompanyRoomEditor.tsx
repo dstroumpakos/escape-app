@@ -1496,7 +1496,7 @@ const styles = StyleSheet.create({
   },
   map: { flex: 1 },
   mapOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
   },

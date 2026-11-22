@@ -12,6 +12,7 @@
  * saved as empty so the date follows the weekly schedule again.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ScrollViewInstance } from 'react-native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
   ActivityIndicator, Animated, KeyboardAvoidingView, Platform,
@@ -142,7 +143,7 @@ export default function CompanySlots({ companyId }: { companyId: string }) {
   const [stripStart, setStripStart] = useState(today);
   const [rangeOpen, setRangeOpen] = useState(false);
   const { toast, show, hide } = useToast();
-  const stripRef = useRef<ScrollView>(null);
+  const stripRef = useRef<ScrollViewInstance>(null);
 
   const rooms = useCompanyQuery(api.companies.getRooms, { companyId: companyId as Id<'companies'> });
   const bookings = useCompanyQuery(api.companies.getBookingsByDate, { companyId: companyId as Id<'companies'>, date });

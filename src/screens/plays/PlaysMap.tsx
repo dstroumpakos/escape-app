@@ -36,7 +36,7 @@ export default function PlaysMap({ pins }: { pins: Pin[] }) {
   return (
     <View style={{ gap: 10 }}>
       <View style={styles.mapWrap}>
-        <RNMapView style={StyleSheet.absoluteFillObject} provider={PROVIDER_DEFAULT} initialRegion={region} userInterfaceStyle="dark">
+        <RNMapView style={StyleSheet.absoluteFill} provider={PROVIDER_DEFAULT} initialRegion={region} userInterfaceStyle="dark">
           {pins.map((p) => {
             const color = (LEVELS[p.level as Level] ?? LEVELS.declared).color;
             return (

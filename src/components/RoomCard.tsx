@@ -241,7 +241,7 @@ export function RoomRow({
 }
 
 const styles = StyleSheet.create({
-  fill: { ...StyleSheet.absoluteFillObject },
+  fill: { ...StyleSheet.absoluteFill },
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
 
   card: {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   cardEarly: { borderColor: 'rgba(201, 154, 46, 0.5)' },
   imgWrap: { aspectRatio: 16 / 10, backgroundColor: '#0A0505', overflow: 'hidden' },
   placeholder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#150A0A',

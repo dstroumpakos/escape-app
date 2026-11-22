@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   noPhotosText: { fontSize: 13, color: theme.colors.textMuted },
 
   uploadOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.7)',
     alignItems: 'center', justifyContent: 'center',
     zIndex: 50,

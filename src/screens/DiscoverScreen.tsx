@@ -258,7 +258,7 @@ export default function DiscoverScreen() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        style={StyleSheet.absoluteFillObject}
+        style={StyleSheet.absoluteFill}
         initialRegion={DEFAULT_REGION}
         customMapStyle={darkMapStyle}
         showsUserLocation
