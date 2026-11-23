@@ -18,6 +18,7 @@ import { assertUpload, MAX_IMAGE_BYTES, UPLOADS_PER_HOUR_USER, isOwnStorageUrl }
 import { filterPublicRooms } from "./companyRules";
 import { removeUserFromChats } from "./messages";
 import { deletePlayerPlays } from "./plays";
+import { isSupportedLanguage } from "./languages";
 
 export const getByEmail = internalQuery({
   args: { email: v.string() },
@@ -209,7 +210,7 @@ async function createPlayer(
     awards: 0,
     wishlist: [],
     emailVerified: p.emailVerified,
-    language: p.lang === "el" || p.lang === "nl" || p.lang === "en" ? p.lang : undefined,
+    language: isSupportedLanguage(p.lang) ? p.lang : undefined,
   });
 
   if (!p.emailVerified) {
@@ -543,7 +544,7 @@ export const googleLogin = internalMutation({
       escaped: 0,
       awards: 0,
       wishlist: [],
-      language: args.lang === "el" || args.lang === "nl" || args.lang === "en" ? args.lang : undefined,
+      language: isSupportedLanguage(args.lang) ? args.lang : undefined,
     });
 
     await ctx.scheduler.runAfter(0, internal.email.sendPlayerWelcome, {
@@ -622,7 +623,7 @@ export const updateLanguage = mutation({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx, args.sessionToken);
     // Only languages we have texts for (also called from the public HTTP /updateLanguage).
-    if (!["en", "el", "nl"].includes(args.language)) throw new ConvexError("Unsupported language");
+    if (!isSupportedLanguage(args.language)) throw new ConvexError("Unsupported language");
     await ctx.db.patch(user._id, { language: args.language });
   },
 });

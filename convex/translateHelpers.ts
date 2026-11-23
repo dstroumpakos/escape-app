@@ -1,25 +1,14 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { translationsValidator } from "./languages";
 
 // Internal mutation to save translations back to the room
 // Separated from translate.ts because "use node" files can't export mutations
 export const saveTranslations = internalMutation({
   args: {
     roomId: v.id("rooms"),
-    storyTranslations: v.optional(
-      v.object({
-        en: v.optional(v.string()),
-        el: v.optional(v.string()),
-        nl: v.optional(v.string()),
-      })
-    ),
-    descriptionTranslations: v.optional(
-      v.object({
-        en: v.optional(v.string()),
-        el: v.optional(v.string()),
-        nl: v.optional(v.string()),
-      })
-    ),
+    storyTranslations: v.optional(translationsValidator),
+    descriptionTranslations: v.optional(translationsValidator),
   },
   handler: async (ctx, args) => {
     const { roomId, ...translations } = args;

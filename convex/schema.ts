@@ -13,6 +13,7 @@ import {
   merchUnlockRuleV,
   merchVariantV,
 } from "./merchRules";
+import { translationsValidator } from "./languages";
 
 export default defineSchema({
   // ─── Company / Business ───
@@ -228,16 +229,8 @@ export default defineSchema({
     description: v.string(),
     story: v.string(),
     // Multi-language translations for story & description
-    storyTranslations: v.optional(v.object({
-      en: v.optional(v.string()),
-      el: v.optional(v.string()),
-      nl: v.optional(v.string()),
-    })),
-    descriptionTranslations: v.optional(v.object({
-      en: v.optional(v.string()),
-      el: v.optional(v.string()),
-      nl: v.optional(v.string()),
-    })),
+    storyTranslations: v.optional(translationsValidator),
+    descriptionTranslations: v.optional(translationsValidator),
     isNew: v.optional(v.boolean()),
     isFeatured: v.optional(v.boolean()),
     isTrending: v.optional(v.boolean()),

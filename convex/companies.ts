@@ -47,6 +47,7 @@ import {
   requireBookingOf,
   SESSION_TTL_MS,
 } from "./companySession";
+import { translationsValidator } from "./languages";
 
 const clientV = v.optional(v.union(v.literal("web"), v.literal("app")));
 
@@ -496,8 +497,8 @@ export const createRoom = mutation({
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),
-    storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
-    descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
+    storyTranslations: v.optional(translationsValidator),
+    descriptionTranslations: v.optional(translationsValidator),
     paymentTerms: v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival"))),
     depositPercent: v.optional(v.number()),
     termsOfUse: v.optional(v.string()),
@@ -610,8 +611,8 @@ export const updateRoom = mutation({
     tags: v.optional(v.array(v.string())),
     description: v.optional(v.string()),
     story: v.optional(v.string()),
-    storyTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
-    descriptionTranslations: v.optional(v.object({ en: v.optional(v.string()), el: v.optional(v.string()), nl: v.optional(v.string()) })),
+    storyTranslations: v.optional(translationsValidator),
+    descriptionTranslations: v.optional(translationsValidator),
     paymentTerms: v.optional(v.array(v.union(v.literal("full"), v.literal("deposit_20"), v.literal("pay_on_arrival")))),
     depositPercent: v.optional(v.number()),
     termsOfUse: v.optional(v.string()),
