@@ -731,6 +731,9 @@ export default defineSchema({
     city: v.string(),
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
+    // Up to 4 photos: the stored files and their URLs (worked out on the server)
+    photoIds: v.optional(v.array(v.id("_storage"))),
+    photos: v.optional(v.array(v.string())),
     status: v.union(v.literal("open"), v.literal("closed")),
     createdAt: v.number(),
     updatedAt: v.number(),

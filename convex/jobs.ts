@@ -1,10 +1,11 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { QueryCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireCompany } from "./companySession";
 import { companyIsPublic } from "./companyRules";
 import { rateLimit, HOUR } from "./rateLimit";
+import { assertUpload, storageUrl, MAX_IMAGE_BYTES } from "./uploads";
 
 /**
  * Job ads. A company writes an ad ("we are looking for a game master"), picks
@@ -19,6 +20,7 @@ export const JOB_GENDERS = ["male", "female"] as const;
 export const JOB_EMPLOYMENT = ["full", "part", "freelance", "seasonal"] as const;
 
 const MAX_OPEN_PER_COMPANY = 10;
+export const MAX_JOB_PHOTOS = 4;
 const MAX_LIST = 200;
 const LIMITS = { title: 90, description: 50000 /* only a guard for the database */, city: 60, email: 120, phone: 30 };
 
@@ -32,6 +34,7 @@ const postArgs = {
   city: v.string(),
   contactEmail: v.optional(v.string()),
   contactPhone: v.optional(v.string()),
+  photoIds: v.optional(v.array(v.id("_storage"))), // uploaded with companies:generateUploadUrl
 };
 
 type PostInput = {
@@ -44,6 +47,7 @@ type PostInput = {
   city: string;
   contactEmail?: string;
   contactPhone?: string;
+  photoIds?: Id<"_storage">[];
 };
 
 const only = <T extends readonly string[]>(list: string[], allowed: T) =>
@@ -90,6 +94,18 @@ function clean(input: PostInput, company: Doc<"companies">) {
   };
 }
 
+/** Checks the uploaded photos (images, max 10 MB, at most 4) and works out their URLs on the server. */
+async function photosOf(ctx: MutationCtx, ids: Id<"_storage">[] | undefined) {
+  const photoIds = [...new Set(ids ?? [])];
+  if (photoIds.length > MAX_JOB_PHOTOS) throw new ConvexError(`Up to ${MAX_JOB_PHOTOS} photos per job ad.`);
+  const photos: string[] = [];
+  for (const id of photoIds) {
+    await assertUpload(ctx, id, "image", MAX_IMAGE_BYTES);
+    photos.push(await storageUrl(ctx, id));
+  }
+  return { photoIds, photos };
+}
+
 async function ownPost(ctx: QueryCtx, company: Doc<"companies">, postId: Id<"jobPosts">) {
   const post = await ctx.db.get(postId);
   if (!post || post.companyId !== company._id) throw new ConvexError("Job ad not found.");
@@ -120,7 +136,7 @@ export const create = mutation({
   args: { sessionToken: v.string(), ...postArgs },
   handler: async (ctx, { sessionToken, ...input }) => {
     const company = await requireCompany(ctx, { sessionToken }, "jobs:create");
-    const data = clean(input, company);
+    const data = { ...clean(input, company), ...(await photosOf(ctx, input.photoIds)) };
     if ((await openCount(ctx, company._id)) >= MAX_OPEN_PER_COMPANY) {
       throw new ConvexError(`You can have up to ${MAX_OPEN_PER_COMPANY} open job ads. Close an old one first.`);
     }
@@ -136,7 +152,12 @@ export const update = mutation({
     const company = await requireCompany(ctx, { sessionToken }, "jobs:update");
     await ownPost(ctx, company, postId);
     await rateLimit(ctx, `jobPostEdit:${company._id}`, 60, HOUR);
-    await ctx.db.patch(postId, { ...clean(input, company), updatedAt: Date.now() });
+    await ctx.db.patch(postId, {
+      ...clean(input, company),
+      // Without photoIds (an older client) the photos stay as they are
+      ...(input.photoIds ? await photosOf(ctx, input.photoIds) : {}),
+      updatedAt: Date.now(),
+    });
   },
 });
 
@@ -177,6 +198,7 @@ function publicPost(p: Doc<"jobPosts">, c: Doc<"companies">) {
     city: p.city,
     contactEmail: p.contactEmail ?? "",
     contactPhone: p.contactPhone ?? "",
+    photos: p.photos ?? [],
     createdAt: p.createdAt,
     company: { _id: c._id, name: c.name, logo: c.logo || "", city: c.city || "" },
   };
