@@ -53,8 +53,9 @@ const only = <T extends readonly string[]>(list: string[], allowed: T) =>
 function clean(input: PostInput, company: Doc<"companies">) {
   const title = input.title.trim();
   const description = input.description.trim();
-  const city = (input.city.trim() || company.city || "").trim();
   const country = (input.country ?? "").trim().toUpperCase();
+  // With a country the company picks the city itself; the company's own city is only a fallback for old clients without one.
+  const city = (input.city.trim() || (country ? "" : company.city) || "").trim();
   const contactEmail = (input.contactEmail ?? "").trim().toLowerCase();
   const contactPhone = (input.contactPhone ?? "").trim();
   const roles = only(input.roles, JOB_ROLES);
@@ -66,6 +67,7 @@ function clean(input: PostInput, company: Doc<"companies">) {
   if (description.length > LIMITS.description) throw new ConvexError("The text of the ad is too long.");
   if (roles.length === 0) throw new ConvexError("Pick at least one role.");
   if (country && !/^[A-Z]{2}$/.test(country)) throw new ConvexError("Pick a country from the list.");
+  if (country && !city) throw new ConvexError("Pick a city.");
   if (city.length > LIMITS.city) throw new ConvexError("The city is too long.");
   if (contactEmail && (contactEmail.length > LIMITS.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
     throw new ConvexError("The contact email doesn't look right.");
