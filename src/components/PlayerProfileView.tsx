@@ -118,29 +118,25 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
                   <Ionicons name="add" size={18} color="#fff" />
                 </TouchableOpacity>
               </>
-            ) : profile.viewer.isFriend ? (
+            ) : profile.viewer.loggedIn ? (
               <>
-                <TouchableOpacity style={styles.btnRedWide} onPress={() => navigation.navigate('Messages', { to: profile._id })}>
-                  <Ionicons name="chatbubble-ellipses" size={15} color="#fff" />
-                  <Text style={styles.btnGhostText}>{t('pf.message')}</Text>
-                </TouchableOpacity>
+                {/* The same two buttons on every profile: follow, and message (if they
+                    don't follow you, the message arrives as a message request) */}
                 {FOLLOW_ENABLED && (
-                  <TouchableOpacity style={styles.btnGhost} onPress={toggleFollow} disabled={busy}>
+                  <TouchableOpacity style={profile.viewer.isFollowing ? styles.btnGhost : styles.btnRedWide} onPress={toggleFollow} disabled={busy}>
                     {busy ? <ActivityIndicator size="small" color="#fff" /> : (
-                      <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'footsteps'} size={15} color={theme.colors.bone} />
+                      <>
+                        <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'footsteps'} size={15} color={theme.colors.bone} />
+                        <Text style={styles.btnGhostText}>{profile.viewer.isFollowing ? t('pf.followingBtn') : t('pf.follow')}</Text>
+                      </>
                     )}
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity style={styles.btnGhost} onPress={() => navigation.navigate('Messages', { to: profile._id })}>
+                  <Ionicons name="chatbubble-ellipses" size={15} color={theme.colors.bone} />
+                  <Text style={styles.btnGhostText}>{t('pf.message')}</Text>
+                </TouchableOpacity>
               </>
-            ) : FOLLOW_ENABLED && profile.viewer.loggedIn ? (
-              <TouchableOpacity style={profile.viewer.isFollowing ? styles.btnGhost : styles.btnRedWide} onPress={toggleFollow} disabled={busy}>
-                {busy ? <ActivityIndicator size="small" color="#fff" /> : (
-                  <>
-                    <Ionicons name={profile.viewer.isFollowing ? 'checkmark' : 'footsteps'} size={15} color={theme.colors.bone} />
-                    <Text style={styles.btnGhostText}>{profile.viewer.isFollowing ? t('pf.followingBtn') : t('pf.follow')}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
             ) : null}
           </View>
         </View>
@@ -162,7 +158,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         <View style={styles.metaRow}>
           {!!profile.city && <Text style={styles.meta}><Ionicons name="location-outline" size={12} /> {profile.city}</Text>}
           {!!since && <Text style={styles.meta}><Ionicons name="calendar-outline" size={12} /> {t('pf.memberSince', { date: since })}</Text>}
-          {profile.viewer.isFriend && <Text style={[styles.meta, { color: theme.colors.gold }]}>{t('pf.friends')}</Text>}
+          {profile.viewer.isFriend && <Text style={[styles.meta, { color: theme.colors.gold }]}>{t('people.mutual_badge')}</Text>}
         </View>
       </View>
 

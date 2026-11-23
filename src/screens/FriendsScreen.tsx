@@ -10,38 +10,29 @@ import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
-import type { Id } from '../../convex/_generated/dataModel';
 
-type Tab = 'friends' | 'requests' | 'search';
+type Tab = 'mutual' | 'search';
 
+/**
+ * Players: no friend requests. You follow players (one way); players who
+ * follow each other are listed here. A message to someone who doesn't follow
+ * you arrives in their message requests (Messages).
+ */
 export default function FriendsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const { userId, sessionToken } = useUser();
-  const [activeTab, setActiveTab] = useState<Tab>('friends');
+  const [activeTab, setActiveTab] = useState<Tab>('mutual');
   const [searchTerm, setSearchTerm] = useState('');
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const friends = useQuery(
-    api.friends.listFriends,
-    sessionToken ? { sessionToken } : 'skip',
-  );
-  const pending = useQuery(
-    api.friends.pendingRequests,
-    sessionToken ? { sessionToken } : 'skip',
-  );
+  const mutual = useQuery(api.friends.listFriends, sessionToken ? { sessionToken } : 'skip');
   const searchResults = useQuery(
     api.friends.searchUsers,
-    sessionToken && searchTerm.trim().length >= 2
-      ? { sessionToken, searchTerm }
-      : 'skip',
+    sessionToken && searchTerm.trim().length >= 3 ? { sessionToken, searchTerm: searchTerm.trim() } : 'skip',
   );
-
-  const sendRequest = useMutation(api.friends.sendRequest);
-  const acceptRequest = useMutation(api.friends.acceptRequest);
-  const declineRequest = useMutation(api.friends.declineRequest);
-  const removeFriend = useMutation(api.friends.removeFriend);
-
-  const pendingCount = pending?.length ?? 0;
+  const follow = useMutation(api.social.follow);
+  const unfollow = useMutation(api.social.unfollow);
 
   if (!userId) {
     return (
@@ -51,6 +42,36 @@ export default function FriendsScreen() {
     );
   }
 
+  const toggleFollow = async (id: string, following: boolean) => {
+    setBusy(id);
+    try {
+      await (following ? unfollow : follow)({ sessionToken: sessionToken as string, userId: id as any });
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.message ?? '');
+    }
+    setBusy(null);
+  };
+
+  const avatarOf = (p: any) =>
+    p.avatar ? (
+      <Image source={{ uri: p.avatar }} style={styles.avatar} />
+    ) : (
+      <View style={[styles.avatar, styles.avatarPlaceholder]}>
+        <Text style={styles.avatarInitial}>{p.name?.charAt(0)?.toUpperCase() ?? '?'}</Text>
+      </View>
+    );
+
+  const openProfile = (id: string) => navigation.navigate('PlayerProfile', { userId: id });
+  const messageBtn = (id: string) => (
+    <TouchableOpacity
+      style={styles.removeBtn}
+      onPress={() => navigation.navigate('Messages', { to: id })}
+      accessibilityLabel={t('people.message')}
+    >
+      <Ionicons name="chatbubble-outline" size={18} color={theme.colors.textMuted} />
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -58,144 +79,58 @@ export default function FriendsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.colors.bone} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('friends.title')}</Text>
+        <Text style={styles.headerTitle}>{t('people.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Tabs */}
       <View style={styles.tabs}>
-        {(['friends', 'requests', 'search'] as Tab[]).map((tab) => (
+        {(['mutual', 'search'] as Tab[]).map((tab) => (
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-              {tab === 'friends' ? t('friends.myFriends') :
-               tab === 'requests' ? t('friends.requests') :
-               t('friends.findFriends')}
+              {tab === 'mutual' ? `${t('people.mutual')} (${mutual?.length ?? 0})` : t('people.find')}
             </Text>
-            {tab === 'requests' && pendingCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{pendingCount}</Text>
-              </View>
-            )}
           </TouchableOpacity>
         ))}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* ─── My Friends Tab ─── */}
-        {activeTab === 'friends' && (
+        {/* ─── Following each other ─── */}
+        {activeTab === 'mutual' && (
           <>
-            {friends === undefined ? (
+            {mutual === undefined ? (
               <ActivityIndicator size="large" color={theme.colors.redPrimary} style={{ marginTop: 40 }} />
-            ) : friends.length === 0 ? (
+            ) : mutual.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="people-outline" size={48} color={theme.colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends.noFriends')}</Text>
+                <Text style={styles.emptyText}>{t('people.none_desc')}</Text>
                 <TouchableOpacity style={styles.emptyBtn} onPress={() => setActiveTab('search')}>
                   <Ionicons name="search" size={16} color={theme.colors.bone} />
-                  <Text style={styles.emptyBtnText}>{t('friends.findFriends')}</Text>
+                  <Text style={styles.emptyBtnText}>{t('people.find')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              friends.map((friend: any) => (
-                <View key={friend._id} style={styles.card}>
-                  {friend.avatar ? (
-                    <Image source={{ uri: friend.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarInitial}>
-                        {friend.name?.charAt(0)?.toUpperCase() ?? '?'}
-                      </Text>
+              mutual.map((p: any) => (
+                <View key={p._id} style={styles.card}>
+                  <TouchableOpacity style={styles.cardLink} onPress={() => openProfile(p._id)} activeOpacity={0.7}>
+                    {avatarOf(p)}
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardName}>{p.name}</Text>
+                      {!!p.title && <Text style={styles.cardSub}>{p.title}</Text>}
                     </View>
-                  )}
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardName}>{friend.name}</Text>
-                    <Text style={styles.cardSub}>{friend.title}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.removeBtn}
-                    onPress={() => {
-                      Alert.alert(
-                        t('friends.removeFriend'),
-                        t('friends.removeConfirm', { name: friend.name }),
-                        [
-                          { text: t('cancel'), style: 'cancel' },
-                          {
-                            text: t('friends.remove'),
-                            style: 'destructive',
-                            onPress: () => removeFriend({
-                              friendshipId: friend.friendshipId,
-                              sessionToken: sessionToken as string,
-                            }),
-                          },
-                        ]
-                      );
-                    }}
-                  >
-                    <Ionicons name="person-remove-outline" size={18} color={theme.colors.textMuted} />
                   </TouchableOpacity>
+                  {messageBtn(p._id)}
                 </View>
               ))
             )}
           </>
         )}
 
-        {/* ─── Requests Tab ─── */}
-        {activeTab === 'requests' && (
-          <>
-            {pending === undefined ? (
-              <ActivityIndicator size="large" color={theme.colors.redPrimary} style={{ marginTop: 40 }} />
-            ) : pending.length === 0 ? (
-              <View style={styles.empty}>
-                <Ionicons name="mail-open-outline" size={48} color={theme.colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends.noRequests')}</Text>
-              </View>
-            ) : (
-              pending.map((req: any) => (
-                <View key={req.friendshipId} style={styles.card}>
-                  {req.avatar ? (
-                    <Image source={{ uri: req.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarInitial}>
-                        {req.name?.charAt(0)?.toUpperCase() ?? '?'}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardName}>{req.name}</Text>
-                    <Text style={styles.cardSub}>{req.title}</Text>
-                  </View>
-                  <View style={styles.requestActions}>
-                    <TouchableOpacity
-                      style={styles.acceptBtn}
-                      onPress={() => acceptRequest({
-                        friendshipId: req.friendshipId,
-                        sessionToken: sessionToken as string,
-                      })}
-                    >
-                      <Ionicons name="checkmark" size={18} color={theme.colors.bone} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.declineBtn}
-                      onPress={() => declineRequest({
-                        friendshipId: req.friendshipId,
-                        sessionToken: sessionToken as string,
-                      })}
-                    >
-                      <Ionicons name="close" size={18} color={theme.colors.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-          </>
-        )}
-
-        {/* ─── Find Friends Tab ─── */}
+        {/* ─── Find players ─── */}
         {activeTab === 'search' && (
           <>
             <View style={styles.searchWrap}>
@@ -216,10 +151,10 @@ export default function FriendsScreen() {
               )}
             </View>
 
-            {searchTerm.trim().length < 2 ? (
+            {searchTerm.trim().length < 3 ? (
               <View style={styles.empty}>
                 <Ionicons name="search-outline" size={48} color={theme.colors.textMuted} />
-                <Text style={styles.emptyText}>{t('friends.searchHint')}</Text>
+                <Text style={styles.emptyText}>{t('people.search_desc')}</Text>
               </View>
             ) : searchResults === undefined ? (
               <ActivityIndicator size="large" color={theme.colors.redPrimary} style={{ marginTop: 40 }} />
@@ -229,55 +164,30 @@ export default function FriendsScreen() {
                 <Text style={styles.emptyText}>{t('friends.noResults')}</Text>
               </View>
             ) : (
-              searchResults.map((user: any) => (
-                <View key={user._id} style={styles.card}>
-                  {user.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                      <Text style={styles.avatarInitial}>
-                        {user.name?.charAt(0)?.toUpperCase() ?? '?'}
-                      </Text>
+              searchResults.map((u: any) => (
+                <View key={u._id} style={styles.card}>
+                  <TouchableOpacity style={styles.cardLink} onPress={() => openProfile(u._id)} activeOpacity={0.7}>
+                    {avatarOf(u)}
+                    <View style={styles.cardInfo}>
+                      <Text style={styles.cardName}>{u.name}</Text>
+                      <Text style={styles.cardSub}>{u.followsYou ? t('people.follows_you') : u.title}</Text>
                     </View>
-                  )}
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardName}>{user.name}</Text>
-                    <Text style={styles.cardSub}>{user.title}</Text>
-                  </View>
-                  {user.friendshipStatus === 'friends' ? (
-                    <View style={styles.friendsBadge}>
-                      <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                      <Text style={styles.friendsBadgeText}>{t('friends.alreadyFriends')}</Text>
-                    </View>
-                  ) : user.friendshipStatus === 'request_sent' ? (
-                    <View style={styles.sentBadge}>
-                      <Ionicons name="time-outline" size={16} color="#FFA726" />
-                      <Text style={styles.sentBadgeText}>{t('friends.requestSent')}</Text>
-                    </View>
-                  ) : user.friendshipStatus === 'request_received' ? (
-                    <View style={styles.sentBadge}>
-                      <Ionicons name="mail-outline" size={16} color="#42A5F5" />
-                      <Text style={styles.sentBadgeText}>{t('friends.requestReceived')}</Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.addBtn}
-                      onPress={async () => {
-                        try {
-                          await sendRequest({
-                            sessionToken: sessionToken as string,
-                            receiverId: user._id,
-                          });
-                          Alert.alert(t('success'), t('friends.requestSentSuccess'));
-                        } catch (e: any) {
-                          Alert.alert(t('error'), e.message);
-                        }
-                      }}
-                    >
-                      <Ionicons name="person-add" size={16} color={theme.colors.bone} />
-                      <Text style={styles.addBtnText}>{t('friends.addFriend')}</Text>
-                    </TouchableOpacity>
-                  )}
+                  </TouchableOpacity>
+                  {messageBtn(u._id)}
+                  <TouchableOpacity
+                    style={[styles.addBtn, u.isFollowing && styles.followingBtn]}
+                    disabled={busy === u._id}
+                    onPress={() => toggleFollow(u._id, !!u.isFollowing)}
+                  >
+                    {busy === u._id ? (
+                      <ActivityIndicator size="small" color={theme.colors.bone} />
+                    ) : (
+                      <Ionicons name={u.isFollowing ? 'checkmark' : 'person-add'} size={16} color={theme.colors.bone} />
+                    )}
+                    <Text style={styles.addBtnText}>
+                      {u.isFollowing ? t('people.following') : u.followsYou ? t('people.follow_back') : t('people.follow')}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ))
             )}
@@ -340,6 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarInitial: { fontSize: 18, fontFamily: theme.fonts.display, color: theme.colors.redPrimary },
+  cardLink: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cardInfo: { flex: 1, gap: 2 },
   cardName: { fontSize: 15, fontWeight: '700', color: theme.colors.bone },
   cardSub: { fontSize: 12, color: theme.colors.textMuted },
@@ -382,6 +293,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.redPrimary,
   },
   addBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.bone },
+  followingBtn: { backgroundColor: theme.colors.glass },
 
   // Status badges
   friendsBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },

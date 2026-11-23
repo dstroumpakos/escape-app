@@ -7,6 +7,7 @@ import { requireUser, optionalUser } from "./userSession";
 import { rateLimit, HOUR, MINUTE } from "./rateLimit";
 import { filterContent } from "./moderation";
 import { avatarUrl } from "./avatars";
+import { areConnected, follows } from "./connections";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Encrypted chat: direct messages and groups
@@ -109,16 +110,6 @@ async function members(ctx: Ctx, conversationId: Id<"conversations">) {
     .query("conversationMembers")
     .withIndex("by_conversation", (q) => q.eq("conversationId", conversationId))
     .collect();
-}
-
-async function areFriends(ctx: Ctx, a: Id<"users">, b: Id<"users">): Promise<boolean> {
-  const [sent, received] = await Promise.all([
-    ctx.db.query("friendships").withIndex("by_requester", (q) => q.eq("requesterId", a)).collect(),
-    ctx.db.query("friendships").withIndex("by_receiver", (q) => q.eq("receiverId", a)).collect(),
-  ]);
-  return [...sent, ...received].some(
-    (f) => f.status === "accepted" && (f.requesterId === b || f.receiverId === b)
-  );
 }
 
 /** True if either player blocked the other. */
@@ -264,7 +255,11 @@ export const registerDevice = mutation({
 
 // ─── Conversations ───────────────────────────────────────────────────
 
-/** Opens the direct chat with a friend (creates it the first time). */
+/**
+ * Opens the direct chat with a player (creates it the first time). Anyone can
+ * write to anyone they haven't blocked; if the other player doesn't follow you
+ * (and you aren't connected), the chat waits in their Requests until they accept.
+ */
 export const startDirect = mutation({
   args: { sessionToken: v.string(), userId: v.id("users") },
   handler: async (ctx, args) => {
@@ -296,11 +291,17 @@ export const startDirect = mutation({
           await ctx.db.patch(existing._id, { needsRotation: true });
         }
       }
+      // I chose to write to them myself: any request of mine in this chat is accepted
+      const myRow = await getMember(ctx, existing._id, me._id);
+      if (myRow?.request) await ctx.db.patch(myRow._id, { request: undefined });
+      // They follow me now: an open or turned-down request of theirs becomes a normal chat
+      const theirs = await getMember(ctx, existing._id, other._id);
+      if (theirs?.request && (await follows(ctx, other._id, me._id))) await ctx.db.patch(theirs._id, { request: undefined });
       return existing._id;
     }
 
-    if (!(await areFriends(ctx, me._id, other._id))) throw new ConvexError("You can message your friends only.");
     await rateLimit(ctx, `chat:start:${me._id}`, 60, HOUR);
+    const asRequest = !(await follows(ctx, other._id, me._id)) && !(await areConnected(ctx, me._id, other._id));
     const now = Date.now();
     const id = await ctx.db.insert("conversations", {
       kind: "direct",
@@ -319,6 +320,7 @@ export const startDirect = mutation({
         fromKeyVersion: 1,
         joinedAt: now,
         lastReadAt: now,
+        ...(uid === other._id && asRequest ? { request: "pending" as const } : {}),
       });
     }
     return id;
@@ -332,10 +334,10 @@ export const createGroup = mutation({
     const me = await requireUser(ctx, args.sessionToken);
     const name = cleanGroupName(args.name);
     const others = [...new Set(args.memberIds.filter((id) => id !== me._id))];
-    if (others.length === 0) throw new ConvexError("Add at least one friend.");
+    if (others.length === 0) throw new ConvexError("Add at least one player.");
     if (others.length + 1 > MAX_GROUP_MEMBERS) throw new ConvexError(`A group can have at most ${MAX_GROUP_MEMBERS} members.`);
     for (const id of others) {
-      if (!(await areFriends(ctx, me._id, id))) throw new ConvexError("You can add your friends only.");
+      if (!(await areConnected(ctx, me._id, id))) throw new ConvexError("You can add players you follow each other with only.");
     }
     await rateLimit(ctx, `chat:group:${me._id}`, 20, HOUR);
 
@@ -380,6 +382,7 @@ export const listConversations = query({
 
     const rows = await Promise.all(
       mine.map(async (m) => {
+        if (m.request === "declined") return null;
         const conv = await ctx.db.get(m.conversationId);
         if (!conv) return null;
         const all = await members(ctx, conv._id);
@@ -416,6 +419,10 @@ export const listConversations = query({
           memberCount: all.length,
           lastMessageAt: conv.lastMessageAt,
           unread,
+          // "pending": someone I don't follow wrote to me (Requests tab)
+          request: m.request ?? null,
+          // I wrote to someone who hasn't accepted yet
+          awaiting: other?.request === "pending",
           lastMessage: last
             ? {
                 senderId: last.senderId,
@@ -448,6 +455,7 @@ export const unreadCount = query({
       .take(MAX_CONVERSATIONS);
     let n = 0;
     for (const m of mine) {
+      if (m.request === "declined") continue;
       const newer = await ctx.db
         .query("chatMessages")
         .withIndex("by_conversation", (q) => q.eq("conversationId", m.conversationId).gt("createdAt", m.lastReadAt))
@@ -473,7 +481,10 @@ export const getConversation = query({
       all.map(async (m) => ({ ...(await publicUser(ctx, m.userId)), role: m.role, isMe: m.userId === me._id }))
     );
     const other = conv.kind === "direct" ? people.find((p) => !p.isMe) ?? null : null;
+    const otherRow = conv.kind === "direct" ? all.find((m) => m.userId !== me._id) : undefined;
     return {
+      request: mine.request ?? null,
+      awaiting: otherRow?.request === "pending",
       _id: conv._id,
       kind: conv.kind,
       name: conv.kind === "group" ? conv.name ?? "" : other?.name ?? "",
@@ -761,8 +772,31 @@ export const sendMessage = mutation({
       createdAt: now,
     });
     await ctx.db.patch(conv._id, { lastMessageAt: now });
-    await ctx.db.patch(member._id, { lastReadAt: now });
+    // Replying to a message request accepts it
+    await ctx.db.patch(member._id, { lastReadAt: now, ...(member.request ? { request: undefined } : {}) });
     return id;
+  },
+});
+
+/** Accept a message request: it becomes a normal chat. */
+export const acceptMessageRequest = mutation({
+  args: { sessionToken: v.string(), conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const me = await requireUser(ctx, args.sessionToken);
+    const { member } = await requireMember(ctx, args.conversationId, me._id);
+    if (member.request) await ctx.db.patch(member._id, { request: undefined, lastReadAt: Date.now() });
+    return null;
+  },
+});
+
+/** Turn down a message request: it disappears for me. The sender isn't told. */
+export const declineMessageRequest = mutation({
+  args: { sessionToken: v.string(), conversationId: v.id("conversations") },
+  handler: async (ctx, args) => {
+    const me = await requireUser(ctx, args.sessionToken);
+    const { member } = await requireMember(ctx, args.conversationId, me._id);
+    if (member.request === "pending") await ctx.db.patch(member._id, { request: "declined" });
+    return null;
   },
 });
 
@@ -796,7 +830,7 @@ export const addMembers = mutation({
     if (toAdd.length === 0) return null;
     if (current.length + toAdd.length > MAX_GROUP_MEMBERS) throw new ConvexError(`A group can have at most ${MAX_GROUP_MEMBERS} members.`);
     for (const id of toAdd) {
-      if (!(await areFriends(ctx, me._id, id))) throw new ConvexError("You can add your friends only.");
+      if (!(await areConnected(ctx, me._id, id))) throw new ConvexError("You can add players you follow each other with only.");
     }
     const now = Date.now();
     for (const id of toAdd) {

@@ -232,7 +232,7 @@ function AskVouchModal({ visible, logId, onClose }: { visible: boolean; logId: s
           <Text style={styles.hint}>{t('pl.ask_vouch_hint')}</Text>
           <ScrollView style={{ maxHeight: 300, marginTop: 12 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
             {friends === undefined ? <ActivityIndicator color={theme.colors.redPrimary} /> : null}
-            {friends && friends.length === 0 ? <Text style={styles.hint}>{t('pl.no_friends')}</Text> : null}
+            {friends && friends.length === 0 ? <Text style={styles.hint}>{t('pl.no_mutual')}</Text> : null}
             {(friends ?? []).map((f: any) => {
               const on = team.includes(f._id);
               return (

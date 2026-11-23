@@ -1,6 +1,7 @@
 import { playsTranslations } from './playsTranslations';
 import { leaderboardTranslations } from './leaderboardTranslations';
 import { chatTranslations } from './chatTranslations';
+import { peopleTranslations } from './peopleTranslations';
 
 // ─── i18n translations ───
 // Every user-facing string in the app, keyed for easy lookup.
@@ -4062,6 +4063,10 @@ Object.assign(translations.el, playsTranslations.el);
 // Chat and the other website features (chatTranslations.ts).
 Object.assign(translations.en, chatTranslations.en);
 Object.assign(translations.el, chatTranslations.el);
+
+// Players and message requests (peopleTranslations.ts).
+Object.assign(translations.en, peopleTranslations.en);
+Object.assign(translations.el, peopleTranslations.el);
 
 // Leaderboard with scores (leaderboardTranslations.ts).
 Object.assign(translations.en, leaderboardTranslations.en);

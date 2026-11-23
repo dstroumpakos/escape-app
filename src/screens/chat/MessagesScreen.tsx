@@ -31,6 +31,8 @@ export default function MessagesScreen() {
   const [newMode, setNewMode] = useState<'direct' | 'group' | null>(null);
   const [startErr, setStartErr] = useState('');
   const startedFor = useRef('');
+  // Message requests: chats from players I don't follow, waiting for me
+  const [tab, setTab] = useState<'chats' | 'requests'>('chats');
 
   const list = useQuery(
     api.messages.listConversations,
@@ -58,6 +60,9 @@ export default function MessagesScreen() {
   }, [list, device, userId, t]);
 
   const open = (id: string) => navigation.navigate('Chat', { conversationId: id });
+  const requests = (list ?? []).filter((c: any) => c.request === 'pending');
+  const shown = (list ?? []).filter((c: any) => (tab === 'requests') === (c.request === 'pending'));
+  const showTabs = requests.length > 0 || tab === 'requests';
 
   let body: React.ReactNode;
   if (error) {
@@ -71,7 +76,7 @@ export default function MessagesScreen() {
     );
   } else if (list === undefined) {
     body = <ActivityIndicator color={theme.colors.redPrimary} style={{ marginTop: 40 }} />;
-  } else if (list.length === 0) {
+  } else if (list.length === 0 && tab === 'chats') {
     body = (
       <View style={styles.centerBox}>
         <Ionicons name="chatbubbles-outline" size={40} color={theme.colors.redLight} />
@@ -87,12 +92,28 @@ export default function MessagesScreen() {
   } else {
     body = (
       <FlatList
-        data={list}
+        data={shown}
         keyExtractor={(c) => c._id}
         contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         ListHeaderComponent={
           <>
             {!!startErr && <Text style={[styles.muted, { padding: 12 }]}>{startErr}</Text>}
+            {showTabs && (
+              <View style={styles.tabs}>
+                {(['chats', 'requests'] as const).map((k) => (
+                  <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }}>
+                    <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
+                      {k === 'chats' ? t('msg.tab_chats') : t('msg.tab_requests')}{k === 'requests' && requests.length ? ` (${requests.length})` : ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {tab === 'requests' && (
+              <Text style={[styles.muted, { paddingHorizontal: 16, paddingBottom: 8, textAlign: 'left' }]}>
+                {requests.length ? t('msg.requests_hint') : t('msg.no_requests')}
+              </Text>
+            )}
             <View style={styles.e2e}>
               <Ionicons name="lock-closed" size={12} color={theme.colors.success} />
               <Text style={styles.e2eText}>{t('msg.e2e_long')}</Text>
@@ -110,7 +131,7 @@ export default function MessagesScreen() {
                   <Text style={styles.time}>{formatTime(c.lastMessageAt, language)}</Text>
                 </View>
                 <View style={styles.rowTop}>
-                  <Text style={[styles.preview, c.unread > 0 && { color: theme.colors.textPrimary }]} numberOfLines={1}>{preview}</Text>
+                  <Text style={[styles.preview, c.unread > 0 && { color: theme.colors.textPrimary }]} numberOfLines={1}>{(c as any).awaiting && !previews[c._id] ? t('msg.awaiting') : preview}</Text>
                   {c.unread > 0 && (
                     <View style={styles.badge}><Text style={styles.badgeText}>{c.unread > 99 ? '99+' : c.unread}</Text></View>
                   )}
@@ -224,6 +245,7 @@ function NewChatSheet({ mode, onClose, onOpen }: { mode: 'direct' | 'group'; onC
         </View>
       )}
       <FriendPicker
+        anyone={mode === 'direct'}
         selected={mode === 'group' ? selected : undefined}
         onToggle={mode === 'group' ? toggle : undefined}
         onPick={mode === 'direct' ? (f) => !busy && run(() => startDirect({ sessionToken, userId: f._id as any })) : undefined}
@@ -233,6 +255,11 @@ function NewChatSheet({ mode, onClose, onOpen }: { mode: 'direct' | 'group'; onC
 }
 
 const styles = StyleSheet.create({
+  tabs: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 6 },
+  tab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+  tabOn: { backgroundColor: 'rgba(255,30,30,0.15)' },
+  tabText: { fontSize: 13, fontWeight: '600', color: theme.colors.textSecondary },
+  tabTextOn: { color: theme.colors.redLight },
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
   iconBtn: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },

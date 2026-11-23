@@ -931,6 +931,9 @@ export default defineSchema({
     fromKeyVersion: v.number(),
     joinedAt: v.number(),
     lastReadAt: v.number(),
+    // Direct chats only: a message from someone this member doesn't follow
+    // waits as a request until they accept it ("declined" hides it).
+    request: v.optional(v.union(v.literal("pending"), v.literal("declined"))),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_user", ["userId"])

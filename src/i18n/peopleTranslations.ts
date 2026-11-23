@@ -1,0 +1,68 @@
+/**
+ * No friend requests: players follow each other, and a message from someone
+ * you don't follow arrives as a message request. Same texts as the website
+ * (escape-web/src/lib/i18nPeople.ts). Merged in translations.ts.
+ */
+const en: Record<string, string> = {
+  'people.title': 'Players',
+  'people.subtitle': 'Follow players. Those you follow each other with can be teammates, join group chats and get booking invites.',
+  'people.mutual': 'Follow each other',
+  'people.find': 'Find players',
+  'people.none': 'Nobody yet',
+  'people.none_desc': 'When you and another player follow each other, they show up here.',
+  'people.search_title': 'Find players',
+  'people.search_desc': 'Type at least 3 letters of a name.',
+  'people.follow': 'Follow',
+  'people.following': 'Following',
+  'people.follow_back': 'Follow back',
+  'people.follows_you': 'Follows you',
+  'people.mutual_badge': 'You follow each other',
+  'msg.tab_chats': 'Chats',
+  'msg.tab_requests': 'Requests',
+  'msg.requests_hint': "Messages from players you don't follow. They won't know you've read them until you accept.",
+  'msg.no_requests': 'No message requests.',
+  'msg.awaiting': 'Waiting for them to accept',
+  'msg.awaiting_desc': "They don't follow you, so your message is waiting in their requests.",
+  'msg.request_title': '{{name}} wants to send you a message',
+  'msg.request_desc': "Accept to reply. If you delete it, they won't be told.",
+  'msg.request_accept': 'Accept',
+  'msg.request_delete': 'Delete',
+  'msg.search_players': 'Search players',
+  'msg.search_players_hint': 'Type at least 3 letters to find any player.',
+  'msg.no_mutual': 'Group chats are for players you follow each other with.',
+  'people.message': 'Message',
+  'pl.no_mutual': 'Teammates are players you follow each other with.',
+};
+
+const el: Record<string, string> = {
+  'people.title': 'Παίκτες',
+  'people.subtitle': 'Ακολούθησε παίκτες. Όσοι ακολουθείτε ο ένας τον άλλον μπορείτε να μπείτε ως συμπαίκτες, σε ομαδικές συνομιλίες και σε προσκλήσεις κρατήσεων.',
+  'people.mutual': 'Αμοιβαίοι',
+  'people.find': 'Βρες παίκτες',
+  'people.none': 'Κανείς ακόμα',
+  'people.none_desc': 'Όταν εσύ κι ένας άλλος παίκτης ακολουθείτε ο ένας τον άλλον, εμφανίζεται εδώ.',
+  'people.search_title': 'Βρες παίκτες',
+  'people.search_desc': 'Γράψε τουλάχιστον 3 γράμματα από ένα όνομα.',
+  'people.follow': 'Ακολούθησε',
+  'people.following': 'Ακολουθείς',
+  'people.follow_back': 'Ακολούθησε κι εσύ',
+  'people.follows_you': 'Σε ακολουθεί',
+  'people.mutual_badge': 'Ακολουθείτε ο ένας τον άλλον',
+  'msg.tab_chats': 'Συνομιλίες',
+  'msg.tab_requests': 'Αιτήματα',
+  'msg.requests_hint': 'Μηνύματα από παίκτες που δεν ακολουθείς. Δεν θα ξέρουν ότι τα διάβασες μέχρι να τα αποδεχτείς.',
+  'msg.no_requests': 'Δεν υπάρχουν αιτήματα μηνυμάτων.',
+  'msg.awaiting': 'Περιμένει αποδοχή',
+  'msg.awaiting_desc': 'Δεν σε ακολουθεί, οπότε το μήνυμά σου περιμένει στα αιτήματά του.',
+  'msg.request_title': 'Ο/Η {{name}} θέλει να σου στείλει μήνυμα',
+  'msg.request_desc': 'Αποδέξου για να απαντήσεις. Αν το διαγράψεις, δεν θα ειδοποιηθεί.',
+  'msg.request_accept': 'Αποδοχή',
+  'msg.request_delete': 'Διαγραφή',
+  'msg.search_players': 'Αναζήτηση παικτών',
+  'msg.search_players_hint': 'Γράψε τουλάχιστον 3 γράμματα για να βρεις οποιονδήποτε παίκτη.',
+  'msg.no_mutual': 'Οι ομαδικές συνομιλίες είναι για παίκτες που ακολουθείτε ο ένας τον άλλον.',
+  'people.message': 'Μήνυμα',
+  'pl.no_mutual': 'Συμπαίκτες μπορούν να είναι παίκτες που ακολουθείτε ο ένας τον άλλον.',
+};
+
+export const peopleTranslations = { en, el };

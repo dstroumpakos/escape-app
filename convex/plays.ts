@@ -10,6 +10,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { avatarUrl } from "./avatars";
+import { areConnected } from "./connections";
 import type { Doc, Id } from "./_generated/dataModel";
 import { requireUser, optionalUser } from "./userSession";
 import { requireCompany } from "./companySession";
@@ -225,12 +226,6 @@ export const backfillInboundCodes = internalMutation({
   },
 });
 
-async function areFriends(ctx: Ctx, a: Id<"users">, b: Id<"users">): Promise<boolean> {
-  const ab = await ctx.db.query("friendships").withIndex("by_pair", (q) => q.eq("requesterId", a).eq("receiverId", b)).first();
-  if (ab?.status === "accepted") return true;
-  const ba = await ctx.db.query("friendships").withIndex("by_pair", (q) => q.eq("requesterId", b).eq("receiverId", a)).first();
-  return ba?.status === "accepted";
-}
 
 /**
  * Can `userId` vouch for `log`? Only with their own confirmed (QR stamp) or
@@ -480,12 +475,12 @@ export const addPlay = mutation({
       await ctx.db.patch(crid, { players: cr.players + 1 });
     }
 
-    // Teammates: friends only, so nobody can be tagged by strangers.
+    // Teammates: players who follow each other (or chat) only, so nobody can be tagged by strangers.
     const teammateIds: Id<"users">[] = [];
     for (const id of new Set(args.teammateIds ?? [])) {
       if (id === me._id) continue;
       if (teammateIds.length >= MAX_TEAMMATES) break;
-      if (await areFriends(ctx, me._id, id)) teammateIds.push(id);
+      if (await areConnected(ctx, me._id, id)) teammateIds.push(id);
     }
 
     const logId = await ctx.db.insert("playLogs", {
@@ -554,7 +549,7 @@ export const askVouch = mutation({
     for (const id of new Set(args.teammateIds)) {
       if (id === me._id || log.teammateIds.includes(id)) continue;
       if (log.teammateIds.length + add.length >= MAX_TEAMMATES) break;
-      if (await areFriends(ctx, me._id, id)) add.push(id);
+      if (await areConnected(ctx, me._id, id)) add.push(id);
     }
     if (add.length) await ctx.db.patch(log._id, { teammateIds: [...log.teammateIds, ...add] });
     await askTeammates(ctx, me, log, add);

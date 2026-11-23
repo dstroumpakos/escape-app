@@ -8,6 +8,7 @@ import { filterContent } from "./moderation";
 import { assertUpload, MAX_IMAGE_BYTES } from "./uploads";
 import { notifyUser } from "./push";
 import { avatarUrl } from "./avatars";
+import { follows } from "./connections";
 
 /**
  * Player profiles (Instagram + Facebook style): public profile, posts grid,
@@ -62,13 +63,8 @@ export const profile = query({
         .query("follows")
         .withIndex("by_follower", (q) => q.eq("followerId", viewer._id).eq("followingId", user._id))
         .first());
-      const [a, b] = await Promise.all([
-        ctx.db.query("friendships").withIndex("by_requester", (q) => q.eq("requesterId", viewer._id)).collect(),
-        ctx.db.query("friendships").withIndex("by_receiver", (q) => q.eq("receiverId", viewer._id)).collect(),
-      ]);
-      isFriend = [...a, ...b].some(
-        (f) => f.status === "accepted" && (f.requesterId === user._id || f.receiverId === user._id)
-      );
+      // No friend requests any more: "friends" are players who follow each other
+      isFriend = isFollowing && (await follows(ctx, user._id, viewer._id));
     }
 
     const coverUrl = user.coverStorageId ? await ctx.storage.getUrl(user.coverStorageId) : null;
@@ -172,6 +168,18 @@ export const follow = mutation({
     if (existing) return;
     await rateLimit(ctx, `follow:${me._id}`, 60, HOUR);
     await ctx.db.insert("follows", { followerId: me._id, followingId: target._id, createdAt: Date.now() });
+    // Following someone who sent me a message request accepts it
+    const conv = await ctx.db
+      .query("conversations")
+      .withIndex("by_direct_key", (q) => q.eq("directKey", [me._id, target._id].sort().join(":")))
+      .first();
+    if (conv) {
+      const mine = await ctx.db
+        .query("conversationMembers")
+        .withIndex("by_conversation_user", (q) => q.eq("conversationId", conv._id).eq("userId", me._id))
+        .first();
+      if (mine?.request) await ctx.db.patch(mine._id, { request: undefined });
+    }
     // One notification per follower, not one per follow/unfollow/follow.
     const notifiedKey = `followNotified:${me._id}:${target._id}`;
     const already = await ctx.db.query("rateLimits").withIndex("by_key", (q) => q.eq("key", notifiedKey)).first();

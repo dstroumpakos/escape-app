@@ -1,11 +1,28 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { areConnected, connectedIds } from "./connections";
 import { notifyUser } from "./push";
 import { v } from "convex/values";
 import { nt } from "./notificationTexts";
 import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { rateLimit, HOUR } from "./rateLimit";
 
-// ─── Search users by name (for adding friends) ───
+// No friend requests any more (players only follow each other; a message to
+// someone who doesn't follow you is a message request, messages.ts). These
+// functions keep their names so older app builds keep working:
+// "friends" = players connected with you (connections.ts).
+
+async function followOnce(ctx: MutationCtx, follower: Id<"users">, following: Id<"users">) {
+  if (follower === following) return;
+  const has = await ctx.db
+    .query("follows")
+    .withIndex("by_follower", (q) => q.eq("followerId", follower).eq("followingId", following))
+    .first();
+  if (!has) await ctx.db.insert("follows", { followerId: follower, followingId: following, createdAt: Date.now() });
+}
+
+// ─── Search players by name ───
 export const searchUsers = query({
   args: {
     sessionToken: v.optional(v.string()), currentUserId: legacyUserIdV,
@@ -30,16 +47,9 @@ export const searchUsers = query({
 
     if (results.length === 0) return [];
 
-    // Batch-load all friendships for current user (sent + received) in 2 queries
-    const [sentRequests, receivedRequests, blockedUsers] = await Promise.all([
-      ctx.db
-        .query("friendships")
-        .withIndex("by_requester", (q) => q.eq("requesterId", currentUserId))
-        .collect(),
-      ctx.db
-        .query("friendships")
-        .withIndex("by_receiver", (q) => q.eq("receiverId", currentUserId))
-        .collect(),
+    const [following, followers, blockedUsers] = await Promise.all([
+      ctx.db.query("follows").withIndex("by_follower", (q) => q.eq("followerId", currentUserId)).take(2000),
+      ctx.db.query("follows").withIndex("by_following", (q) => q.eq("followingId", currentUserId)).take(2000),
       ctx.db
         .query("blockedUsers")
         .withIndex("by_blocker", (q) => q.eq("blockerId", currentUserId))
@@ -47,8 +57,8 @@ export const searchUsers = query({
     ]);
 
     // Build Maps for O(1) lookups
-    const sentMap = new Map(sentRequests.map((f) => [f.receiverId, f]));
-    const receivedMap = new Map(receivedRequests.map((f) => [f.requesterId, f]));
+    const followingSet = new Set(following.map((f) => f.followingId as string));
+    const followerSet = new Set(followers.map((f) => f.followerId as string));
     const blockedSet = new Set(blockedUsers.map((b) => b.blockedUserId));
 
     // Enrich results (only storage URL calls remain as N+1, but they're fast)
@@ -64,20 +74,10 @@ export const searchUsers = query({
           if (freshUrl) avatar = freshUrl;
         }
 
-        // Check friendship status from pre-loaded maps
-        const sentRequest = sentMap.get(u._id);
-        const receivedRequest = receivedMap.get(u._id);
-        const friendship = sentRequest || receivedRequest;
-        let friendshipStatus: string | null = null;
-        if (friendship) {
-          if (friendship.status === "accepted") friendshipStatus = "friends";
-          else if (friendship.status === "pending") {
-            friendshipStatus =
-              friendship.requesterId === currentUserId
-                ? "request_sent"
-                : "request_received";
-          }
-        }
+        const isFollowing = followingSet.has(u._id);
+        const followsYou = followerSet.has(u._id);
+        // Old app builds read friendshipStatus: following each other = "friends"
+        const friendshipStatus: string | null = isFollowing && followsYou ? "friends" : isFollowing ? "request_sent" : null;
 
         return {
           _id: u._id,
@@ -85,6 +85,8 @@ export const searchUsers = query({
           avatar,
           title: u.title,
           friendshipStatus,
+          isFollowing,
+          followsYou,
           isBlocked: false,
         };
       })
@@ -94,130 +96,58 @@ export const searchUsers = query({
   },
 });
 
-// ─── Send friend request ───
+// ─── Old "add friend" button (older app builds): follows the player ───
 export const sendRequest = mutation({
   args: {
     sessionToken: v.optional(v.string()), requesterId: legacyUserIdV,
     receiverId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const requesterUser = await requireUser(ctx, args.sessionToken, args.requesterId);
-    const requesterId = requesterUser._id;
-    if (requesterId === args.receiverId)
-      throw new Error("Cannot send a friend request to yourself");
-    await rateLimit(ctx, `friendRequest:${requesterId}`, 30, HOUR);
-
-    // Check if already friends or request exists
-    const existing1 = await ctx.db
-      .query("friendships")
-      .withIndex("by_pair", (q) =>
-        q.eq("requesterId", requesterId).eq("receiverId", args.receiverId)
-      )
-      .first();
-    const existing2 = await ctx.db
-      .query("friendships")
-      .withIndex("by_pair", (q) =>
-        q.eq("requesterId", args.receiverId).eq("receiverId", requesterId)
-      )
-      .first();
-
-    if (existing1 || existing2)
-      throw new Error("Friend request already exists");
-
-    // Check if blocked
+    const me = await requireUser(ctx, args.sessionToken, args.requesterId);
+    if (me._id === args.receiverId) throw new Error("You can't follow yourself");
     const blocked = await ctx.db
       .query("blockedUsers")
-      .withIndex("by_blocker_blocked", (q) =>
-        q.eq("blockerId", args.receiverId).eq("blockedUserId", requesterId)
-      )
+      .withIndex("by_blocker_blocked", (q) => q.eq("blockerId", args.receiverId).eq("blockedUserId", me._id))
       .first();
-    if (blocked) throw new Error("Cannot send friend request");
-
-    const id = await ctx.db.insert("friendships", {
-      requesterId,
-      receiverId: args.receiverId,
-      status: "pending",
-      createdAt: Date.now(),
-    });
-
-    // Send notification to receiver
-    const requester = requesterUser;
-    const receiver = await ctx.db.get(args.receiverId);
-    const lang = receiver?.language;
-    await notifyUser(ctx, {
-      userId: args.receiverId,
-      type: "friend_request",
-      title: nt(lang, "friend_request.title"),
-      message: nt(lang, "friend_request.message", { name: requester?.name ?? "Someone" }),
-      read: false,
-      createdAt: Date.now(),
-      data: { friendshipId: id, requesterId },
-    });
-
-    return id;
+    if (blocked) throw new Error("You can't follow this player");
+    await rateLimit(ctx, `follow:${me._id}`, 60, HOUR);
+    await followOnce(ctx, me._id, args.receiverId);
+    return null;
   },
 });
 
-// ─── Accept friend request ───
+// ─── Old requests still waiting (from before): accepting = following each other ───
 export const acceptRequest = mutation({
   args: {
     friendshipId: v.id("friendships"),
-    sessionToken: v.optional(v.string()), userId: legacyUserIdV, // the receiver accepting
+    sessionToken: v.optional(v.string()), userId: legacyUserIdV,
   },
   handler: async (ctx, args) => {
-    const receiver = await requireUser(ctx, args.sessionToken, args.userId);
+    const me = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
-    if (!friendship) throw new Error("Friend request not found");
-    if (friendship.receiverId !== receiver._id)
-      throw new Error("Only the receiver can accept");
-    // Accepted already (from the app, the friends page or a double tap): nothing to do
-    if (friendship.status === "accepted") return;
-    if (friendship.status !== "pending")
-      throw new Error("Request already handled");
-
-    await ctx.db.patch(args.friendshipId, {
-      status: "accepted",
-      respondedAt: Date.now(),
-    });
-
-    // Notify the requester
-    const requesterUser = await ctx.db.get(friendship.requesterId);
-    const lang = requesterUser?.language;
-    await notifyUser(ctx, {
-      userId: friendship.requesterId,
-      type: "friend_accepted",
-      title: nt(lang, "friend_accepted.title"),
-      message: nt(lang, "friend_accepted.message", { name: receiver?.name ?? "Someone" }),
-      read: false,
-      createdAt: Date.now(),
-      data: { friendshipId: args.friendshipId },
-    });
+    if (!friendship) return;
+    if (friendship.receiverId !== me._id) throw new Error("Only the receiver can accept");
+    await followOnce(ctx, friendship.requesterId, friendship.receiverId);
+    await followOnce(ctx, friendship.receiverId, friendship.requesterId);
+    await ctx.db.delete(friendship._id);
   },
 });
 
-// ─── Decline friend request ───
 export const declineRequest = mutation({
   args: {
     friendshipId: v.id("friendships"),
     sessionToken: v.optional(v.string()), userId: legacyUserIdV,
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx, args.sessionToken, args.userId);
+    const me = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
-    if (!friendship) throw new Error("Friend request not found");
-    if (friendship.receiverId !== user._id)
-      throw new Error("Only the receiver can decline");
-    if (friendship.status !== "pending")
-      throw new Error("Request already handled");
-
-    await ctx.db.patch(args.friendshipId, {
-      status: "declined",
-      respondedAt: Date.now(),
-    });
+    if (!friendship) return;
+    if (friendship.receiverId !== me._id) throw new Error("Only the receiver can decline");
+    await ctx.db.delete(friendship._id);
   },
 });
 
-// ─── Remove friend ───
+// ─── Old friendship rows (before the migration) ───
 export const removeFriend = mutation({
   args: {
     friendshipId: v.id("friendships"),
@@ -226,104 +156,64 @@ export const removeFriend = mutation({
   handler: async (ctx, args) => {
     const user = await requireUser(ctx, args.sessionToken, args.userId);
     const friendship = await ctx.db.get(args.friendshipId);
-    if (!friendship) throw new Error("Friendship not found");
-    if (
-      friendship.requesterId !== user._id &&
-      friendship.receiverId !== user._id
-    )
+    if (!friendship) return;
+    if (friendship.requesterId !== user._id && friendship.receiverId !== user._id) {
       throw new Error("Not part of this friendship");
-
+    }
     await ctx.db.delete(args.friendshipId);
   },
 });
 
-// ─── Get friends list ───
+// ─── Players connected with me (follow each other, chat, old friends) ───
+// The pickers for teammates, group chats and invites.
 export const listFriends = query({
   args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
     const me = await optionalUser(ctx, args.sessionToken, args.userId);
     if (!me) return [];
-    const userId = me._id;
-    // Friendships where current user is requester
-    const asSender = await ctx.db
-      .query("friendships")
-      .withIndex("by_requester", (q) => q.eq("requesterId", userId))
-      .collect();
-    // Friendships where current user is receiver
-    const asReceiver = await ctx.db
-      .query("friendships")
-      .withIndex("by_receiver", (q) => q.eq("receiverId", userId))
-      .collect();
-
-    const accepted = [...asSender, ...asReceiver].filter(
-      (f) => f.status === "accepted"
-    );
-
-    const friends = await Promise.all(
-      accepted.map(async (f) => {
-        const friendId =
-          f.requesterId === userId ? f.receiverId : f.requesterId;
-        const friend = await ctx.db.get(friendId);
-        if (!friend) return null;
-
-        let avatar = friend.avatar;
-        if (friend.avatarStorageId) {
-          const freshUrl = await ctx.storage.getUrl(friend.avatarStorageId);
+    const ids = await connectedIds(ctx, me._id);
+    const people = await Promise.all(
+      ids.map(async (id) => {
+        const u = await ctx.db.get(id);
+        if (!u) return null;
+        let avatar = u.avatar;
+        if (u.avatarStorageId) {
+          const freshUrl = await ctx.storage.getUrl(u.avatarStorageId);
           if (freshUrl) avatar = freshUrl;
         }
-
-        return {
-          friendshipId: f._id,
-          _id: friend._id,
-          name: friend.name,
-          // No email: friends only need name and avatar (privacy).
-          avatar,
-          title: friend.title,
-          memberSince: friend.memberSince,
-        };
+        // No email: only name and avatar (privacy).
+        return { friendshipId: null, _id: u._id, name: u.name, avatar, title: u.title, memberSince: u.memberSince };
       })
     );
-
-    return friends.filter(Boolean);
+    return people.filter(Boolean).sort((a, b) => (a!.name || '').localeCompare(b!.name || ''));
   },
 });
 
-// ─── Get pending requests (incoming) ───
+// ─── No friend requests any more (older app builds still ask) ───
 export const pendingRequests = query({
   args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
-  handler: async (ctx, args) => {
-    const me = await optionalUser(ctx, args.sessionToken, args.userId);
-    if (!me) return [];
-    const pending = await ctx.db
-      .query("friendships")
-      .withIndex("by_receiver_status", (q) =>
-        q.eq("receiverId", me._id).eq("status", "pending")
-      )
-      .collect();
+  handler: async () => [],
+});
 
-    const enriched = await Promise.all(
-      pending.map(async (f) => {
-        const requester = await ctx.db.get(f.requesterId);
-        if (!requester) return null;
-
-        let avatar = requester.avatar;
-        if (requester.avatarStorageId) {
-          const freshUrl = await ctx.storage.getUrl(requester.avatarStorageId);
-          if (freshUrl) avatar = freshUrl;
-        }
-
-        return {
-          friendshipId: f._id,
-          _id: requester._id,
-          name: requester.name,
-          avatar,
-          title: requester.title,
-          createdAt: f.createdAt,
-        };
-      })
-    );
-
-    return enriched.filter(Boolean);
+/**
+ * One-off: every accepted friendship becomes two follows (they follow each
+ * other); open and turned-down requests go. Run once per deployment:
+ *   npx convex run friends:migrateToFollows
+ */
+export const migrateToFollows = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let follows = 0, removed = 0;
+    for (const f of await ctx.db.query("friendships").collect()) {
+      if (f.status === "accepted") {
+        await followOnce(ctx, f.requesterId, f.receiverId);
+        await followOnce(ctx, f.receiverId, f.requesterId);
+        follows++;
+      }
+      await ctx.db.delete(f._id);
+      removed++;
+    }
+    return { friendshipsTurnedIntoFollows: follows, rowsRemoved: removed };
   },
 });
 
@@ -342,22 +232,8 @@ export const inviteToBooking = mutation({
     if (!ownBooking || ownBooking.userId !== inviterId)
       throw new Error("Booking not found");
     await rateLimit(ctx, `bookingInvite:${inviterId}`, 30, HOUR);
-    // Verify they are friends
-    const asReq = await ctx.db
-      .query("friendships")
-      .withIndex("by_pair", (q) =>
-        q.eq("requesterId", inviterId).eq("receiverId", args.inviteeId)
-      )
-      .first();
-    const asRec = await ctx.db
-      .query("friendships")
-      .withIndex("by_pair", (q) =>
-        q.eq("requesterId", args.inviteeId).eq("receiverId", inviterId)
-      )
-      .first();
-    const friendship = asReq || asRec;
-    if (!friendship || friendship.status !== "accepted")
-      throw new Error("You can only invite friends");
+    // Only players you follow each other with (or chat with)
+    if (!(await areConnected(ctx, inviterId, args.inviteeId))) throw new Error("You can only invite players you follow each other with");
 
     // Check if already invited
     const existing = await ctx.db
@@ -551,15 +427,6 @@ export const friendCount = query({
   handler: async (ctx, args) => {
     const me = await optionalUser(ctx, args.sessionToken);
     if (!me) return 0;
-    const asSender = await ctx.db
-      .query("friendships")
-      .withIndex("by_requester", (q) => q.eq("requesterId", me._id))
-      .collect();
-    const asReceiver = await ctx.db
-      .query("friendships")
-      .withIndex("by_receiver", (q) => q.eq("receiverId", me._id))
-      .collect();
-    return [...asSender, ...asReceiver].filter((f) => f.status === "accepted")
-      .length;
+    return (await connectedIds(ctx, me._id)).length;
   },
 });

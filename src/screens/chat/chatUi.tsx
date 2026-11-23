@@ -69,7 +69,9 @@ export function Sheet({ title, onClose, children, footer }: { title: string; onC
 type Friend = { _id: string; name: string; avatar?: string };
 
 /**
- * The player's friends with a search box. One tap picks a friend (`onPick`),
+ * Players you follow each other with, with a search box. With `anyone` (a
+ * new 1:1 chat) the search also finds every player; a message to someone who
+ * doesn't follow you lands in their message requests. One tap picks a friend (`onPick`),
  * or with `selected` it is a multi-select.
  */
 export function FriendPicker({
@@ -77,7 +79,9 @@ export function FriendPicker({
   selected,
   onToggle,
   onPick,
+  anyone = false,
 }: {
+  anyone?: boolean;
   exclude?: string[];
   selected?: Set<string>;
   onToggle?: (id: string) => void;
@@ -88,22 +92,30 @@ export function FriendPicker({
   const { sessionToken } = useUser();
   const friends = useQuery(api.friends.listFriends, sessionToken ? { sessionToken } : 'skip');
   const [q, setQ] = useState('');
+  const term = q.trim();
+  const found = useQuery(
+    api.friends.searchUsers,
+    anyone && sessionToken && term.length >= 3 ? { sessionToken, searchTerm: term } : 'skip'
+  ) as Friend[] | undefined;
 
   const list = useMemo(() => {
     const ex = new Set(exclude);
     const all = ((friends ?? []).filter(Boolean) as Friend[]).filter((f) => !ex.has(f._id));
     const needle = q.trim().toLowerCase();
-    return (needle ? all.filter((f) => f.name.toLowerCase().includes(needle)) : all).sort((a, b) => a.name.localeCompare(b.name));
-  }, [friends, exclude, q]);
+    const mine = (needle ? all.filter((f) => f.name.toLowerCase().includes(needle)) : all).sort((a, b) => a.name.localeCompare(b.name));
+    const seen = new Set(mine.map((f) => f._id));
+    const others = (found ?? []).filter((f) => !seen.has(f._id) && !ex.has(f._id)).map((f) => ({ ...f, avatar: f.avatar ?? '' }));
+    return [...mine, ...others];
+  }, [friends, exclude, q, found]);
 
   if (friends === undefined) return <ActivityIndicator color={theme.colors.redPrimary} style={{ margin: 24 }} />;
 
-  if (friends.filter(Boolean).length === 0) {
+  if (friends.filter(Boolean).length === 0 && !anyone) {
     return (
       <View style={{ padding: 24, alignItems: 'center', gap: 14 }}>
-        <Text style={styles.muted}>{t('msg.no_friends')}</Text>
+        <Text style={styles.muted}>{t('msg.no_mutual')}</Text>
         <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('Friends')}>
-          <Text style={styles.btnText}>{t('msg.find_friends')}</Text>
+          <Text style={styles.btnText}>{t('people.find')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -116,14 +128,14 @@ export function FriendPicker({
         <TextInput
           value={q}
           onChangeText={setQ}
-          placeholder={t('msg.search_friends')}
+          placeholder={anyone ? t('msg.search_players') : t('msg.search_friends')}
           placeholderTextColor={theme.colors.textMuted}
           style={styles.searchInput}
           autoCorrect={false}
         />
       </View>
       {list.length === 0 ? (
-        <Text style={[styles.muted, { padding: 20 }]}>{exclude.length ? t('msg.everyone_added') : '—'}</Text>
+        <Text style={[styles.muted, { padding: 20 }]}>{exclude.length ? t('msg.everyone_added') : anyone && term.length < 3 ? t('msg.search_players_hint') : '—'}</Text>
       ) : (
         list.map((f) => {
           const on = selected?.has(f._id);

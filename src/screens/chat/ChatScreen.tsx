@@ -50,6 +50,9 @@ export default function ChatScreen() {
   );
   const keys = useConversationKeys(conversationId, device);
   const markRead = useMutation(api.messages.markRead);
+  const acceptRequest = useMutation(api.messages.acceptMessageRequest);
+  const declineRequest = useMutation(api.messages.declineMessageRequest);
+  const [answering, setAnswering] = useState(false);
 
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -109,6 +112,24 @@ export default function ChatScreen() {
 
   const isGroup = conv?.kind === 'group';
   const blocked = !!conv?.blocked;
+  // A message request: someone I don't follow wrote first. Accept to reply, or delete.
+  const isRequest = (conv as any)?.request === 'pending';
+  const awaiting = !!(conv as any)?.awaiting;
+  const answer = async (accept: boolean) => {
+    if (!token) return;
+    setAnswering(true);
+    setErr('');
+    try {
+      if (accept) await acceptRequest({ sessionToken: token, conversationId: conversationId as any });
+      else {
+        await declineRequest({ sessionToken: token, conversationId: conversationId as any });
+        navigation.goBack();
+      }
+    } catch (e) {
+      setErr(errText(e, t('msg.send_failed')));
+    }
+    setAnswering(false);
+  };
 
   const header = (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -219,8 +240,23 @@ export default function ChatScreen() {
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         {blocked ? (
           <Text style={styles.center}>{t('msg.blocked')}</Text>
+        ) : isRequest ? (
+          <View style={{ alignItems: 'center', gap: 6, paddingBottom: 4 }}>
+            <Text style={[chatStyles.btnGhostText, { fontWeight: '700', textAlign: 'center' }]}>{t('msg.request_title', { name: conv?.name || '' })}</Text>
+            <Text style={styles.center}>{t('msg.request_desc')}</Text>
+            {!!err && <Text style={styles.err}>{err}</Text>}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+              <TouchableOpacity style={chatStyles.btnGhost} onPress={() => answer(false)} disabled={answering} accessibilityRole="button">
+                <Text style={chatStyles.btnGhostText}>{t('msg.request_delete')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={chatStyles.btn} onPress={() => answer(true)} disabled={answering} accessibilityRole="button">
+                {answering ? <ActivityIndicator size="small" color="#fff" /> : <Text style={chatStyles.btnText}>{t('msg.request_accept')}</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
           <>
+            {awaiting && <Text style={[styles.center, { marginBottom: 6 }]}>{t('msg.awaiting_desc')}</Text>}
             {!!err && <Text style={styles.err}>{err}</Text>}
             <View style={styles.inputRow}>
               <TextInput

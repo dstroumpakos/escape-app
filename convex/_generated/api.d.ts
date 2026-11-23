@@ -29,6 +29,7 @@ import type * as companyRules from "../companyRules.js";
 import type * as companySession from "../companySession.js";
 import type * as companyStats from "../companyStats.js";
 import type * as crons from "../crons.js";
+import type * as connections from "../connections.js";
 import type * as devSeed from "../devSeed.js";
 import type * as email from "../email.js";
 import type * as emailVerify from "../emailVerify.js";
@@ -112,6 +113,7 @@ declare const fullApi: ApiFromModules<{
   companySession: typeof companySession;
   companyStats: typeof companyStats;
   crons: typeof crons;
+  connections: typeof connections;
   devSeed: typeof devSeed;
   email: typeof email;
   emailVerify: typeof emailVerify;
