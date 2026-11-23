@@ -7,6 +7,7 @@ import { rateLimit, HOUR } from "./rateLimit";
 import { companyIsPublic } from "./companyRules";
 import { batchEnrichRooms } from "./rooms";
 import { publicProfilePhotos } from "./companyProfile";
+import { findSession } from "./companySession";
 
 /**
  * "Companies" section for players: every public escape room company with its
@@ -84,19 +85,34 @@ export const list = query({
 
 /** A company's profile, for logged-in players. Null when logged out or not public. */
 export const profile = query({
-  args: { companyId: v.id("companies"), sessionToken: v.optional(v.string()) },
+  args: {
+    companyId: v.id("companies"),
+    sessionToken: v.optional(v.string()),
+    // The company looking at its own profile (portal "See your profile"),
+    // without a player login.
+    companySessionToken: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
     const me = await optionalUser(ctx, args.sessionToken);
-    if (!me) return null;
+    let isOwner = false;
+    if (args.companySessionToken) {
+      const session = await findSession(ctx, args.companySessionToken);
+      isOwner = !!session && session.companyId === args.companyId;
+    }
+    if (!me && !isOwner) return null;
     const c = await ctx.db.get(args.companyId);
-    if (!c || !companyIsPublic(c) || c.platformPlan === "free") return null;
+    if (!c) return null;
+    // Players see approved, paying companies; the company always sees its own.
+    if (!isOwner && (!companyIsPublic(c) || c.platformPlan === "free")) return null;
     const [rooms, followers, mine, photos] = await Promise.all([
       visibleRoomsOf(ctx, c._id),
       ctx.db.query("companyFollows").withIndex("by_company", (q) => q.eq("companyId", c._id)).take(10000),
-      ctx.db
-        .query("companyFollows")
-        .withIndex("by_user_company", (q) => q.eq("userId", me._id).eq("companyId", c._id))
-        .first(),
+      me
+        ? ctx.db
+            .query("companyFollows")
+            .withIndex("by_user_company", (q) => q.eq("userId", me._id).eq("companyId", c._id))
+            .first()
+        : null,
       publicProfilePhotos(ctx, c._id),
     ]);
     return {
@@ -109,6 +125,9 @@ export const profile = query({
       rooms,
       followers: followers.length,
       following: !!mine,
+      isOwner,
+      // Only a logged-in player can follow
+      canFollow: !!me,
     };
   },
 });

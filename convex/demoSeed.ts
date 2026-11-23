@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { hashPassword } from "./passwordUtils";
@@ -477,6 +478,9 @@ export const seed = internalMutation({
       }
     }
 
+    // Covers, promo images and team photos (demoSeed:seedPhotos)
+    await ctx.scheduler.runAfter(0, internal.demoSeed.seedPhotos, {});
+
     return {
       companies: companyIds.length, rooms: rooms.length, players: userIds.length, posts: postIds.length, jobs: JOBS.length,
       logins: { company: COMPANY_LOGIN, players: PLAYER_LOGINS, password: "the one you typed" },
@@ -516,6 +520,12 @@ export const clear = internalMutation({
     for (const x of await ctx.db.query("follows").collect()) if (userSet.has(x.followerId) || userSet.has(x.followingId)) await del(x._id);
     for (const x of await ctx.db.query("companyFollows").collect()) if (userSet.has(x.userId) || companySet.has(x.companyId)) await del(x._id);
     for (const x of await ctx.db.query("jobPosts").collect()) if (companySet.has(x.companyId)) await del(x._id);
+    for (const x of await ctx.db.query("companyPromoPhotos").collect()) {
+      if (companySet.has(x.companyId)) { await ctx.storage.delete(x.storageId).catch(() => {}); await del(x._id); }
+    }
+    for (const x of await ctx.db.query("standalonePhotos").collect()) {
+      if (companySet.has(x.companyId)) { await ctx.storage.delete(x.originalStorageId).catch(() => {}); await del(x._id); }
+    }
     for (const x of await ctx.db.query("roomViews").collect()) if (roomSet.has(x.roomId)) await del(x._id);
     for (const x of await ctx.db.query("bookClicks").collect()) if (roomSet.has(x.roomId)) await del(x._id);
     for (const x of await ctx.db.query("userSessions").collect()) if (userSet.has((x as any).userId)) await del(x._id);
@@ -524,5 +534,184 @@ export const clear = internalMutation({
     for (const x of users) await del(x._id);
     for (const x of companies) await del(x._id);
     return { removed };
+  },
+});
+
+// ══════════════════════════════════════════════════════════════
+// Photos for the company profiles: a cover per company, three promo
+// images per company and team photos in every room, all drawn as SVG
+// (no real people). Files need storage, so this is an action:
+// demoSeed:seedPhotos, after demoSeed:seed (seed also schedules it).
+// ══════════════════════════════════════════════════════════════
+
+const TEAM_NAMES = [
+  "Οι Κουκουβάγιες", "Λουκέτο Squad", "Code Breakers", "Τα Ξαδέρφια", "Οι Αναπάντεχοι",
+  "Escape Artists", "Γραφείο 4ος όροφος", "Οι Ντετέκτιβ της Πέμπτης", "Team Μπαμπούλας",
+  "Οι Κλειδοκράτορες", "Brain Storm", "Οι Γείτονες", "Mission Possible", "Τα Κορίτσια του 5ου",
+];
+const SKIN = ["#f1c9a5", "#e0ac83", "#c68b63", "#8d5a3b", "#f5d6bd"];
+const SHIRTS = ["#c8101b", "#1d5f8f", "#2f6b2a", "#e8c46a", "#6e2f7a", "#e8dcc8", "#11686b", "#a3561a", "#222222"];
+
+/** A wide banner for the top of the company profile. */
+function coverBanner(color: string, seed: number): string {
+  const r = rng(seed);
+  const keys = Array.from({ length: 9 }, (_, i) => {
+    const x = 80 + i * 170 + Math.round(r() * 40);
+    const y = 90 + Math.round(r() * 220);
+    const s = (0.6 + r() * 0.7).toFixed(2);
+    return `<g transform="translate(${x} ${y}) rotate(${Math.round(r() * 360)}) scale(${s})" opacity="${(0.08 + r() * 0.12).toFixed(2)}" fill="none" stroke="#f5ead8" stroke-width="6"><circle cx="0" cy="0" r="26"/><path d="M26 0h90M90 0v22M110 0v16"/></g>`;
+  }).join("");
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="500" viewBox="0 0 1600 500">
+<defs><radialGradient id="g" cx="30%" cy="20%" r="90%"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#0a0505"/></radialGradient></defs>
+<rect width="1600" height="500" fill="url(#g)"/>${keys}
+</svg>`);
+}
+
+/** Square promo images: a new room, gift cards, team building. */
+function promoImages(company: string, color: string, firstRoom: string): string[] {
+  const card = (kicker: string, title: string, line: string, icon: string) => `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color}"/><stop offset="1" stop-color="#0a0505"/></linearGradient></defs>
+<rect width="1080" height="1080" fill="url(#g)"/>
+<rect x="50" y="50" width="980" height="980" rx="36" fill="none" stroke="#f5ead8" stroke-opacity="0.25" stroke-width="4"/>
+<text x="540" y="380" text-anchor="middle" font-size="200">${icon}</text>
+<text x="540" y="530" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" letter-spacing="10" fill="#e8c46a">${esc(kicker)}</text>
+<text x="540" y="640" text-anchor="middle" font-family="Georgia, serif" font-size="78" font-weight="700" fill="#ffffff">${esc(title)}</text>
+<text x="540" y="730" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#e8dcc8">${esc(line)}</text>
+<text x="540" y="960" text-anchor="middle" font-family="Georgia, serif" font-size="40" font-weight="700" fill="#f5ead8" opacity="0.7">${esc(company)}</text>
+</svg>`;
+  return [
+    card("ΝΕΟ ΔΩΜΑΤΙΟ", firstRoom.length > 20 ? firstRoom.slice(0, 19) + "…" : firstRoom, "Κρατήσεις ανοιχτές από σήμερα", "🔐"),
+    card("ΔΩΡΟΚΑΡΤΕΣ", "Χάρισε μια απόδραση", "Για γενέθλια, γιορτές και κάθε αφορμή", "🎁"),
+    card("TEAM BUILDING", "Η ομάδα σου, κλειδωμένη", "Ειδικές τιμές για εταιρείες", "🤝"),
+  ];
+}
+
+/** A drawn team photo: the team in front of the room, holding the time sign. */
+function teamPhotoSvg(room: string, theme: string, team: string, escaped: boolean, time: string, seed: number): string {
+  const r = rng(seed);
+  const [c1, c2, sym] = THEME_COLORS[theme] ?? ["#120808", "#5a1010", "✦"];
+  const n = 3 + Math.floor(r() * 4); // 3–6 people
+  const gap = 900 / n;
+  const people = Array.from({ length: n }, (_, i) => {
+    const x = 150 + gap * i + gap / 2 + Math.round((r() - 0.5) * 20);
+    const h = 300 + Math.round(r() * 70);
+    const top = 860 - h;
+    const skin = SKIN[Math.floor(r() * SKIN.length)];
+    const shirt = SHIRTS[Math.floor(r() * SHIRTS.length)];
+    const hair = r() < 0.5 ? "#2a1a10" : r() < 0.5 ? "#6b4423" : "#c9a15a";
+    const arm = r() < 0.35 ? `<path d="M${x + 40} ${top + 120} l55 -95" stroke="${shirt}" stroke-width="26" stroke-linecap="round"/>` : "";
+    return `<g>${arm}<rect x="${x - 62}" y="${top + 100}" width="124" height="${h - 100}" rx="56" fill="${shirt}"/>
+<circle cx="${x}" cy="${top + 52}" r="52" fill="${skin}"/><path d="M${x - 54} ${top + 50} q54 -86 108 0 q-10 -40 -54 -44 q-44 4 -54 44z" fill="${hair}"/>
+<circle cx="${x - 17}" cy="${top + 56}" r="5" fill="#1a1010"/><circle cx="${x + 17}" cy="${top + 56}" r="5" fill="#1a1010"/>
+<path d="M${x - 18} ${top + 76} q18 16 36 0" stroke="#1a1010" stroke-width="4" fill="none" stroke-linecap="round"/></g>`;
+  }).join("");
+  const sign = escaped
+    ? `<text x="600" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="6" fill="#1a1010">ESCAPED</text>
+<text x="600" y="858" text-anchor="middle" font-family="'Courier New', monospace" font-size="64" font-weight="700" fill="#c8101b">${esc(time)}</text>`
+    : `<text x="600" y="790" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" font-weight="700" letter-spacing="6" fill="#1a1010">ΣΧΕΔΟΝ!</text>
+<text x="600" y="858" text-anchor="middle" font-family="'Courier New', monospace" font-size="64" font-weight="700" fill="#c8101b">00:00</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<defs><radialGradient id="g" cx="50%" cy="30%" r="80%"><stop offset="0" stop-color="${c2}"/><stop offset="1" stop-color="${c1}"/></radialGradient></defs>
+<rect width="1200" height="900" fill="url(#g)"/>
+<text x="600" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="320" fill="#ffffff" opacity="0.1">${sym}</text>
+<text x="600" y="110" text-anchor="middle" font-family="Georgia, serif" font-size="56" font-weight="700" fill="#f5ead8">${esc(room)}</text>
+<rect x="0" y="820" width="1200" height="80" fill="#000" opacity="0.35"/>${people}
+<rect x="440" y="740" width="320" height="140" rx="14" fill="#f5ead8" stroke="#1a1010" stroke-width="4"/>${sign}
+<text x="40" y="878" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#ffffff" opacity="0.9">${esc(team)}</text>
+<text x="1160" y="878" text-anchor="end" font-family="Georgia, serif" font-size="28" font-weight="700" fill="#ff2a36" opacity="0.85">UNLOCKED</text>
+</svg>`;
+}
+
+/** The seeded companies and their rooms (for seedPhotos). */
+export const seededTargets = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    guard();
+    const companies = (await ctx.db.query("companies").collect()).filter((c) => SEEDED_COMPANY_EMAILS.has(c.email));
+    const out = [];
+    for (const c of companies) {
+      const spec = COMPANIES.find((s) => s.email === c.email)!;
+      const rooms = (await ctx.db.query("rooms").collect()).filter((x) => x.companyId === c._id);
+      const hasPhotos = !!(await ctx.db.query("companyPromoPhotos").withIndex("by_company", (q) => q.eq("companyId", c._id)).first());
+      out.push({
+        companyId: c._id, name: c.name, color: spec.color, hasPhotos,
+        rooms: rooms.map((x) => ({ roomId: x._id, title: x.title, theme: x.theme || "" })),
+      });
+    }
+    return out;
+  },
+});
+
+export const insertPhotos = internalMutation({
+  args: {
+    companyId: v.id("companies"),
+    cover: v.string(),
+    promo: v.array(v.object({ storageId: v.id("_storage"), createdAt: v.number() })),
+    team: v.array(v.object({
+      roomId: v.id("rooms"), storageId: v.id("_storage"), teamName: v.string(),
+      escaped: v.boolean(), escapeTime: v.string(), createdAt: v.number(),
+    })),
+  },
+  handler: async (ctx, a) => {
+    guard();
+    const c = await ctx.db.get(a.companyId);
+    if (!c || !SEEDED_COMPANY_EMAILS.has(c.email)) throw new Error("Not a demo company");
+    await ctx.db.patch(a.companyId, { cover: a.cover });
+    for (const p of a.promo) {
+      const url = (await ctx.storage.getUrl(p.storageId))!;
+      await ctx.db.insert("companyPromoPhotos", { companyId: a.companyId, storageId: p.storageId, url, type: "image", createdAt: p.createdAt });
+    }
+    for (const t of a.team) {
+      const url = (await ctx.storage.getUrl(t.storageId))!;
+      await ctx.db.insert("standalonePhotos", {
+        companyId: a.companyId, roomId: t.roomId, originalStorageId: t.storageId, originalUrl: url,
+        teamName: t.teamName, escaped: t.escaped, escapeTime: t.escapeTime,
+        status: "ready", emailsSent: 0, hostedPageViews: 0, downloads: 0, createdAt: t.createdAt, onProfile: true,
+      });
+    }
+  },
+});
+
+/** Covers, promo images and team photos for every demo company that has none yet. */
+export const seedPhotos = internalAction({
+  args: {},
+  handler: async (ctx): Promise<{ companies: number; promo: number; team: number }> => {
+    guard();
+    const targets = await ctx.runQuery(internal.demoSeed.seededTargets, {});
+    const now = Date.now();
+    const store = (svg: string) => ctx.storage.store(new Blob([svg], { type: "image/svg+xml" }));
+    let seed = 7;
+    let promoCount = 0;
+    let teamCount = 0;
+    let done = 0;
+    for (const c of targets) {
+      if (c.hasPhotos) continue;
+      const r = rng(seed++ * 97);
+      const promo = [];
+      for (const [i, svg] of promoImages(c.name, c.color, c.rooms[0]?.title ?? c.name).entries()) {
+        promo.push({ storageId: await store(svg), createdAt: now - (3 + i * 9) * DAY });
+      }
+      const team = [];
+      for (const room of c.rooms) {
+        const n = 3 + Math.floor(r() * 3); // 3–5 per room
+        for (let k = 0; k < n; k++) {
+          const escaped = r() < 0.75;
+          const mins = 38 + Math.floor(r() * 21);
+          const secs = Math.floor(r() * 60);
+          const teamName = TEAM_NAMES[Math.floor(r() * TEAM_NAMES.length)];
+          const time = `${mins}:${String(secs).padStart(2, "0")}`;
+          team.push({
+            roomId: room.roomId, teamName, escaped, escapeTime: escaped ? time : "",
+            storageId: await store(teamPhotoSvg(room.title, room.theme, teamName, escaped, time, seed++ * 31)),
+            createdAt: now - Math.floor(r() * 50 * DAY),
+          });
+        }
+      }
+      await ctx.runMutation(internal.demoSeed.insertPhotos, { companyId: c.companyId, cover: coverBanner(c.color, seed++), promo, team });
+      promoCount += promo.length;
+      teamCount += team.length;
+      done++;
+    }
+    return { companies: done, promo: promoCount, team: teamCount };
   },
 });
