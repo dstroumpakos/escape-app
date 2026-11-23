@@ -20,7 +20,7 @@ export const JOB_EMPLOYMENT = ["full", "part", "freelance", "seasonal"] as const
 
 const MAX_OPEN_PER_COMPANY = 10;
 const MAX_LIST = 200;
-const LIMITS = { title: 90, description: 3000, city: 60, email: 120, phone: 30 };
+const LIMITS = { title: 90, description: 50000 /* only a guard for the database */, city: 60, email: 120, phone: 30 };
 
 const postArgs = {
   title: v.string(),
@@ -62,9 +62,8 @@ function clean(input: PostInput, company: Doc<"companies">) {
   const employment = input.employment && (JOB_EMPLOYMENT as readonly string[]).includes(input.employment) ? input.employment : undefined;
 
   if (title.length < 3 || title.length > LIMITS.title) throw new ConvexError(`The title needs 3 to ${LIMITS.title} characters.`);
-  if (description.length < 20 || description.length > LIMITS.description) {
-    throw new ConvexError(`The description needs 20 to ${LIMITS.description} characters.`);
-  }
+  if (!description) throw new ConvexError("Write the text of the ad.");
+  if (description.length > LIMITS.description) throw new ConvexError("The text of the ad is too long.");
   if (roles.length === 0) throw new ConvexError("Pick at least one role.");
   if (country && !/^[A-Z]{2}$/.test(country)) throw new ConvexError("Pick a country from the list.");
   if (city.length > LIMITS.city) throw new ConvexError("The city is too long.");
