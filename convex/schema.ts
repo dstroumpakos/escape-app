@@ -719,6 +719,24 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_company", ["companyId"]),
 
+  // Job ads by companies ("we are looking for a game master / actor"), convex/jobs.ts
+  jobPosts: defineTable({
+    companyId: v.id("companies"),
+    title: v.string(),
+    description: v.string(),
+    roles: v.array(v.string()), // gm | actor | host | technician | other
+    genders: v.array(v.string()), // male | female; empty = anyone
+    employment: v.optional(v.string()), // full | part | freelance | seasonal
+    city: v.string(),
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_status", ["status"]),
+
   slotOffers: defineTable({
     companyId: v.id("companies"),
     roomId: v.id("rooms"),
