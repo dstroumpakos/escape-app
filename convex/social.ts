@@ -27,7 +27,7 @@ async function countFollows(ctx: QueryCtx, userId: Id<"users">) {
   return { followers: followers.length, following: following.length };
 }
 
-async function freshMedia(ctx: QueryCtx, post: Doc<"posts">) {
+export async function freshMedia(ctx: QueryCtx, post: Doc<"posts">) {
   return Promise.all(
     (post.media || []).map(async (m) => {
       if (!m.storageId) return m;

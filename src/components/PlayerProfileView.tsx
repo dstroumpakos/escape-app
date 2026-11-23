@@ -13,6 +13,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import CreatePostModal from '../screens/CreatePostModal';
+import { sharePhoto } from '../sharePhoto';
 import { FOLLOW_ENABLED } from '../features';
 
 /**
@@ -242,7 +243,15 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
 
       {composing && <CreatePostModal visible onClose={() => setComposing(false)} />}
 
-      {openPost && <PostSheet post={openPost} authorName={profile.name} onClose={() => setOpenPost(null)} />}
+      {openPost && (
+        <PostSheet
+          post={openPost}
+          authorName={profile.name}
+          onClose={() => setOpenPost(null)}
+          // Players share photos from their own profile only, not from other players'
+          sharePath={profile.viewer.isMe ? `/u/${profile._id}` : undefined}
+        />
+      )}
 
       {followList && <FollowListSheet userId={profile._id} which={followList} onClose={() => setFollowList(null)} />}
 
@@ -302,7 +311,7 @@ function FollowListSheet({ userId, which, onClose }: { userId: string; which: 'f
 }
 
 /** One post from the grid with its likes and comments (website: ProfileView PostModal). */
-function PostSheet({ post, authorName, onClose }: { post: any; authorName: string; onClose: () => void }) {
+function PostSheet({ post, authorName, onClose, sharePath }: { post: any; authorName: string; onClose: () => void; sharePath?: string }) {
   const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const { sessionToken } = useUser();
@@ -345,7 +354,17 @@ function PostSheet({ post, authorName, onClose }: { post: any; authorName: strin
         <View style={[styles.sheet, { maxHeight: '92%' }]}>
           <View style={styles.sheetHead}>
             <Text style={styles.sheetTitle} numberOfLines={1}>{authorName}</Text>
-            <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={theme.colors.bone} /></TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+              {!!sharePath && !!img && (
+                <TouchableOpacity
+                  onPress={() => sharePhoto({ title: [post.roomTitle, authorName].filter(Boolean).join(' · '), path: sharePath })}
+                  accessibilityLabel={t('sh.title')}
+                >
+                  <Ionicons name="share-social-outline" size={22} color={theme.colors.bone} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={onClose}><Ionicons name="close" size={24} color={theme.colors.bone} /></TouchableOpacity>
+            </View>
           </View>
           <ScrollView keyboardShouldPersistTaps="handled">
             {img && <Image source={{ uri: img }} style={{ width: width - 36, height: width - 36, backgroundColor: '#000', borderRadius: 8 }} resizeMode="contain" />}

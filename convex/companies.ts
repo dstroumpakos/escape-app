@@ -504,6 +504,7 @@ export const createRoom = mutation({
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
+    bookingOptionsOn: v.optional(v.boolean()),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     operatingDays: v.optional(v.array(v.number())),
@@ -618,6 +619,7 @@ export const updateRoom = mutation({
     termsOfUse: v.optional(v.string()),
     isSubscriptionOnly: v.optional(v.boolean()),
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
+    bookingOptionsOn: v.optional(v.boolean()),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     operatingDays: v.optional(v.array(v.number())),
@@ -634,7 +636,15 @@ export const updateRoom = mutation({
     const { roomId, sessionToken, ...fields } = args;
     const caller = await optionalCompany(ctx, sessionToken, "companies:updateRoom");
     const room = await requireRoomOf(ctx, caller, roomId);
-    checkRoomInput(fields);
+    // Image links the room already has (e.g. demo covers) aren't re-checked;
+    // only new ones must pass the length rule.
+    const kept = new Set([room.image, ...(room.images || [])].filter(Boolean));
+    checkRoomInput({
+      ...fields,
+      image: fields.image !== undefined && kept.has(fields.image) ? undefined : fields.image,
+      images: fields.images?.filter((u) => !kept.has(u)),
+    });
+    if (fields.images && fields.images.length > 15) throw new ConvexError("Up to 15 photos per room");
     // The pair is checked against what the room already has.
     const min = fields.playersMin ?? room.playersMin;
     const max = fields.playersMax ?? room.playersMax;

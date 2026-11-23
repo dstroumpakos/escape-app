@@ -10,6 +10,7 @@ import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import { RoomCard } from '../components/RoomCard';
 import { CompanyLogo } from '../components/CompanyLogo';
+import { CompanyPromoPhotos, CompanyTeamPhotos } from '../components/CompanyProfilePhotos';
 
 /** A company's profile for logged-in players: its rooms, and following it (convex/companyPages.ts). */
 export default function CompanyProfileScreen() {
@@ -85,12 +86,18 @@ export default function CompanyProfileScreen() {
             </View>
           )}
 
+          {/* The company's own photos (convex/companyProfile.ts) */}
+          <CompanyPromoPhotos items={data.promoPhotos} share={{ name: data.name, companyId: data._id }} />
+
           <Text style={styles.section}>{t('co.theirRooms')}</Text>
           <View style={{ gap: 14 }}>
             {data.rooms.map((r: any) => (
               <RoomCard key={r._id} room={{ ...r, id: r._id }} onPress={() => navigation.navigate('RoomDetails', { id: r._id })} />
             ))}
           </View>
+
+          {/* Team photos the company chose to show, by room */}
+          <CompanyTeamPhotos photos={data.teamPhotos} share={{ name: data.name, companyId: data._id }} />
         </ScrollView>
       )}
     </View>

@@ -28,6 +28,8 @@ export default defineSchema({
     description: v.string(),
     // Their own site: where "Book now" sends players (see externalLinks.ts)
     website: v.optional(v.string()),
+    // Cover photo at the top of their public profile (companyProfile.ts)
+    cover: v.optional(v.string()),
     // Instagram feed on their room pages (see instagram.ts), opt-in from Settings
     instagramUsername: v.optional(v.string()),
     instagramEnabled: v.optional(v.boolean()),
@@ -255,6 +257,8 @@ export default defineSchema({
     isActive: v.optional(v.boolean()),
     // Booking mode: which system is primary for this room
     bookingMode: v.optional(v.union(v.literal("unlocked_primary"), v.literal("external_primary"))),
+    // The company opened the booking options (payment terms, days, slots) for this room
+    bookingOptionsOn: v.optional(v.boolean()),
     // Coordinates from map pin
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
@@ -1112,11 +1116,25 @@ export default defineSchema({
     hostedPageViews: v.number(),
     downloads: v.number(),
     createdAt: v.number(),
+    // The company chose to show this team photo on its public profile
+    // (companyProfile.ts). Off by default: the team should have agreed.
+    onProfile: v.optional(v.boolean()),
   })
     .index("by_company", ["companyId"])
     .index("by_company_created", ["companyId", "createdAt"])
     .index("by_room", ["roomId"])
-    .index("by_status", ["companyId", "status"]),
+    .index("by_status", ["companyId", "status"])
+    .index("by_company_profile", ["companyId", "onProfile"]),
+
+  // ─── Promo photos on a company's public profile (companyProfile.ts) ───
+  companyPromoPhotos: defineTable({
+    companyId: v.id("companies"),
+    storageId: v.id("_storage"),
+    url: v.string(),
+    // A photo, or a video (no value = photo, rows from before videos)
+    type: v.optional(v.union(v.literal("image"), v.literal("video"))),
+    createdAt: v.number(),
+  }).index("by_company", ["companyId"]),
 
   // ─── Photo Emails (delivery tracking) ───
   photoEmails: defineTable({

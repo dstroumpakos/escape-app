@@ -6,6 +6,7 @@ import { requireUser, optionalUser } from "./userSession";
 import { rateLimit, HOUR } from "./rateLimit";
 import { companyIsPublic } from "./companyRules";
 import { batchEnrichRooms } from "./rooms";
+import { publicProfilePhotos } from "./companyProfile";
 
 /**
  * "Companies" section for players: every public escape room company with its
@@ -89,18 +90,21 @@ export const profile = query({
     if (!me) return null;
     const c = await ctx.db.get(args.companyId);
     if (!c || !companyIsPublic(c) || c.platformPlan === "free") return null;
-    const [rooms, followers, mine] = await Promise.all([
+    const [rooms, followers, mine, photos] = await Promise.all([
       visibleRoomsOf(ctx, c._id),
       ctx.db.query("companyFollows").withIndex("by_company", (q) => q.eq("companyId", c._id)).take(10000),
       ctx.db
         .query("companyFollows")
         .withIndex("by_user_company", (q) => q.eq("userId", me._id).eq("companyId", c._id))
         .first(),
+      publicProfilePhotos(ctx, c._id),
     ]);
     return {
       ...publicCompany(c),
+      ...photos,
       address: c.address || "",
       website: c.website || "",
+      cover: c.cover || "",
       instagramUsername: c.instagramEnabled ? c.instagramUsername || "" : "",
       rooms,
       followers: followers.length,
