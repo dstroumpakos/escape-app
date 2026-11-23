@@ -119,22 +119,29 @@ const emailI18n: Record<Lang, Record<string, string>> = {
     "booking.viewDashboard": "View in Dashboard",
     "booking.companyFooter": "UNLOCKED Platform",
     // Welcome
-    "welcome.title": "Welcome to UNLOCKED!",
-    "welcome.subtitle": "Your escape room journey starts here",
-    "welcome.greeting": "Hi",
-    "welcome.body": "Welcome to <strong style=\"color:#FF1E1E;\">UNLOCKED</strong> — Greece's escape room platform! You're now part of a community of escape room enthusiasts.",
-    "welcome.whatYouCanDo": "Here's what you can do:",
-    "welcome.discover": "<strong style=\"color:#FFFFFF;\">Discover</strong> — Browse escape rooms near you",
-    "welcome.book": "<strong style=\"color:#FFFFFF;\">Book</strong> — Reserve your spot in seconds",
-    "welcome.connect": "<strong style=\"color:#FFFFFF;\">Connect</strong> — Add friends and invite them to play",
-    "welcome.compete": "<strong style=\"color:#FFFFFF;\">Compete</strong> — Climb the leaderboard and earn badges",
-    "welcome.share": "<strong style=\"color:#FFFFFF;\">Share</strong> — Save and share your escape room photos",
-    "welcome.startExploring": "Start Exploring",
-    "welcome.rank": "Your rank:",
+    "welcome.tagline": "ESCAPE ROOMS · GREECE",
+    "welcome.title": "The door is open, {name}.",
+    "welcome.subtitle": "Welcome to UNLOCKED — your adventure starts now.",
+    "welcome.intro": "You’re now part of Greece’s escape room community. Before you walk out of your first room, we found <strong style=\"color:#ff2a36;\">5 clues</strong> for you:",
+    "welcome.clue": "CLUE",
+    "welcome.c1.title": "Discover rooms",
+    "welcome.c1.text": "Find escape rooms near you by theme, difficulty and fear level.",
+    "welcome.c2.title": "Collect stamps",
+    "welcome.c2.text": "Every room you solve goes into your passport.",
+    "welcome.c3.title": "Follow your team",
+    "welcome.c3.text": "See where your friends play and invite them to the next mission.",
+    "welcome.c4.title": "Climb the leaderboard",
+    "welcome.c4.text": "Earn badges and take your place among the best.",
+    "welcome.c5.title": "Share the moment",
+    "welcome.c5.text": "Put your team photo in your Instagram story with one tap.",
+    "welcome.cta": "Enter your first room",
+    "welcome.rank": "YOUR RANK",
     "welcome.rankName": "Escape Rookie",
-    "welcome.rankSuffix": "— Play more rooms to level up!",
+    "welcome.rankHint": "Play more rooms to level up.",
+    "welcome.quote": "“Every lock has its key.”",
     "welcome.footer": "UNLOCKED — Escape Room Platform",
-    "welcome.subject": "Welcome to UNLOCKED! Your escape room adventure starts now",
+    "welcome.preheader": "The door is open — your account is ready.",
+    "welcome.subject": "The door is open — welcome to UNLOCKED",
     // Stripe receipt
     "receipt.title": "Payment Receipt",
     "receipt.subtitle": "Transaction for booking",
@@ -189,22 +196,29 @@ const emailI18n: Record<Lang, Record<string, string>> = {
     "booking.viewDashboard": "View in Dashboard",
     "booking.companyFooter": "UNLOCKED Platform",
     // Welcome
-    "welcome.title": "Καλώς ήρθες στο UNLOCKED!",
-    "welcome.subtitle": "Η escape room περιπέτειά σου ξεκινά εδώ",
-    "welcome.greeting": "Γεια σου",
-    "welcome.body": "Καλώς ήρθες στο <strong style=\"color:#FF1E1E;\">UNLOCKED</strong> — την πλατφόρμα escape room της Ελλάδας! Είσαι πλέον μέλος μιας κοινότητας escape room λάτρεων.",
-    "welcome.whatYouCanDo": "Τι μπορείς να κάνεις:",
-    "welcome.discover": "<strong style=\"color:#FFFFFF;\">Ανακάλυψε</strong> — Βρες escape rooms κοντά σου",
-    "welcome.book": "<strong style=\"color:#FFFFFF;\">Κράτησε</strong> — Κλείσε τη θέση σου σε δευτερόλεπτα",
-    "welcome.connect": "<strong style=\"color:#FFFFFF;\">Σύνδεσου</strong> — Πρόσθεσε φίλους και κάλεσέ τους να παίξουν",
-    "welcome.compete": "<strong style=\"color:#FFFFFF;\">Ανταγωνίσου</strong> — Ανέβα στο leaderboard και κέρδισε badges",
-    "welcome.share": "<strong style=\"color:#FFFFFF;\">Μοιράσου</strong> — Αποθήκευσε και μοιράσου τις φωτογραφίες σου",
-    "welcome.startExploring": "Ξεκίνα την Εξερεύνηση",
-    "welcome.rank": "Η κατάταξή σου:",
+    "welcome.tagline": "ESCAPE ROOMS · ΕΛΛΑΔΑ",
+    "welcome.title": "Η πόρτα άνοιξε, {name}.",
+    "welcome.subtitle": "Καλώς ήρθες στο UNLOCKED — η περιπέτειά σου ξεκινά τώρα.",
+    "welcome.intro": "Είσαι πλέον μέλος της κοινότητας escape room της Ελλάδας. Πριν βγεις από το πρώτο σου δωμάτιο, βρήκαμε για σένα <strong style=\"color:#ff2a36;\">5 στοιχεία</strong>:",
+    "welcome.clue": "ΣΤΟΙΧΕΙΟ",
+    "welcome.c1.title": "Ανακάλυψε δωμάτια",
+    "welcome.c1.text": "Βρες escape rooms κοντά σου, ανά θέμα, δυσκολία και επίπεδο τρόμου.",
+    "welcome.c2.title": "Μάζεψε σφραγίδες",
+    "welcome.c2.text": "Κάθε δωμάτιο που λύνεις μπαίνει στο διαβατήριό σου.",
+    "welcome.c3.title": "Ακολούθησε την ομάδα σου",
+    "welcome.c3.text": "Δες πού παίζουν οι φίλοι σου και κάλεσέ τους στην επόμενη αποστολή.",
+    "welcome.c4.title": "Ανέβα στην κατάταξη",
+    "welcome.c4.text": "Κέρδισε badges και πάρε τη θέση σου ανάμεσα στους καλύτερους.",
+    "welcome.c5.title": "Μοιράσου τη στιγμή",
+    "welcome.c5.text": "Βάλε τη φωτογραφία της ομάδας σου στο Instagram story με ένα πάτημα.",
+    "welcome.cta": "Μπες στο πρώτο σου δωμάτιο",
+    "welcome.rank": "Η ΚΑΤΑΤΑΞΗ ΣΟΥ",
     "welcome.rankName": "Escape Αρχάριος",
-    "welcome.rankSuffix": "— Παίξε σε περισσότερα δωμάτια για να ανεβείς!",
+    "welcome.rankHint": "Παίξε σε περισσότερα δωμάτια για να ανεβείς.",
+    "welcome.quote": "«Κάθε κλειδαριά έχει το κλειδί της.»",
     "welcome.footer": "UNLOCKED — Πλατφόρμα Escape Room",
-    "welcome.subject": "Καλώς ήρθες στο UNLOCKED! Η escape room περιπέτειά σου ξεκινά τώρα",
+    "welcome.preheader": "Η πόρτα άνοιξε — ο λογαριασμός σου είναι έτοιμος.",
+    "welcome.subject": "Η πόρτα άνοιξε — καλώς ήρθες στο UNLOCKED",
     // Stripe receipt
     "receipt.title": "Απόδειξη Πληρωμής",
     "receipt.subtitle": "Συναλλαγή για κράτηση",
@@ -482,6 +496,94 @@ ${TABLE(`
 // 2. PLAYER WELCOME EMAIL
 // ══════════════════════════════════════════════════════════════
 
+// Player welcome email: its own dark, escape-room themed layout (not shell()).
+// Tables + inline styles so it holds up in Gmail / Outlook / Apple Mail.
+export function welcomeHtml(lang: Lang, playerName: string): string {
+  const w = (k: string) => et(lang, "welcome." + k);
+  const font = "Inter,Arial,Helvetica,sans-serif";
+  const serif = "'Noto Serif Display',Georgia,'Times New Roman',serif";
+  const clues: [string, string][] = [["🔍", "c1"], ["🎟️", "c2"], ["👥", "c3"], ["🏆", "c4"], ["📸", "c5"]];
+  const clueRows = clues
+    .map(
+      ([icon, k], i) => `<tr><td style="padding:0 0 10px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#160c0c" style="background-color:#160c0c;border:1px solid #2a1414;border-left:3px solid #c8101b;border-radius:10px;">
+    <tr>
+      <td width="56" align="center" valign="middle" style="padding:14px 0 14px 8px;font-size:26px;line-height:1;">${icon}</td>
+      <td style="padding:14px 16px 14px 6px;font-family:${font};">
+        <div style="font-size:10px;letter-spacing:2px;color:#ff2a36;font-weight:700;">${w("clue")} ${i + 1}/5</div>
+        <div style="font-size:15px;font-weight:700;color:#ffffff;margin-top:2px;">${w(k + ".title")}</div>
+        <div style="font-size:13px;line-height:1.5;color:#a8968a;margin-top:2px;">${w(k + ".text")}</div>
+      </td>
+    </tr>
+  </table>
+</td></tr>`
+    )
+    .join("\n");
+
+  return `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${lang}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>${w("subject")}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:wght@700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#050303;" bgcolor="#050303">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#050303;">${w("preheader")}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#050303" style="background-color:#050303;">
+<tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#0e0808" style="width:100%;max-width:600px;background-color:#0e0808;border:1px solid #2a1414;border-radius:18px;overflow:hidden;">
+
+  <tr><td align="center" bgcolor="#120606" style="background-color:#120606;background-image:radial-gradient(ellipse at 50% 0%,#5a0a10 0%,#120606 70%);padding:38px 24px 32px;border-bottom:2px solid #c8101b;">
+    <div style="font-family:${serif};font-size:30px;font-weight:800;letter-spacing:6px;color:#e8dcc8;">UN<span style="color:#ff2a36;">LOCKED</span></div>
+    <div style="font-family:${font};font-size:11px;letter-spacing:4px;color:#8a7468;margin-top:6px;">${w("tagline")}</div>
+    <h1 style="font-family:${serif};font-size:30px;line-height:1.2;font-weight:800;color:#ffffff;margin:28px 0 8px;">${w("title").replace("{name}", escHtml(playerName))}</h1>
+    <p style="font-family:${font};font-size:15px;line-height:1.5;color:#c9b8a6;margin:0;">${w("subtitle")}</p>
+  </td></tr>
+
+  <tr><td style="padding:30px 32px 6px;font-family:${font};font-size:15px;line-height:1.65;color:#d8cbbb;">${w("intro")}</td></tr>
+
+  <tr><td style="padding:16px 24px 8px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+${clueRows}
+    </table>
+  </td></tr>
+
+  <tr><td align="center" style="padding:20px 24px 8px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+      <tr><td align="center" bgcolor="#c8101b" style="background-color:#c8101b;background-image:linear-gradient(180deg,#e0141f,#a00a14);border:1px solid #ff2a36;border-radius:10px;">
+        <a href="https://unlocked.gr/discover" style="display:inline-block;padding:16px 38px;font-family:${font};font-size:15px;font-weight:700;letter-spacing:1px;color:#ffffff;text-decoration:none;">🔓 ${w("cta")}</a>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td align="center" style="padding:26px 24px 30px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#140f06" style="background-color:#140f06;border:1px dashed #b8892b;border-radius:12px;">
+      <tr><td align="center" style="padding:14px 26px;font-family:${font};">
+        <div style="font-size:10px;letter-spacing:3px;color:#8a7468;">${w("rank")}</div>
+        <div style="font-family:${serif};font-size:20px;font-weight:800;color:#f0b43c;margin-top:4px;">🗝️ ${w("rankName")}</div>
+        <div style="font-size:12px;color:#a8968a;margin-top:4px;">${w("rankHint")}</div>
+      </td></tr>
+    </table>
+  </td></tr>
+
+  <tr><td align="center" bgcolor="#080404" style="background-color:#080404;border-top:1px solid #2a1414;padding:22px 24px;font-family:${font};">
+    <div style="font-size:12px;color:#6f5d53;font-style:italic;">${w("quote")}</div>
+    <div style="font-size:12px;color:#6f5d53;margin-top:10px;">${w("footer")}</div>
+    <div style="font-size:12px;margin-top:6px;">
+      <a href="https://unlocked.gr" style="color:#ff2a36;text-decoration:none;">unlocked.gr</a><span style="color:#4a3a32;">&nbsp;·&nbsp;</span><a href="https://unlocked.gr/privacy" style="color:#ff2a36;text-decoration:none;">Privacy</a><span style="color:#4a3a32;">&nbsp;·&nbsp;</span><a href="https://unlocked.gr/terms" style="color:#ff2a36;text-decoration:none;">Terms</a>
+    </div>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 export const sendPlayerWelcome = internalAction({
   args: {
     playerName: v.string(),
@@ -494,30 +596,7 @@ export const sendPlayerWelcome = internalAction({
 
     const lang = (args.lang === "el" ? "el" : "en") as Lang;
 
-    const html = shell(
-      et(lang, "welcome.title"),
-      et(lang, "welcome.subtitle"),
-      `<p style="${S.greeting}">${et(lang, "welcome.greeting")} <strong>${escHtml(args.playerName)}</strong>,</p>
-<p style="${S.bodyText}">
-  ${et(lang, "welcome.body")}
-</p>
-<p style="${S.bodyText}">${et(lang, "welcome.whatYouCanDo")}</p>
-${TABLE(`
-  ${FR(et(lang, "welcome.discover"))}
-  ${FR(et(lang, "welcome.book"))}
-  ${FR(et(lang, "welcome.connect"))}
-  ${FR(et(lang, "welcome.compete"))}
-  ${FR(et(lang, "welcome.share"))}
-`)}
-<div style="text-align:center;margin:32px 0;">
-  <a href="https://unlocked.gr/discover" style="${S.btn}">${et(lang, "welcome.startExploring")}</a>
-</div>
-<div style="${S.divider}"></div>
-<p style="font-size:13px;color:${C.textMuted};text-align:center;margin:0;">
-  ${et(lang, "welcome.rank")} <strong style="color:${C.gold};">${et(lang, "welcome.rankName")}</strong> ${et(lang, "welcome.rankSuffix")}
-</p>`,
-      et(lang, "welcome.footer")
-    );
+    const html = welcomeHtml(lang, args.playerName);
 
     await resend.emails.send({
       from: fromAddr(),
