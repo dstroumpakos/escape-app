@@ -14,7 +14,7 @@ import { rateLimit, HOUR } from "./rateLimit";
  * company chose to show); UNLOCKED stores no applications.
  */
 
-export const JOB_ROLES = ["gm", "actor", "host", "technician", "other"] as const;
+export const JOB_ROLES = ["gm", "actor", "host", "other"] as const;
 export const JOB_GENDERS = ["male", "female"] as const;
 export const JOB_EMPLOYMENT = ["full", "part", "freelance", "seasonal"] as const;
 
@@ -28,6 +28,7 @@ const postArgs = {
   roles: v.array(v.string()),
   genders: v.array(v.string()),
   employment: v.optional(v.string()),
+  country: v.optional(v.string()), // ISO code, e.g. GR
   city: v.string(),
   contactEmail: v.optional(v.string()),
   contactPhone: v.optional(v.string()),
@@ -39,6 +40,7 @@ type PostInput = {
   roles: string[];
   genders: string[];
   employment?: string;
+  country?: string;
   city: string;
   contactEmail?: string;
   contactPhone?: string;
@@ -52,6 +54,7 @@ function clean(input: PostInput, company: Doc<"companies">) {
   const title = input.title.trim();
   const description = input.description.trim();
   const city = (input.city.trim() || company.city || "").trim();
+  const country = (input.country ?? "").trim().toUpperCase();
   const contactEmail = (input.contactEmail ?? "").trim().toLowerCase();
   const contactPhone = (input.contactPhone ?? "").trim();
   const roles = only(input.roles, JOB_ROLES);
@@ -63,6 +66,7 @@ function clean(input: PostInput, company: Doc<"companies">) {
     throw new ConvexError(`The description needs 20 to ${LIMITS.description} characters.`);
   }
   if (roles.length === 0) throw new ConvexError("Pick at least one role.");
+  if (country && !/^[A-Z]{2}$/.test(country)) throw new ConvexError("Pick a country from the list.");
   if (city.length > LIMITS.city) throw new ConvexError("The city is too long.");
   if (contactEmail && (contactEmail.length > LIMITS.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
     throw new ConvexError("The contact email doesn't look right.");
@@ -78,6 +82,7 @@ function clean(input: PostInput, company: Doc<"companies">) {
     roles,
     genders: genders.length === JOB_GENDERS.length ? [] : genders,
     employment,
+    country: country || undefined,
     city,
     contactEmail: contactEmail || undefined,
     contactPhone: contactPhone || undefined,
@@ -167,6 +172,7 @@ function publicPost(p: Doc<"jobPosts">, c: Doc<"companies">) {
     roles: p.roles,
     genders: p.genders,
     employment: p.employment ?? "",
+    country: p.country ?? "",
     city: p.city,
     contactEmail: p.contactEmail ?? "",
     contactPhone: p.contactPhone ?? "",

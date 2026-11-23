@@ -724,9 +724,10 @@ export default defineSchema({
     companyId: v.id("companies"),
     title: v.string(),
     description: v.string(),
-    roles: v.array(v.string()), // gm | actor | host | technician | other
+    roles: v.array(v.string()), // gm | actor | host | other
     genders: v.array(v.string()), // male | female; empty = anyone
-    employment: v.optional(v.string()), // full | part | freelance | seasonal
+    employment: v.optional(v.string()), // full | part | freelance | seasonal (no longer asked)
+    country: v.optional(v.string()), // ISO code, e.g. GR
     city: v.string(),
     contactEmail: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
