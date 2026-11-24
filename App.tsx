@@ -50,6 +50,8 @@ import ScanStampScreen from './src/screens/ScanStampScreen';
 import AddPlayScreen from './src/screens/plays/AddPlayScreen';
 import PlayedRoomScreen from './src/screens/plays/PlayedRoomScreen';
 import TowerScreen from './src/screens/TowerScreen';
+import JobsScreen from './src/screens/JobsScreen';
+import CompanyJobs from './src/screens/company/CompanyJobs';
 import CompanyPassport from './src/screens/company/CompanyPassport';
 import DateTimeSelect from './src/screens/DateTimeSelect';
 import Checkout from './src/screens/Checkout';
@@ -193,6 +195,19 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {
           tabBarIcon: tabIcon('map.fill', 'map'),
         }}
       />
+      {/*
+        My Passport sits in the middle: stamps, the QR scanner, rooms played and the tower.
+        Note: with BOOKING_ENABLED the bar has 6 tabs and iOS folds the last one into "More".
+      */}
+      <Tab.Screen
+        name="PassportTab"
+        options={{
+          tabBarLabel: t('tabs.passport'),
+          tabBarIcon: tabIcon('book.closed.fill', 'book'),
+        }}
+      >
+        {() => <PassportScreen embedded />}
+      </Tab.Screen>
       <Tab.Screen
         name="Social"
         component={SocialScreen}
@@ -521,6 +536,7 @@ export default function App() {
               onNavigatePhotos={() => companyNav.navigate('CompanyPhotos', { companyId: companyId! })}
               onNavigatePayments={() => companyNav.navigate('CompanyPayments', { companyId: companyId! })}
               onNavigateMerch={() => companyNav.navigate('CompanyMerch', { companyId: companyId! })}
+              onNavigateJobs={() => companyNav.navigate('CompanyJobs')}
               onNavigateNotifPrefs={() => companyNav.navigate('CompanyNotificationPrefs')}
               onNavigateGuide={() => companyNav.navigate('CompanyGuide')}
               onNavigateTerms={() => companyNav.navigate('TermsOfService')}
@@ -628,6 +644,9 @@ export default function App() {
                   <Stack.Screen name="CompanyBilling">
                     {(props) => <CompanyBilling companyId={companyId} onBack={() => (props as any).navigation.goBack()} />}
                   </Stack.Screen>
+                  <Stack.Screen name="CompanyJobs">
+                    {(props) => <CompanyJobs onBack={() => (props as any).navigation.goBack()} />}
+                  </Stack.Screen>
                 </>
               ) : (
                 <>
@@ -648,6 +667,7 @@ export default function App() {
                   <Stack.Screen name="AddPlay" component={AddPlayScreen} />
                   <Stack.Screen name="PlayedRoom" component={PlayedRoomScreen} />
                   <Stack.Screen name="Tower" component={TowerScreen} options={{ animation: 'fade', gestureEnabled: false }} />
+                  <Stack.Screen name="Jobs" component={JobsScreen} />
                   <Stack.Screen name="DateTimeSelect" component={DateTimeSelect} />
                   <Stack.Screen name="Checkout" component={Checkout} />
                   <Stack.Screen name="BookingConfirmation" component={BookingConfirmation} options={{ gestureEnabled: false }} />

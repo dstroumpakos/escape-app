@@ -130,7 +130,7 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
             {mode === 'profile' && (
               <TouchableOpacity
                 style={[styles.settingsBtn, { marginLeft: 'auto', marginRight: 8 }]}
-                onPress={() => navigation.navigate('Passport')}
+                onPress={() => navigation.navigate('PassportTab' as any)}
                 accessibilityLabel={t('pp.title')}
               >
                 <Ionicons name="book-outline" size={22} color={theme.colors.gold} />
@@ -224,6 +224,7 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
             { icon: 'key-outline' as const, label: t('password.changeTitle'), action: () => setChangePwVisible(true) },
             { icon: 'people-outline' as const, label: t('people.title'), action: () => navigation.navigate('Friends' as any) },
             { icon: 'trophy-outline' as const, label: t('leaderboard.title'), action: () => navigation.navigate('Leaderboard' as any) },
+            { icon: 'briefcase-outline' as const, label: t('jobs.menu'), action: () => navigation.navigate('Jobs' as any) },
             { icon: 'notifications-outline' as const, label: t('profile.notifications'), action: () => navigation.navigate('NotificationPrefs' as any) },
             { icon: 'settings-outline' as const, label: t('profile.settingsTitle'), action: () => navigation.navigate('PlayerSettings') },
             { icon: 'help-circle-outline' as const, label: t('profile.helpSupport'), action: () => Linking.openURL('mailto:hello@unlocked.gr?subject=UNLOCKED%20app').catch(() => {}) },

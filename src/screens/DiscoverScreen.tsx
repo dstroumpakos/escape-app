@@ -314,6 +314,14 @@ export default function DiscoverScreen() {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerBtn}
+              onPress={() => navigation.navigate('Jobs')}
+              accessibilityRole="button"
+              accessibilityLabel={t('jobs.menu')}
+            >
+              <Ionicons name="briefcase-outline" size={18} color={theme.colors.bone} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerBtn}
               onPress={() => navigation.navigate('Companies')}
               accessibilityRole="button"
               accessibilityLabel={t('co.title')}

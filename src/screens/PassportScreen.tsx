@@ -13,8 +13,11 @@ import { formatPlayed, shortPlayed } from '../playTime';
 import PlaysTab from './plays/PlaysTab';
 import PlaysMap from './plays/PlaysMap';
 
-/** My Passport: the stamps of the rooms you played and the maze they open (convex/passport.ts). */
-export default function PassportScreen() {
+/**
+ * My Passport: the stamps of the rooms you played and the maze they open (convex/passport.ts).
+ * `embedded` = shown as a tab of the main tab bar (no back button, room for the bar).
+ */
+export default function PassportScreen({ embedded = false }: { embedded?: boolean }) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -47,9 +50,11 @@ export default function PassportScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()} accessibilityLabel={t('profile.back')}>
-          <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
-        </TouchableOpacity>
+        {!embedded && (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()} accessibilityLabel={t('profile.back')}>
+            <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>{t('pp.title')}</Text>
         <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('ScanStamp')}>
           <Ionicons name="qr-code-outline" size={18} color="#fff" />
@@ -57,7 +62,7 @@ export default function PassportScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: embedded ? 110 : 60 }}>
         {/* Identity page */}
         <View style={styles.idCard}>
           <Text style={styles.idKicker}>UNLOCKED · PASSPORT</Text>

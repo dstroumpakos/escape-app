@@ -69,6 +69,7 @@ export type RootStackParamList = {
   AddPlay: undefined;
   PlayedRoom: { id: string };
   Tower: undefined;
+  Jobs: undefined;
   DateTimeSelect: { id: string; date?: string; time?: string };
   Checkout: { id: string; date: string; time: string; players: number; total: number };
   BookingConfirmation: { id: string; date: string; time: string; players: number; total: number; bookingCode: string; bookingId: string; paymentStatus: string };
@@ -98,6 +99,7 @@ export type RootStackParamList = {
   CompanyPayments: { companyId: string };
   CompanyMerch: { companyId: string };
   CompanyMerchEditor: { companyId: string; productId?: string };
+  CompanyJobs: undefined;
   CompanyGuide: undefined;
   CompanyPassport: undefined;
   CompanyNotificationPrefs: undefined;
@@ -107,6 +109,7 @@ export type MainTabParamList = {
   Home: undefined;
   Discover: undefined;
   Social: undefined;
+  PassportTab: undefined;
   Tickets: undefined;
   Profile: undefined;
 };

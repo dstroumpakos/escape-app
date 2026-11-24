@@ -1,4 +1,5 @@
 import { playsTranslations } from './playsTranslations';
+import { jobsTranslations } from './jobsTranslations';
 import { leaderboardTranslations } from './leaderboardTranslations';
 import { chatTranslations } from './chatTranslations';
 import { peopleTranslations } from './peopleTranslations';
@@ -4075,3 +4076,7 @@ Object.assign(translations.el, companyProfileTranslations.el);
 // Leaderboard with scores (leaderboardTranslations.ts).
 Object.assign(translations.en, leaderboardTranslations.en);
 Object.assign(translations.el, leaderboardTranslations.el);
+
+// Job ads and the Passport tab (jobsTranslations.ts).
+Object.assign(translations.en, jobsTranslations.en);
+Object.assign(translations.el, jobsTranslations.el);

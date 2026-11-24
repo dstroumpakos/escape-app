@@ -11,6 +11,8 @@ import { useUser } from '../UserContext';
 import { RoomCard } from '../components/RoomCard';
 import { CompanyLogo } from '../components/CompanyLogo';
 import { CompanyPromoPhotos, CompanyTeamPhotos } from '../components/CompanyProfilePhotos';
+import { JobCard } from '../components/JobCard';
+import type { PublicJob } from '../jobs';
 
 /** A company's profile for logged-in players: its rooms, and following it (convex/companyPages.ts). */
 export default function CompanyProfileScreen() {
@@ -21,6 +23,8 @@ export default function CompanyProfileScreen() {
   const { sessionToken } = useUser();
   const companyId = route.params?.companyId;
   const data = useQuery(api.companyPages.profile, sessionToken && companyId ? { companyId, sessionToken } : 'skip');
+  // Open job ads of this company (convex/jobs.ts), like the website's profile
+  const jobs = (useQuery(api.jobs.byCompany, companyId ? { companyId } : 'skip') ?? []) as PublicJob[];
   const follow = useMutation(api.companyPages.follow);
   const unfollow = useMutation(api.companyPages.unfollow);
   const [busy, setBusy] = useState(false);
@@ -89,6 +93,18 @@ export default function CompanyProfileScreen() {
           {/* The company's own photos (convex/companyProfile.ts) */}
           <CompanyPromoPhotos items={data.promoPhotos} share={{ name: data.name, companyId: data._id }} />
 
+          {jobs.length > 0 && (
+            <>
+              <View style={styles.hiringHead}>
+                <Ionicons name="briefcase-outline" size={18} color={theme.colors.redLight} />
+                <Text style={[styles.section, { marginTop: 0, marginBottom: 0 }]}>{t('jobs.on_profile')}</Text>
+              </View>
+              <View style={{ gap: 12 }}>
+                {jobs.map((j) => <JobCard key={j._id} job={j} showCompany={false} />)}
+              </View>
+            </>
+          )}
+
           <Text style={styles.section}>{t('co.theirRooms')}</Text>
           <View style={{ gap: 14 }}>
             {data.rooms.map((r: any) => (
@@ -122,4 +138,5 @@ const styles = StyleSheet.create({
   label: { fontSize: 11, color: theme.colors.textMuted, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   p: { color: theme.colors.textSecondary, fontSize: 13, lineHeight: 19 },
   section: { fontFamily: theme.fonts.display, fontSize: 18, color: theme.colors.bone, marginTop: 22, marginBottom: 12 },
+  hiringHead: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 22, marginBottom: 12 },
 });
