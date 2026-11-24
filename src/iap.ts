@@ -1,7 +1,7 @@
 /**
  * In-App Purchases Service
  *
- * Uses react-native-iap v14 for native Apple/Google subscription management.
+ * Uses expo-iap (OpenIAP, Expo module; replaced react-native-iap/Nitro, which crashed on RN 0.88) for native Apple/Google subscription management.
  * Product IDs must match those configured in App Store Connect / Google Play Console.
  *
  * Flow:
@@ -24,9 +24,7 @@ import {
   getAvailablePurchases,
   type Purchase,
   type ProductSubscription,
-  type PurchaseError,
-  type EventSubscription,
-} from 'react-native-iap';
+} from 'expo-iap';
 
 // ─── Product IDs ───
 // These must match the subscription product IDs in App Store Connect / Google Play Console
@@ -151,12 +149,12 @@ export function extractReceiptData(purchase: Purchase) {
 // ─── Listener setup helpers ───
 export function onPurchaseUpdated(
   callback: (purchase: Purchase) => void
-): EventSubscription {
+): { remove: () => void } {
   return purchaseUpdatedListener(callback);
 }
 
 export function onPurchaseError(
-  callback: (error: PurchaseError) => void
-): EventSubscription {
+  callback: Parameters<typeof purchaseErrorListener>[0]
+): { remove: () => void } {
   return purchaseErrorListener(callback);
 }

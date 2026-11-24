@@ -13,7 +13,7 @@ import { theme } from '../theme';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
 import type { Id } from '../../convex/_generated/dataModel';
-import type { ProductSubscription, Purchase } from 'react-native-iap';
+import type { ProductSubscription, Purchase } from 'expo-iap';
 import {
   initIAP,
   disconnectIAP,
@@ -73,10 +73,12 @@ export default function PremiumScreen() {
   useEffect(() => {
     let purchaseSub: { remove: () => void } | null = null;
     let errorSub: { remove: () => void } | null = null;
+    let unmounted = false;
 
     const setup = async () => {
       await initIAP();
       const subs = await fetchSubscriptionProducts();
+      if (unmounted) return;
       setProducts(subs);
 
       // Listen for successful purchases
@@ -112,9 +114,12 @@ export default function PremiumScreen() {
       });
     };
 
-    setup();
+    // A store failure must never take the screen down: it then shows the
+    // default prices and the purchase buttons report the error instead.
+    setup().catch((err) => console.warn('[IAP] Setup failed:', err));
 
     return () => {
+      unmounted = true;
       purchaseSub?.remove();
       errorSub?.remove();
       disconnectIAP();
