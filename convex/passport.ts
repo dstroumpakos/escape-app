@@ -7,6 +7,7 @@ import { companyIsPublic } from "./companyRules";
 import { rateLimit, HOUR } from "./rateLimit";
 import { notifyUser } from "./push";
 import { countedPlays, absorbPlayLog } from "./plays";
+import { avatarUrl } from "./avatars";
 
 /**
  * My Passport: a stamp for every room a player has played, collected by
@@ -291,7 +292,7 @@ export const mine = query({
     const cities = new Set(stamps.map((s) => s.city).filter(Boolean));
     return {
       name: me.name,
-      avatar: me.avatar,
+      avatar: await avatarUrl(ctx, me),
       passportNo: `UNL-${String(me._id).slice(-8).toUpperCase()}`,
       memberSince: me.memberSince,
       stamps,
