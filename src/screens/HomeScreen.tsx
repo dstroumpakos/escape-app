@@ -17,6 +17,7 @@ import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { RoomCard, RoomRow } from '../components/RoomCard';
 import { OfferCard, type Offer } from '../components/OfferCard';
+import { ProductTile } from '../components/shop';
 import { TypeLabel } from '../components/ui';
 import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
@@ -94,6 +95,9 @@ export default function HomeScreen() {
 
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
+  // Merch shop: same catalogue as the Shop screen and the website's /shop
+  const shop = useQuery(api.merch.listShop, { sessionToken: sessionToken || undefined });
+  const shopProducts = (shop?.products ?? []).slice(0, 10);
   const allRooms = useQuery(api.rooms.list);
   const premiumStatus = useQuery(
     api.premium.getStatus,
@@ -306,6 +310,28 @@ export default function HomeScreen() {
           </>
         )}
 
+        {/* Shop */}
+        {shopProducts.length > 0 && (
+          <>
+            <SectionHeader
+              tag={t('home.shopTag')}
+              title={t('home.shopTitle')}
+              onSeeAll={() => navigation.navigate('Shop', {})}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.carousel, styles.shopRow]}
+            >
+              {shopProducts.map((p) => (
+                <View key={p._id} style={styles.shopItem}>
+                  <ProductTile p={p} onPress={() => navigation.navigate('Product', { id: p._id })} />
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        )}
+
         {/* Premium Upsell */}
         {premiumStatus && !premiumStatus.isPremium && (
           <TouchableOpacity
@@ -390,6 +416,9 @@ const styles = StyleSheet.create({
   seeAllText: { fontSize: 13, fontWeight: '600' },
 
   carousel: { paddingBottom: 10 },
+
+  shopRow: { paddingHorizontal: 20, gap: 12 },
+  shopItem: { width: 160 },
 
   nearList: { paddingHorizontal: 20, gap: 10, width: '100%', maxWidth: 640, alignSelf: 'center' },
 
