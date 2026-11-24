@@ -15,7 +15,10 @@ import {
   ActionSheetIOS,
   Platform,
   Share,
+  Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -243,6 +246,7 @@ function CommentSection({
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const comments = useQuery(api.posts.getComments, { postId });
   const addComment = useMutation(api.posts.addComment);
   const [newComment, setNewComment] = useState('');
@@ -309,7 +313,7 @@ function CommentSection({
         }
       />
 
-      <View style={styles.commentInputRow}>
+      <View style={[styles.commentInputRow, { paddingBottom: Math.max(12, insets.bottom + 8) }]}>
         <TextInput
           style={styles.commentInput}
           placeholder={t('social.addComment')}
@@ -626,21 +630,32 @@ export default function SocialScreen() {
         }
       />
 
-      {/* Comment overlay */}
-      {commentPostId && sessionToken && (
-        <View style={styles.commentOverlay}>
+      {/* Comment sheet: a Modal so it sits above the (glass) tab bar and moves up with the keyboard */}
+      <Modal
+        visible={!!(commentPostId && sessionToken)}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setCommentPostId(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.commentOverlay}
+        >
           <TouchableOpacity
             style={styles.commentBackdrop}
             activeOpacity={1}
             onPress={() => setCommentPostId(null)}
           />
-          <CommentSection
-            postId={commentPostId}
-            sessionToken={sessionToken}
-            onClose={() => setCommentPostId(null)}
-          />
-        </View>
-      )}
+          {commentPostId && sessionToken && (
+            <CommentSection
+              postId={commentPostId}
+              sessionToken={sessionToken}
+              onClose={() => setCommentPostId(null)}
+            />
+          )}
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Create Post Modal */}
       <CreatePostModal
@@ -812,18 +827,14 @@ const styles = StyleSheet.create({
 
   /* Comment overlay */
   commentOverlay: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 100,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   commentBackdrop: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   commentSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     maxHeight: '65%',
     backgroundColor: theme.colors.bgSecondary,
     borderTopLeftRadius: 24,
@@ -870,7 +881,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: 32,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
