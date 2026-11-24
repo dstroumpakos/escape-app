@@ -6,7 +6,7 @@ import { getAppleTransaction, getSubscriptionState, bundleId } from "./appStore"
 import { rateLimit, HOUR } from "./rateLimit";
 import { v } from "convex/values";
 import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
-import { filterPublicRooms } from "./companyRules";
+import { listPublicRooms } from "./rooms";
 
 const PREMIUM_PRICES = {
   monthly: 4.99,
@@ -197,8 +197,9 @@ export const cancel = mutation({
 export const getVisibleRooms = query({
   args: { sessionToken: v.optional(v.string()), userId: legacyUserIdV },
   handler: async (ctx, args) => {
-    // Only rooms of approved companies (companyRules.ts).
-    const allRooms = await filterPublicRooms(ctx, await ctx.db.query("rooms").collect());
+    // The same rooms as the website's Discover (rooms.listPublicRooms): hides
+    // Inactive, photos-only, unapproved and free-plan rooms.
+    const allRooms = await listPublicRooms(ctx);
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
@@ -243,8 +244,8 @@ export const getEarlyAccessRooms = query({
     const isPremium = user?.isPremium === true && (user?.premiumExpiresAt ?? 0) > Date.now();
     if (!isPremium) return [];
 
-    // Only rooms of approved companies (companyRules.ts).
-    const allRooms = await filterPublicRooms(ctx, await ctx.db.query("rooms").collect());
+    // Same public rooms as Discover (rooms.listPublicRooms).
+    const allRooms = await listPublicRooms(ctx);
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const earlyAccessDate = new Date(now);

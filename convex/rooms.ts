@@ -57,12 +57,21 @@ async function enrichRoom(ctx: any, room: any) {
   return { ...room, isEarlyAccessPartner, companyName, bookingTarget };
 }
 
+/**
+ * Every room players may see in a public list: not photos-only, not switched
+ * off (Inactive), from an approved company that is not on the free plan.
+ * The website's Discover (rooms.list) and the app's Discover
+ * (premium.getVisibleRooms) both start from this, so they show the same rooms.
+ */
+export async function listPublicRooms(ctx: any) {
+  const rooms = await ctx.db.query("rooms").collect();
+  return await batchEnrichRooms(ctx, rooms.filter((r: any) => !r.photosOnly));
+}
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const rooms = await ctx.db.query("rooms").collect();
-    const publicRooms = rooms.filter((r) => !r.photosOnly);
-    return await batchEnrichRooms(ctx, publicRooms);
+    return await listPublicRooms(ctx);
   },
 });
 
