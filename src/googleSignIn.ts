@@ -20,7 +20,10 @@ import { Platform, TurboModuleRegistry } from 'react-native';
 const WEB_CLIENT_ID = '1070399630488-hbaguc9li85ao8at62ar4ge8uoh4bu9f.apps.googleusercontent.com';
 // "UNLOCKED iOS app" OAuth client (bundle com.unlocked.escapeapp, team 97G74KAACL)
 const IOS_CLIENT_ID = '1070399630488-l5apvkb7q2thggqu7g4dieogea0eflg4.apps.googleusercontent.com';
-const ANDROID_READY = false;
+// "UNLOCKED Android app (EAS upload key)" OAuth client exists (SHA-1 1C:C0:...:71:48).
+// Play Store installs are re-signed by Play App Signing: that key's SHA-1 needs
+// its own Android OAuth client too, or Google answers DEVELOPER_ERROR there.
+const ANDROID_READY = true;
 
 function nativeModule(): any | null {
   if (TurboModuleRegistry.get('RNGoogleSignin') == null) return null;
