@@ -22,8 +22,7 @@ import { TypeLabel } from '../components/ui';
 import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
 import { ModeSplit } from '../components/ModeSplit';
-import { getSide, chooseSide, takePendingTheme } from '../side';
-import { fearOf } from '../mode';
+import { getSide, chooseSide, takePendingTheme, forSide } from '../side';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -98,7 +97,7 @@ export default function HomeScreen() {
 
   // Puzzles or horror (src/side.ts); null until the player picks one
   const side = getSide();
-  const forSide = <T extends { theme?: string; fearLevel?: string }>(rooms: T[]) => (side === 'puzzle' ? rooms.filter((r) => fearOf(r) !== 'high') : rooms);
+  const onThisSide = <T extends Parameters<typeof forSide>[0][number]>(rooms: T[]) => forSide(rooms, side ?? null);
   // A theme chip picked on the split: open Discover on it after the restart
   useEffect(() => {
     takePendingTheme().then((th) => {
@@ -133,12 +132,12 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const featured = forSide((featuredRooms ?? []) as any[]).map((r: any) => ({ ...r, id: r._id }));
+  const featured = onThisSide((featuredRooms ?? []) as any[]).map((r: any) => ({ ...r, id: r._id }));
 
   // Near You: rooms that have coordinates, sorted by distance from user
   const nearYou = React.useMemo(() => {
     if (!allRooms) return [];
-    const withCoords = forSide(allRooms as any[])
+    const withCoords = onThisSide(allRooms as any[])
       .filter((r: any) => r.latitude != null && r.longitude != null)
       .map((r: any) => ({ ...r, id: r._id }));
 

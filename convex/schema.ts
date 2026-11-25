@@ -230,7 +230,11 @@ export default defineSchema({
     // How scary it is, set by the company: "none" = puzzle side only, "some" =
     // both sides (marked "a little fear"), "high" = horror side only.
     // Unset = taken from the theme (lib/mode.ts fearOf).
+    // Old "how scary" (none/some/high); replaced by category below, kept for rooms not migrated yet
     fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
+    // Puzzles / puzzles with an actor / horror, and its subcategories (roomCategories.ts)
+    category: v.optional(v.union(v.literal("puzzle"), v.literal("puzzle_actor"), v.literal("horror"))),
+    subthemes: v.optional(v.array(v.string())),
     tags: v.array(v.string()),
     description: v.string(),
     story: v.string(),

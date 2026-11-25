@@ -15,11 +15,11 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
-import { ROOM_THEME_KEYS, ROOM_THEME_VALUES } from '../../roomThemes';
+import { ROOM_THEME_KEYS } from '../../roomThemes';
+import { CATEGORIES, SUBTHEMES, MAX_SUBTHEMES, sideOfCategory, cleanSubthemes, legacyTheme, categoryOf, subthemesOf, type Category } from '../../mode';
 
 type RouteType = RouteProp<RootStackParamList, 'CompanyRoomEditor'>;
 
-const THEMES = ROOM_THEME_VALUES;
 const TAG_OPTIONS = [
   'Horror Theme', 'Sci-Fi Theme', 'Mystery Theme', 'Historical Theme',
   'Live Actor', 'Physical Puzzles', 'Multi-room', 'High-Tech Puzzles',
@@ -89,10 +89,11 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [playersMax, setPlayersMax] = useState('6');
   const [price, setPrice] = useState('');
   const [pricePerGroup, setPricePerGroup] = useState<Record<number, string>>({});
-  const [selectedTheme, setSelectedTheme] = useState('Horror');
-  // How scary it is (rooms.fearLevel). '' = not picked: follows the theme.
-  const [fearLevel, setFearLevel] = useState<'' | 'none' | 'some' | 'high'>('');
-  const fear = fearLevel || (['Horror', 'Thriller', 'Paranormal'].includes(selectedTheme) ? 'high' : 'none');
+  // Puzzles / with an actor / horror, and its subcategories (convex/roomCategories.ts)
+  const [category, setCategory] = useState<Category>('puzzle');
+  const [subthemes, setSubthemes] = useState<string[]>([]);
+  const toggleSub = (v: string) =>
+    setSubthemes((p) => (p.includes(v) ? p.filter((x) => x !== v) : [...p, v].slice(0, MAX_SUBTHEMES)));
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [story, setStory] = useState('');
@@ -286,8 +287,8 @@ export default function CompanyRoomEditor({ companyId }: Props) {
         });
         setPricePerGroup(map);
       }
-      setSelectedTheme(existingRoom.theme);
-      setFearLevel(((existingRoom as any).fearLevel ?? '') as '' | 'none' | 'some' | 'high');
+      setCategory(categoryOf(existingRoom as any));
+      setSubthemes(subthemesOf(existingRoom as any));
       setSelectedTags(existingRoom.tags);
       setDescription(existingRoom.description);
       setStory(existingRoom.story);
@@ -346,6 +347,10 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       Alert.alert(t('error'), t('roomEditor.paymentRequired'));
       return;
     }
+    if (subthemes.length === 0) {
+      Alert.alert(t('error'), t('cat.subs_required'));
+      return;
+    }
     // 0 (or empty) clears the room's own value so the company default applies
     const depositText = depositPercent.trim();
     const depositValue = depositText === '' ? 0 : Number(depositText);
@@ -388,8 +393,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           playersMin: pMin,
           playersMax: pMax,
           price: parseFloat(price) || 0,
-          theme: selectedTheme,
-          fearLevel: fear,
+          category,
+          subthemes,
+          theme: legacyTheme(category, subthemes),
           tags: selectedTags,
           description: description.trim(),
           story: story.trim(),
@@ -422,8 +428,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           playersMin: pMin,
           playersMax: pMax,
           price: parseFloat(price) || 0,
-          theme: selectedTheme,
-          fearLevel: fear,
+          category,
+          subthemes,
+          theme: legacyTheme(category, subthemes),
           tags: selectedTags,
           description: description.trim(),
           story: story.trim(),
@@ -728,42 +735,41 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           </View>
         </View>
 
-        {/* Theme */}
-        <Text style={styles.sectionTitle}>{t('roomEditor.themeSection')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: 20 }}>
-          {THEMES.map((th) => (
-            <TouchableOpacity
-              key={th}
-              style={[styles.chip, selectedTheme === th && styles.chipActive]}
-              onPress={() => setSelectedTheme(th)}
-            >
-              <Text style={[styles.chipText, selectedTheme === th && styles.chipTextActive]}>{t(THEME_KEYS[th])}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* How scary: decides the puzzle / horror side on the website */}
-        <Text style={styles.sectionTitle}>{t('fear.label')}</Text>
-        <Text style={styles.fearHint}>{t('fear.hint')}</Text>
+        {/* Category: decides the puzzle / horror side, then its subcategories */}
+        <Text style={styles.sectionTitle}>{t('cat.label')}</Text>
         <View style={styles.fearRow}>
-          {(['none', 'some', 'high'] as const).map((f) => (
+          {CATEGORIES.map((c) => (
             <TouchableOpacity
-              key={f}
-              style={[styles.fearOption, fear === f && styles.chipActive]}
-              onPress={() => setFearLevel(f)}
+              key={c}
+              style={[styles.fearOption, category === c && styles.chipActive]}
+              onPress={() => { setCategory(c); setSubthemes((p) => cleanSubthemes(c, p)); }}
               accessibilityRole="radio"
-              accessibilityState={{ checked: fear === f }}
+              accessibilityState={{ checked: category === c }}
             >
               <Ionicons
-                name={f === 'none' ? 'key-outline' : f === 'some' ? 'moon-outline' : 'skull-outline'}
+                name={c === 'puzzle' ? 'key-outline' : c === 'puzzle_actor' ? 'happy-outline' : 'skull-outline'}
                 size={18}
-                color={fear === f ? theme.colors.redPrimary : theme.colors.textSecondary}
+                color={category === c ? theme.colors.redPrimary : theme.colors.textSecondary}
               />
-              <Text style={[styles.chipText, fear === f && styles.chipTextActive]}>{t(`fear.${f}`)}</Text>
-              <Text style={styles.fearDesc}>{t(`fear.${f}_desc`)}</Text>
+              <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{t(`cat.${c}`)}</Text>
+              <Text style={styles.fearDesc}>{t(`cat.${c}_hint`)}</Text>
             </TouchableOpacity>
           ))}
         </View>
+        <Text style={styles.sectionTitle}>{t('cat.subs_label')}</Text>
+        <View style={styles.subsWrap}>
+          {SUBTHEMES[sideOfCategory(category)].map((v) => (
+            <TouchableOpacity
+              key={v}
+              style={[styles.chip, subthemes.includes(v) && styles.chipActive]}
+              onPress={() => toggleSub(v)}
+              accessibilityState={{ selected: subthemes.includes(v) }}
+            >
+              <Text style={[styles.chipText, subthemes.includes(v) && styles.chipTextActive]}>{t(THEME_KEYS[v] || v)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {subthemes.length === 0 && <Text style={styles.fearHint}>{t('cat.subs_required')}</Text>}
 
         {/* Tags */}
         <Text style={styles.sectionTitle}>{t('roomEditor.tagsSection')}</Text>
@@ -1458,6 +1464,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: theme.colors.redSubtle, borderColor: theme.colors.redPrimary },
   fearHint: { fontSize: 12, color: theme.colors.textMuted, marginHorizontal: 20, marginTop: -6, marginBottom: 10 },
   fearRow: { marginHorizontal: 20, marginBottom: 20, gap: 8 },
+  subsWrap: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 8, marginHorizontal: 20, marginBottom: 12 },
   fearOption: {
     borderWidth: 1,
     borderColor: theme.colors.glassBorder,

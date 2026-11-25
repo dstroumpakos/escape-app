@@ -23,14 +23,14 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
-import { onSide, fearOf, type Side } from '../mode';
+import { onSide, categoryOf, subthemesOf, SUBTHEMES, ACTOR_FILTER, type Side } from '../mode';
 import { getSide } from '../side';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { BOOKING_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
 import { useTranslation } from '../i18n';
-import { ROOM_THEMES, ROOM_THEME_VALUES } from '../roomThemes';
+import { ROOM_THEME_KEYS } from '../roomThemes';
 import { caps, kmBetween } from '../caps';
 import CompaniesScreen from './CompaniesScreen';
 import JobsScreen from './JobsScreen';
@@ -49,7 +49,6 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 110,
 };
 
-const filters = ['All', ...ROOM_THEME_VALUES];
 
 // Custom dark map style – only applies on Android (Google Maps provider).
 // On iOS Apple Maps uses userInterfaceStyle="dark" instead.
@@ -124,16 +123,19 @@ export default function DiscoverScreen() {
     const lowest = (r: any) =>
       r.pricePerGroup?.length ? Math.min(...r.pricePerGroup.map((g: any) => g.price)) : r.price ?? 0;
     return rooms
-      .filter((r) => activeFilter === 'All' || r.theme === activeFilter)
-      .filter((r) => onSide(r, side))
-      // The puzzle side of the app never shows the scary rooms (src/side.ts)
-      .filter((r) => getSide() !== 'puzzle' || fearOf(r) !== 'high')
+      .filter(
+        (r) =>
+          activeFilter === 'All' ||
+          (activeFilter === ACTOR_FILTER ? categoryOf(r) === 'puzzle_actor' : subthemesOf(r).includes(activeFilter)),
+      )
+      // The side picked on Home, and the side the whole app is on (src/side.ts)
+      .filter((r) => onSide(r, side) && onSide(r, getSide()))
       .filter(
         (r) =>
           !q ||
           r.title?.toLowerCase().includes(q) ||
           r.location?.toLowerCase().includes(q) ||
-          r.theme?.toLowerCase().includes(q) ||
+          subthemesOf(r).some((s) => s.toLowerCase().includes(q) || t(ROOM_THEME_KEYS[s] || s).toLowerCase().includes(q)) ||
           r.companyName?.toLowerCase().includes(q),
       )
       .sort((a, b) => {
@@ -150,8 +152,18 @@ export default function DiscoverScreen() {
 
   const filterLabels: Record<string, string> = {
     All: t('discover.all'),
-    ...Object.fromEntries(ROOM_THEMES.map((th) => [th.value, t(th.key)])),
+    [ACTOR_FILTER]: t('discover.with_actor'),
+    ...Object.fromEntries([...SUBTHEMES.puzzle, ...SUBTHEMES.horror].map((v) => [v, t(ROOM_THEME_KEYS[v] || v)])),
   };
+  // Chips: the subcategories of the side shown (both sides when none), only those some room has
+  const shownSide = side ?? getSide();
+  const filters = React.useMemo(() => {
+    const pool = rooms.filter((r) => onSide(r, shownSide));
+    const have = new Set(pool.flatMap((r) => subthemesOf(r)));
+    const subs = shownSide ? SUBTHEMES[shownSide] : [...new Set([...SUBTHEMES.puzzle, ...SUBTHEMES.horror])];
+    const actor = shownSide !== 'horror' && pool.some((r) => categoryOf(r) === 'puzzle_actor') ? [ACTOR_FILTER] : [];
+    return ['All', ...actor, ...subs.filter((v) => have.has(v))];
+  }, [convexRooms, shownSide]);
 
   // Use saved user location as initial region, fall back to device location
   useEffect(() => {

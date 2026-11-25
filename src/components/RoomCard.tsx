@@ -7,6 +7,7 @@ import { caps } from '../caps';
 import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
+import { categoryOf, subthemesOf } from '../mode';
 import { DifficultySkulls } from './ui';
 import { shownRating, formatRating } from '../roomMedia';
 
@@ -26,6 +27,11 @@ const THEME_COLORS: Record<string, string> = {
   Medieval: '#FB923C',
   Fantasy: '#E879F9',
   Comedy: '#FDE047',
+  Action: '#F97316',
+  Kids: '#86EFAC',
+  Psychological: '#A78BFA',
+  Zombie: '#84CC16',
+  Splatter: '#EF4444',
 };
 
 /** "from €X" for per-group pricing, otherwise the per-person price. */
@@ -54,6 +60,25 @@ function RoomImage({ uri, iconSize }: { uri?: string; iconSize: number }) {
       {/* Darken and stain the photo so every room sits in the same gloom */}
       <View style={[styles.fill, styles.imgTint]} />
     </>
+  );
+}
+
+/** The room's category (when not plain puzzles) and its first subcategories. */
+function ThemeTags({ room }: { room: any }) {
+  const { t } = useTranslation();
+  const cat = categoryOf(room);
+  const subs = subthemesOf(room).slice(0, 2);
+  return (
+    <View style={styles.themeTags}>
+      {cat !== 'puzzle' && (
+        <View style={[styles.themeTag, { borderColor: cat === 'horror' ? '#F8717199' : '#FBBF2499' }]}>
+          <Text style={[styles.themeTagText, { color: cat === 'horror' ? '#F87171' : '#FBBF24' }]}>
+            {caps(t(cat === 'horror' ? 'cat.horror' : 'discover.with_actor'))}
+          </Text>
+        </View>
+      )}
+      {(subs.length ? subs : [room.theme]).map((v: string) => <ThemeTag key={v} value={v} />)}
+    </View>
   );
 }
 
@@ -132,7 +157,7 @@ export function RoomCard({
       </View>
 
       <View style={styles.body}>
-        <ThemeTag value={room.theme} />
+        <ThemeTags room={room} />
         <Text style={styles.title} numberOfLines={2}>
           {room.title}
         </Text>
@@ -293,6 +318,7 @@ const styles = StyleSheet.create({
   priceSub: { fontSize: 11, fontWeight: '400', color: theme.colors.textSecondary },
 
   body: { padding: 14, paddingTop: 10 },
+  themeTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   themeTag: {
     alignSelf: 'flex-start',
     paddingVertical: 2,

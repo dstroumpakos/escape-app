@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DevSettings } from 'react-native';
 import * as Updates from 'expo-updates';
-import type { Side } from './mode';
+import { sideOf, type Side } from './mode';
 
 /**
  * The player's side of the app, as on the website (escape-web/src/lib/mode.ts):
@@ -66,7 +66,7 @@ export async function takePendingTheme(): Promise<string | null> {
   }
 }
 
-/** Rooms for the side: a puzzle player never sees the scary ones (same as the website's forMode). */
-export function forSide<T extends { theme?: string; fearLevel?: string }>(rooms: T[], side: Side | null, fearOf: (r: T) => string): T[] {
-  return side === 'puzzle' ? rooms.filter((r) => fearOf(r) !== 'high') : rooms;
+/** Rooms for the side, by their category (same as the website's forMode). */
+export function forSide<T extends Parameters<typeof sideOf>[0]>(rooms: T[], side: Side | null): T[] {
+  return side ? rooms.filter((r) => sideOf(r) === side) : rooms;
 }

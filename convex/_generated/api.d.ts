@@ -67,6 +67,8 @@ import type * as reportRules from "../reportRules.js";
 import type * as reports from "../reports.js";
 import type * as returnUrls from "../returnUrls.js";
 import type * as reviews from "../reviews.js";
+import type * as roomCategories from "../roomCategories.js";
+import type * as roomCategoryMigration from "../roomCategoryMigration.js";
 import type * as rooms from "../rooms.js";
 import type * as seed from "../seed.js";
 import type * as signupCodes from "../signupCodes.js";
@@ -153,6 +155,8 @@ declare const fullApi: ApiFromModules<{
   reports: typeof reports;
   returnUrls: typeof returnUrls;
   reviews: typeof reviews;
+  roomCategories: typeof roomCategories;
+  roomCategoryMigration: typeof roomCategoryMigration;
   rooms: typeof rooms;
   seed: typeof seed;
   signupCodes: typeof signupCodes;

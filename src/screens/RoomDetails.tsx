@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
+import { categoryOf, subthemesOf } from '../mode';
 import { RootStackParamList } from '../types';
 import { BOOKING_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
@@ -82,7 +83,6 @@ export default function RoomDetails() {
   // Our own reviews, or the room's rating on another site if that has more
   const shown = shownRating(room);
   const trailer = trailerOf(room.videoUrl);
-  const themeKey = ROOM_THEME_KEYS[room.theme];
   const tags: string[] = room.tags ?? [];
 
   const timeAgo = (createdAt: number) => {
@@ -149,7 +149,10 @@ export default function RoomDetails() {
 
         {/* Content */}
         <FadeUp style={styles.content} delay={120}>
-          {!!room.theme && <TypeLabel>{themeKey ? t(themeKey) : room.theme}</TypeLabel>}
+          {/* Category and subcategories (convex/roomCategories.ts) */}
+          <TypeLabel color={categoryOf(room) === 'horror' ? theme.colors.redLight : undefined}>
+            {[t(`cat.${categoryOf(room)}`), ...subthemesOf(room).map((s) => t(ROOM_THEME_KEYS[s] || s))].join(' · ')}
+          </TypeLabel>
           <Text style={styles.title}>{room.title}</Text>
           {!!room.location && (
             <View style={styles.locationRow}>

@@ -18,6 +18,11 @@ export const ROOM_THEMES: { value: string; key: string }[] = [
   { value: 'Medieval', key: 'theme.medieval' },
   { value: 'Fantasy', key: 'theme.fantasy' },
   { value: 'Comedy', key: 'theme.comedy' },
+  { value: 'Action', key: 'theme.action' },
+  { value: 'Kids', key: 'theme.kids' },
+  { value: 'Psychological', key: 'theme.psychological' },
+  { value: 'Zombie', key: 'theme.zombie' },
+  { value: 'Splatter', key: 'theme.splatter' },
 ];
 
 export const ROOM_THEME_VALUES = ROOM_THEMES.map((th) => th.value);

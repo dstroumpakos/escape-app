@@ -1,25 +1,30 @@
 /**
- * Puzzles or horror, as on the website's home page (escape-web/src/lib/mode.ts).
- * "puzzle": no scary rooms; "horror": the rooms with some or a lot of fear.
+ * Puzzles or horror, as on the website (escape-web/src/lib/mode.ts). The side
+ * comes from the room's category (convex/roomCategories.ts): puzzles and
+ * puzzles with an actor are on the puzzle side, horror on the horror side.
  */
-export type Side = 'puzzle' | 'horror';
-export type Fear = 'none' | 'some' | 'high';
+import { SUBTHEMES, sideOf, type Side } from '../convex/roomCategories';
+export {
+  CATEGORIES,
+  SUBTHEMES,
+  MAX_SUBTHEMES,
+  categoryOf,
+  sideOf,
+  sideOfCategory,
+  subthemesOf,
+  cleanSubthemes,
+  legacyTheme,
+  type Category,
+  type Side,
+} from '../convex/roomCategories';
 
-/** Room themes that count as horror when the company didn't pick a fear level. */
-export const HORROR_THEMES = ['Horror', 'Thriller', 'Paranormal'];
-/** The themes offered on each side of the home section. */
-export const PUZZLE_CHIPS = ['Mystery', 'Detective', 'Puzzle', 'Adventure', 'Historical', 'Fantasy'];
-export const HORROR_CHIPS = HORROR_THEMES;
+/** The subcategories offered on each half of the home split. */
+export const PUZZLE_CHIPS = SUBTHEMES.puzzle.slice(0, 6);
+export const HORROR_CHIPS = SUBTHEMES.horror;
 
-/** The company's own choice (rooms.fearLevel), or a guess from the theme. */
-export function fearOf(room: { theme?: string; fearLevel?: string }): Fear {
-  const f = room.fearLevel;
-  if (f === 'none' || f === 'some' || f === 'high') return f;
-  return HORROR_THEMES.includes(room.theme ?? '') ? 'high' : 'none';
-}
+/** Discover chip for "puzzles with an actor". */
+export const ACTOR_FILTER = '__actor';
 
-export function onSide(room: { theme?: string; fearLevel?: string }, side: Side | null | undefined): boolean {
-  if (side === 'puzzle') return fearOf(room) !== 'high';
-  if (side === 'horror') return fearOf(room) !== 'none';
-  return true;
+export function onSide(room: Parameters<typeof sideOf>[0], side: Side | null | undefined): boolean {
+  return !side || sideOf(room) === side;
 }

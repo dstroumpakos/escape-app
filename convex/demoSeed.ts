@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { hashPassword } from "./passwordUtils";
 import { athensDate } from "./companyStats";
+import { categoryFields, type Category } from "./roomCategories";
 
 /**
  * Demo data for presentations to escape room companies (demo.unlocked.gr):
@@ -101,7 +102,7 @@ function logo(name: string, color: string): string {
 type CompanySpec = {
   key: string; name: string; email: string; city: string; address: string; color: string;
   lat: number; lng: number; description: string; website: string;
-  rooms: { title: string; location: string; theme: string; difficulty: number; fear: "none" | "some" | "high"; price: number; duration: number; min: number; max: number; description: string; story: string; tags: string[]; isNew?: boolean }[];
+  rooms: { title: string; location: string; theme: string; difficulty: number; cat: Category; subs: string[]; price: number; duration: number; min: number; max: number; description: string; story: string; tags: string[]; isNew?: boolean }[];
 };
 
 const COMPANIES: CompanySpec[] = [
@@ -110,13 +111,13 @@ const COMPANIES: CompanySpec[] = [
     lat: 37.9655, lng: 23.7246, website: "https://example.com/labyrinth",
     description: "Τρία δωμάτια στο Κουκάκι, πέντε λεπτά από την Ακρόπολη. Σκηνικά που χτίσαμε με τα χέρια μας, γρίφοι χωρίς λουκέτα-γέμισμα και game masters που ζουν την ιστορία μαζί σας.",
     rooms: [
-      { title: "Το Χαμένο Φυλαχτό", location: "Κουκάκι", theme: "Adventure", difficulty: 3, fear: "none", price: 22, duration: 60, min: 2, max: 6, tags: ["Οικογενειακό", "Για αρχάριους"], isNew: true,
+      { title: "Το Χαμένο Φυλαχτό", location: "Κουκάκι", theme: "Adventure", difficulty: 3, cat: "puzzle", subs: ["Adventure","Kids"], price: 22, duration: 60, min: 2, max: 6, tags: ["Οικογενειακό", "Για αρχάριους"], isNew: true,
         description: "Ένα αρχαίο φυλαχτό εξαφανίστηκε από το μουσείο. Ακολουθήστε τα ίχνη του αρχαιολόγου πριν κλείσει η έκθεση.",
         story: "Ο καθηγητής Αλεξίου άφησε πίσω του ένα σημειωματάριο γεμάτο σύμβολα. Έχετε 60 λεπτά να βρείτε πού έκρυψε το φυλαχτό." },
-      { title: "Δωμάτιο 13", location: "Κουκάκι", theme: "Horror", difficulty: 4, fear: "high", price: 26, duration: 75, min: 3, max: 6, tags: ["Ηθοποιός", "Τρόμος"],
+      { title: "Δωμάτιο 13", location: "Κουκάκι", theme: "Horror", difficulty: 4, cat: "horror", subs: ["Mystery","Psychological"], price: 26, duration: 75, min: 3, max: 6, tags: ["Ηθοποιός", "Τρόμος"],
         description: "Ένα ξενοδοχείο που έκλεισε το 1974. Το δωμάτιο 13 δεν καθαρίστηκε ποτέ. Με ζωντανό ηθοποιό.",
         story: "Ο τελευταίος ένοικος δεν έκανε ποτέ check-out. Απόψε η πόρτα του δωματίου είναι ανοιχτή για πρώτη φορά." },
-      { title: "Η Κλοπή του Αιώνα", location: "Κουκάκι", theme: "Thriller", difficulty: 4, fear: "some", price: 24, duration: 60, min: 2, max: 5, tags: ["Ομαδικό", "Δράση"],
+      { title: "Η Κλοπή του Αιώνα", location: "Κουκάκι", theme: "Thriller", difficulty: 4, cat: "puzzle_actor", subs: ["Action","Detective"], price: 24, duration: 60, min: 2, max: 5, tags: ["Ομαδικό", "Δράση"],
         description: "Το πιο ασφαλές θησαυροφυλάκιο της Αθήνας. Μία ευκαιρία, ένα σχέδιο, καθόλου περιθώριο για λάθη.",
         story: "Ο συνεργός σας σάς έδωσε τα σχέδια και εξαφανίστηκε. Ο συναγερμός ξαναπλώνεται σε 60 λεπτά." },
     ],
@@ -126,10 +127,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 38.0213, lng: 23.7987, website: "https://example.com/keyhole",
     description: "Escape rooms για παρέες και εταιρικές ομάδες στα βόρεια προάστια. Δύο δωμάτια, άνετη αναμονή και φωτογραφία της ομάδας μετά το παιχνίδι.",
     rooms: [
-      { title: "Ο Ντετέκτιβ Μαυρίδης", location: "Χαλάνδρι", theme: "Detective", difficulty: 2, fear: "none", price: 20, duration: 60, min: 2, max: 6, tags: ["Για αρχάριους", "Οικογενειακό"],
+      { title: "Ο Ντετέκτιβ Μαυρίδης", location: "Χαλάνδρι", theme: "Detective", difficulty: 2, cat: "puzzle", subs: ["Detective","Mystery","Kids"], price: 20, duration: 60, min: 2, max: 6, tags: ["Για αρχάριους", "Οικογενειακό"],
         description: "Ιδανικό για πρώτη φορά. Λύστε την τελευταία υπόθεση του διάσημου ντετέκτιβ στο γραφείο του.",
         story: "Ο Μαυρίδης εξαφανίστηκε αφήνοντας την πιο δύσκολη υπόθεσή του ανοιχτή πάνω στο γραφείο." },
-      { title: "Επιχείρηση Άρης", location: "Χαλάνδρι", theme: "Sci-Fi", difficulty: 4, fear: "none", price: 25, duration: 70, min: 2, max: 6, tags: ["Τεχνολογία", "Ομαδικό"],
+      { title: "Επιχείρηση Άρης", location: "Χαλάνδρι", theme: "Sci-Fi", difficulty: 4, cat: "puzzle", subs: ["Sci-Fi","Action"], price: 25, duration: 70, min: 2, max: 6, tags: ["Τεχνολογία", "Ομαδικό"],
         description: "Το διαστημόπλοιο χάνει οξυγόνο. Επισκευάστε τα συστήματα πριν χαθεί η επαφή με τη Γη.",
         story: "Είστε το πλήρωμα της πρώτης ελληνικής αποστολής στον Άρη. Κάτι πήγε πολύ στραβά." },
     ],
@@ -139,13 +140,13 @@ const COMPANIES: CompanySpec[] = [
     lat: 40.6326, lng: 22.9437, website: "https://example.com/mindtrap",
     description: "Στο κέντρο της Θεσσαλονίκης, με τρία δωμάτια για κάθε γούστο: από ήπιο γρίφο μέχρι σκοτεινό θρίλερ.",
     rooms: [
-      { title: "Ο Αλχημιστής", location: "Κέντρο", theme: "Fantasy", difficulty: 3, fear: "none", price: 21, duration: 60, min: 2, max: 6, tags: ["Μαγεία", "Οικογενειακό"],
+      { title: "Ο Αλχημιστής", location: "Κέντρο", theme: "Fantasy", difficulty: 3, cat: "puzzle", subs: ["Fantasy","Historical"], price: 21, duration: 60, min: 2, max: 6, tags: ["Μαγεία", "Οικογενειακό"],
         description: "Το εργαστήριο του αλχημιστή κρύβει τη συνταγή της αιώνιας ζωής. Αν τη βρείτε, είναι δική σας.",
         story: "Ο δάσκαλός σας λείπει εδώ και μέρες. Η πόρτα του εργαστηρίου ήταν μισάνοιχτη σήμερα το πρωί." },
-      { title: "Βαγόνι 404", location: "Κέντρο", theme: "Mystery", difficulty: 3, fear: "some", price: 22, duration: 60, min: 2, max: 5, tags: ["Μυστήριο"],
+      { title: "Βαγόνι 404", location: "Κέντρο", theme: "Mystery", difficulty: 3, cat: "puzzle_actor", subs: ["Mystery","Detective"], price: 22, duration: 60, min: 2, max: 5, tags: ["Μυστήριο"],
         description: "Το νυχτερινό τρένο για Βελιγράδι σταμάτησε στη μέση του πουθενά. Ένας επιβάτης λείπει.",
         story: "Όλοι κοιμόντουσαν. Όλοι λένε ότι δεν είδαν τίποτα. Κάποιος λέει ψέματα." },
-      { title: "Ψυχιατρείο Λευκόν", location: "Κέντρο", theme: "Horror", difficulty: 5, fear: "high", price: 25, duration: 75, min: 3, max: 6, tags: ["Ηθοποιός", "Τρόμος", "Για έμπειρους"],
+      { title: "Ψυχιατρείο Λευκόν", location: "Κέντρο", theme: "Horror", difficulty: 5, cat: "horror", subs: ["Psychological","Paranormal"], price: 25, duration: 75, min: 3, max: 6, tags: ["Ηθοποιός", "Τρόμος", "Για έμπειρους"],
         description: "Το πιο τρομακτικό δωμάτιο της πόλης. Μόνο για έμπειρες ομάδες με γερά νεύρα.",
         story: "Το ίδρυμα έκλεισε μετά από ένα περιστατικό που δεν καταγράφηκε ποτέ. Απόψε μπαίνετε για να μάθετε τι έγινε." },
     ],
@@ -155,10 +156,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 40.6372, lng: 22.9467, website: "https://example.com/corridor",
     description: "Δωμάτια τρόμου και θρίλερ με ηθοποιούς. Για όσους θέλουν την αδρεναλίνη στο κόκκινο.",
     rooms: [
-      { title: "Η Κούκλα", location: "Εγνατία", theme: "Paranormal", difficulty: 4, fear: "high", price: 24, duration: 70, min: 2, max: 5, tags: ["Ηθοποιός", "Τρόμος"],
+      { title: "Η Κούκλα", location: "Εγνατία", theme: "Paranormal", difficulty: 4, cat: "horror", subs: ["Paranormal","Mystery"], price: 24, duration: 70, min: 2, max: 5, tags: ["Ηθοποιός", "Τρόμος"],
         description: "Ένα παλιό σπίτι, ένα παιδικό δωμάτιο και μια κούκλα που δεν μένει ποτέ στην ίδια θέση.",
         story: "Η οικογένεια Ραφαηλίδη έφυγε βιαστικά το 1962. Τα παιχνίδια έμειναν. Και κάτι ακόμα." },
-      { title: "Υπόγειο 7", location: "Εγνατία", theme: "Thriller", difficulty: 4, fear: "some", price: 23, duration: 60, min: 2, max: 6, tags: ["Δράση"],
+      { title: "Υπόγειο 7", location: "Εγνατία", theme: "Thriller", difficulty: 4, cat: "horror", subs: ["Thriller","Zombie"], price: 23, duration: 60, min: 2, max: 6, tags: ["Δράση"],
         description: "Ξυπνάτε δεμένοι σε ένα υπόγειο. Ο απαγωγέας θα γυρίσει σε μία ώρα.",
         story: "Δεν θυμάστε πώς φτάσατε εδώ. Το μόνο που ξέρετε: ο χρόνος τρέχει." },
     ],
@@ -168,10 +169,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 38.2466, lng: 21.7346, website: "https://example.com/enigma",
     description: "Το πρώτο escape room της Πάτρας, με δωμάτια εμπνευσμένα από την ιστορία της πόλης.",
     rooms: [
-      { title: "Το Καρναβάλι", location: "Κέντρο", theme: "Comedy", difficulty: 2, fear: "none", price: 18, duration: 60, min: 2, max: 8, tags: ["Οικογενειακό", "Χιούμορ", "Για αρχάριους"],
+      { title: "Το Καρναβάλι", location: "Κέντρο", theme: "Comedy", difficulty: 2, cat: "puzzle", subs: ["Comedy","Kids"], price: 18, duration: 60, min: 2, max: 8, tags: ["Οικογενειακό", "Χιούμορ", "Για αρχάριους"],
         description: "Το άρμα του βασιλιά καρνάβαλου εξαφανίστηκε την παραμονή της παρέλασης. Βρείτε το πριν βγει ο κόσμος στους δρόμους.",
         story: "Η Πάτρα ετοιμάζεται για τη μεγαλύτερη γιορτή της χρονιάς. Μόνο που κάποιος έχει άλλα σχέδια." },
-      { title: "Το Ναυάγιο", location: "Λιμάνι", theme: "Historical", difficulty: 3, fear: "none", price: 20, duration: 60, min: 2, max: 6, tags: ["Ιστορικό"],
+      { title: "Το Ναυάγιο", location: "Λιμάνι", theme: "Historical", difficulty: 3, cat: "puzzle", subs: ["Historical","Adventure"], price: 20, duration: 60, min: 2, max: 6, tags: ["Ιστορικό"],
         description: "Ένα εμπορικό πλοίο του 19ου αιώνα βυθίστηκε έξω από το λιμάνι με ένα μυστικό φορτίο.",
         story: "Ο θησαυρός του καπετάν Λιάρου δεν βρέθηκε ποτέ. Το ημερολόγιο του πλοίου μόλις ήρθε στα χέρια σας." },
     ],
@@ -181,10 +182,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 35.3387, lng: 25.1442, website: "https://example.com/lostkey",
     description: "Escape rooms στην καρδιά του Ηρακλείου, με γρίφους από τη μινωική Κρήτη μέχρι το μέλλον.",
     rooms: [
-      { title: "Ο Λαβύρινθος του Μίνωα", location: "Κέντρο", theme: "Historical", difficulty: 4, fear: "some", price: 22, duration: 70, min: 2, max: 6, tags: ["Ιστορικό", "Μυθολογία"],
+      { title: "Ο Λαβύρινθος του Μίνωα", location: "Κέντρο", theme: "Historical", difficulty: 4, cat: "puzzle_actor", subs: ["Historical","Adventure"], price: 22, duration: 70, min: 2, max: 6, tags: ["Ιστορικό", "Μυθολογία"],
         description: "Μπείτε στον λαβύρινθο της Κνωσού. Ο Μινώταυρος δεν σας περιμένει, αλλά δεν θα αργήσει.",
         story: "Η Αριάδνη σάς έδωσε τον μίτο. Το μόνο που μένει είναι να βρείτε την έξοδο." },
-      { title: "Εργαστήριο Χρόνου", location: "Κέντρο", theme: "Puzzle", difficulty: 3, fear: "none", price: 20, duration: 60, min: 2, max: 5, tags: ["Γρίφοι", "Οικογενειακό"],
+      { title: "Εργαστήριο Χρόνου", location: "Κέντρο", theme: "Puzzle", difficulty: 3, cat: "puzzle", subs: ["Sci-Fi","Mystery"], price: 20, duration: 60, min: 2, max: 5, tags: ["Γρίφοι", "Οικογενειακό"],
         description: "Ένας ωρολογοποιός έφτιαξε μια μηχανή που σταματάει τον χρόνο. Πρέπει να τη σταματήσετε πριν σταματήσει αυτή εσάς.",
         story: "Όλα τα ρολόγια της πόλης σταμάτησαν στις 12:00. Το εργαστήριο είναι το μόνο μέρος που ακόμα χτυπάει." },
     ],
@@ -194,10 +195,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 39.6390, lng: 22.4191, website: "https://example.com/clockwork",
     description: "Δωμάτια με μηχανισμούς, γρανάζια και αυτοματισμούς. Χωρίς λουκέτα, μόνο λογική.",
     rooms: [
-      { title: "Το Ρολόι του Πύργου", location: "Κέντρο", theme: "Puzzle", difficulty: 4, fear: "none", price: 19, duration: 60, min: 2, max: 6, tags: ["Μηχανισμοί", "Γρίφοι"],
+      { title: "Το Ρολόι του Πύργου", location: "Κέντρο", theme: "Puzzle", difficulty: 4, cat: "puzzle", subs: ["Mystery","Historical"], price: 19, duration: 60, min: 2, max: 6, tags: ["Μηχανισμοί", "Γρίφοι"],
         description: "Ο μηχανισμός του παλιού ρολογιού κρύβει τον κωδικό για το χρηματοκιβώτιο του δημάρχου.",
         story: "Σε 60 λεπτά το ρολόι θα χτυπήσει μεσάνυχτα και ο μηχανισμός θα κλειδώσει για πάντα." },
-      { title: "Ο Μάγος", location: "Κέντρο", theme: "Fantasy", difficulty: 2, fear: "none", price: 18, duration: 60, min: 2, max: 6, tags: ["Οικογενειακό", "Για αρχάριους"],
+      { title: "Ο Μάγος", location: "Κέντρο", theme: "Fantasy", difficulty: 2, cat: "puzzle", subs: ["Fantasy","Kids"], price: 18, duration: 60, min: 2, max: 6, tags: ["Οικογενειακό", "Για αρχάριους"],
         description: "Η παράσταση του μεγάλου μάγου ξεκινά σε μία ώρα, αλλά ο μάγος έχει εξαφανιστεί μέσα στο ίδιο του το κουτί.",
         story: "Το καμαρίνι του είναι γεμάτο κόλπα. Κάποιο από αυτά θα τον φέρει πίσω." },
     ],
@@ -207,10 +208,10 @@ const COMPANIES: CompanySpec[] = [
     lat: 37.9420, lng: 23.6465, website: "https://example.com/secret",
     description: "Δίπλα στο λιμάνι του Πειραιά, με δωμάτια για παρέες, πάρτι γενεθλίων και team building.",
     rooms: [
-      { title: "Ο Θησαυρός του Λιμανιού", location: "Πειραιάς", theme: "Adventure", difficulty: 3, fear: "none", price: 21, duration: 60, min: 2, max: 7, tags: ["Οικογενειακό", "Ομαδικό"],
+      { title: "Ο Θησαυρός του Λιμανιού", location: "Πειραιάς", theme: "Adventure", difficulty: 3, cat: "puzzle", subs: ["Adventure","Action"], price: 21, duration: 60, min: 2, max: 7, tags: ["Οικογενειακό", "Ομαδικό"],
         description: "Ένας παλιός λιμενεργάτης άφησε έναν χάρτη. Ο θησαυρός είναι κάπου στην αποθήκη 9.",
         story: "Η αποθήκη θα κατεδαφιστεί αύριο το πρωί. Απόψε είναι η τελευταία ευκαιρία." },
-      { title: "Το Εργαστήριο του Δρ. Κ.", location: "Πειραιάς", theme: "Mystery", difficulty: 5, fear: "some", price: 24, duration: 75, min: 2, max: 5, tags: ["Για έμπειρους", "Επιστήμη"],
+      { title: "Το Εργαστήριο του Δρ. Κ.", location: "Πειραιάς", theme: "Mystery", difficulty: 5, cat: "horror", subs: ["Thriller","Splatter"], price: 24, duration: 75, min: 2, max: 5, tags: ["Για έμπειρους", "Επιστήμη"],
         description: "Ο πιο δύσκολος γρίφος της Αττικής. Μόνο το 18% των ομάδων έχει βγει.",
         story: "Ο Δρ. Κ. ισχυρίστηκε ότι βρήκε τη λύση σε ένα άλυτο πρόβλημα. Την επόμενη μέρα χάθηκε." },
     ],
@@ -305,7 +306,7 @@ export const seed = internalMutation({
           title: room.title, location: room.location, image, images: [image],
           rating: 0, reviews: 0, duration: room.duration, difficulty: room.difficulty, maxDifficulty: 5,
           players: `${room.min}-${room.max}`, playersMin: room.min, playersMax: room.max, price: room.price,
-          theme: room.theme, fearLevel: room.fear, tags: room.tags, description: room.description, story: room.story,
+          ...categoryFields({ category: room.cat, subthemes: room.subs })!, tags: room.tags, description: room.description, story: room.story,
           isNew: !!room.isNew, isFeatured: r() < 0.35, isTrending: r() < 0.3, companyId, isActive: true,
           bookingMode: "external_primary", bookingUrl: c.website,
           latitude: c.lat + (r() - 0.5) * 0.01, longitude: c.lng + (r() - 0.5) * 0.01,

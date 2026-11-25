@@ -5,6 +5,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { requireAdminSession } from "./adminSession";
 import { checkRoomInput } from "./companyRules";
 import { cleanExternalUrl } from "./externalLinks";
+import { categoryFields, categoryOf, subthemesOf } from "./roomCategories";
 
 /**
  * Companies the UNLOCKED team adds itself, to promote an escape room that
@@ -56,7 +57,8 @@ export const adminList = query({
               _id: r._id,
               title: r.title,
               image: r.image,
-              theme: r.theme,
+              category: categoryOf(r),
+              subthemes: subthemesOf(r),
               location: r.location,
               latitude: r.latitude ?? null,
               longitude: r.longitude ?? null,
@@ -66,7 +68,6 @@ export const adminList = query({
               playersMax: r.playersMax,
               description: r.description,
               bookingUrl: r.bookingUrl ?? "",
-              fearLevel: r.fearLevel ?? null,
               isActive: r.isActive !== false,
             })),
           };
@@ -151,14 +152,14 @@ export const adminSaveRoom = mutation({
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
     image: v.string(),
-    theme: v.string(),
+    category: v.union(v.literal("puzzle"), v.literal("puzzle_actor"), v.literal("horror")),
+    subthemes: v.array(v.string()),
     description: v.string(),
     duration: v.number(),
     difficulty: v.number(),
     playersMin: v.number(),
     playersMax: v.number(),
     bookingUrl: v.optional(v.string()),
-    fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, { sessionToken, companyId, roomId, ...f }) => {
@@ -170,7 +171,6 @@ export const adminSaveRoom = mutation({
       latitude: f.latitude,
       longitude: f.longitude,
       image: text(f.image, 1000),
-      theme: text(f.theme, 40),
       description: text(f.description, 5000),
       duration: f.duration,
       difficulty: f.difficulty,
@@ -179,8 +179,8 @@ export const adminSaveRoom = mutation({
       playersMax: f.playersMax,
       players: `${f.playersMin}-${f.playersMax}`,
       bookingUrl: cleanExternalUrl(f.bookingUrl) || undefined,
-      fearLevel: f.fearLevel,
       isActive: f.isActive ?? true,
+      ...categoryFields({ category: f.category, subthemes: f.subthemes })!,
     };
     checkRoomInput(fields);
     if (!fields.image) throw new ConvexError("Add a photo of the room");

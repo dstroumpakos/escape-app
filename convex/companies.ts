@@ -36,6 +36,7 @@ import { UPLOADS_PER_HOUR_COMPANY, isOwnStorageUrl } from "./uploads";
 // One message for wrong email and wrong password (don't reveal which emails exist).
 const INVALID_LOGIN = "Incorrect email or password";
 import { companyIsPublic, checkRoomInput } from "./companyRules";
+import { categoryFields } from "./roomCategories";
 import {
   sessionTokenV,
   createCompanySession,
@@ -514,6 +515,8 @@ export const createRoom = mutation({
     bookingUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
+    category: v.optional(v.union(v.literal("puzzle"), v.literal("puzzle_actor"), v.literal("horror"))),
+    subthemes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, { sessionToken, ...args }) => {
     const company = await requireCompany(ctx, { companyId: args.companyId, sessionToken }, "companies:createRoom");
@@ -534,6 +537,8 @@ export const createRoom = mutation({
 
     const id = await ctx.db.insert("rooms", {
       ...args,
+      // Category + subcategories (older builds send theme + fear level instead)
+      ...categoryFields(args),
       depositPercent: clampDepositPercent(args.depositPercent),
       rating: 0,
       reviews: 0,
@@ -631,6 +636,8 @@ export const updateRoom = mutation({
     bookingUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     fearLevel: v.optional(v.union(v.literal("none"), v.literal("some"), v.literal("high"))),
+    category: v.optional(v.union(v.literal("puzzle"), v.literal("puzzle_actor"), v.literal("horror"))),
+    subthemes: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     const { roomId, sessionToken, ...fields } = args;
@@ -655,6 +662,13 @@ export const updateRoom = mutation({
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
+    // Category + subcategories decide theme and replace the old fear level (roomCategories.ts)
+    delete updates.theme;
+    delete updates.fearLevel;
+    delete updates.category;
+    delete updates.subthemes;
+    const cat = categoryFields(fields, room);
+    if (cat) Object.assign(updates, cat);
     // 0 clears the room override (falls back to the company default)
     if (fields.depositPercent !== undefined) {
       updates.depositPercent = fields.depositPercent > 0 ? clampDepositPercent(fields.depositPercent) : undefined;
