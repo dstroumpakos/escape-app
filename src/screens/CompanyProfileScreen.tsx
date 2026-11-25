@@ -65,7 +65,7 @@ export default function CompanyProfileScreen() {
                 <Text style={styles.meta}>{[data.address, data.city].filter(Boolean).join(', ')}</Text>
               )}
               <Text style={styles.meta}>
-                {data.rooms.length === 1 ? t('co.roomsOne') : t('co.roomsMany', { n: data.rooms.length })} · {data.followers === 1 ? t('co.followersOne') : t('co.followersMany', { n: data.followers })}
+                {data.rooms.length === 1 ? t('co.roomsOne') : t('co.roomsMany', { n: data.rooms.length })}{data.followers != null && ` · ${data.followers === 1 ? t('co.followersOne') : t('co.followersMany', { n: data.followers })}`}
               </Text>
             </View>
           </View>

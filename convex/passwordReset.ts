@@ -51,7 +51,8 @@ async function findAccount(
     .query("companies")
     .withIndex("by_email", (q) => q.eq("email", email))
     .first();
-  return c ? { id: c._id } : null;
+  // Admin-managed companies (managedCompanies.ts) have no login to reset
+  return c && !c.managedByAdmin ? { id: c._id } : null;
 }
 
 function passwordErrorCode(pw: string): string | null {

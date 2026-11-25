@@ -36,6 +36,10 @@ export default defineSchema({
     instagramSyncedAt: v.optional(v.number()),
     instagramSyncError: v.optional(v.string()),
     password: v.string(), // hashed in production
+    // Added by the UNLOCKED team to promote an escape room before it has its own
+    // account (managedCompanies.ts): rooms are public, the profile is not, and
+    // nobody can log in. Gone once the admin assigns it to the real account.
+    managedByAdmin: v.optional(v.boolean()),
     verified: v.boolean(),
     createdAt: v.number(),
     // Legacy subscription fields (kept for schema validation of existing docs)

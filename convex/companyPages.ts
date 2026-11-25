@@ -65,6 +65,8 @@ export const list = query({
         if (rooms.length === 0) return null;
         return {
           ...publicCompany(c),
+          // No profile yet (managedCompanies.ts): show it, but don't link to it
+          hasProfile: !c.managedByAdmin,
           roomCount: rooms.length,
           rooms: rooms.slice(0, 6).map((r: any) => ({
             _id: r._id,
@@ -83,7 +85,11 @@ export const list = query({
   },
 });
 
-/** A company's profile, for logged-in players. Null when logged out or not public. */
+/**
+ * A company's profile. Anyone can open it; a visitor without a login sees the
+ * company's own posts, rooms and details, but not its team photos (those show
+ * players) or its follower count. Null when the company is not public.
+ */
 export const profile = query({
   args: {
     companyId: v.id("companies"),
@@ -99,14 +105,17 @@ export const profile = query({
       const session = await findSession(ctx, args.companySessionToken);
       isOwner = !!session && session.companyId === args.companyId;
     }
-    if (!me && !isOwner) return null;
+    // Logged-out visitor: only what the company itself published
+    const visitor = !me && !isOwner;
     const c = await ctx.db.get(args.companyId);
     if (!c) return null;
     // Players see approved, paying companies; the company always sees its own.
     if (!isOwner && (!companyIsPublic(c) || c.platformPlan === "free")) return null;
+    // Added by the UNLOCKED team, no account yet (managedCompanies.ts): rooms only, no profile
+    if (c.managedByAdmin) return null;
     const [rooms, followers, mine, photos] = await Promise.all([
       visibleRoomsOf(ctx, c._id),
-      ctx.db.query("companyFollows").withIndex("by_company", (q) => q.eq("companyId", c._id)).take(10000),
+      visitor ? [] : ctx.db.query("companyFollows").withIndex("by_company", (q) => q.eq("companyId", c._id)).take(10000),
       me
         ? ctx.db
             .query("companyFollows")
@@ -118,14 +127,16 @@ export const profile = query({
     return {
       ...publicCompany(c),
       ...photos,
+      teamPhotos: visitor ? [] : photos.teamPhotos,
       address: c.address || "",
       website: c.website || "",
       cover: c.cover || "",
       instagramUsername: c.instagramEnabled ? c.instagramUsername || "" : "",
       rooms,
-      followers: followers.length,
+      followers: visitor ? null : followers.length,
       following: !!mine,
       isOwner,
+      isVisitor: visitor,
       // Only a logged-in player can follow
       canFollow: !!me,
     };
@@ -137,7 +148,7 @@ export const follow = mutation({
   handler: async (ctx, args) => {
     const me = await requireUser(ctx, args.sessionToken);
     const c = await ctx.db.get(args.companyId);
-    if (!c || !companyIsPublic(c)) throw new ConvexError("Company not found");
+    if (!c || !companyIsPublic(c) || c.managedByAdmin) throw new ConvexError("Company not found");
     const existing = await ctx.db
       .query("companyFollows")
       .withIndex("by_user_company", (q) => q.eq("userId", me._id).eq("companyId", c._id))

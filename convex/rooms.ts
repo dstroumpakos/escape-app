@@ -35,6 +35,8 @@ export async function batchEnrichRooms(ctx: any, rooms: any[]) {
       ...room,
       isEarlyAccessPartner: company ? !!company.subscriptionEnabled : false,
       companyName: company?.name ?? "",
+      // False for a company the UNLOCKED team added (managedCompanies.ts): no profile to link to
+      companyHasProfile: company ? !company.managedByAdmin : false,
       bookingTarget: bookingTargetFor(room, company ?? null),
     };
   });
@@ -54,7 +56,8 @@ async function enrichRoom(ctx: any, room: any) {
   }
   // Where "Book now" sends players (the escape room's own site, see externalLinks.ts)
   const bookingTarget = bookingTargetFor(room, company);
-  return { ...room, isEarlyAccessPartner, companyName, bookingTarget };
+  const companyHasProfile = company ? !company.managedByAdmin : false;
+  return { ...room, isEarlyAccessPartner, companyName, companyHasProfile, bookingTarget };
 }
 
 /**

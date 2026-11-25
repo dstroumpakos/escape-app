@@ -786,7 +786,8 @@ export const loginCompany = mutation({
     const valid = company
       ? await verifyPassword(args.password, company.password)
       : (await hashPassword(args.password), false);
-    if (!company || !valid) {
+    // Admin-managed companies (managedCompanies.ts) never log in
+    if (!company || !valid || company.managedByAdmin) {
       await recordFailure(ctx, lockKey, attempt);
       return { error: INVALID_LOGIN };
     }

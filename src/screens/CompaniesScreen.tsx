@@ -48,7 +48,8 @@ export default function CompaniesScreen({ embedded = false }: { embedded?: boole
         ) : (
           shown.map((c) => (
             <View key={c._id} style={styles.card}>
-              <TouchableOpacity style={styles.cardHead} activeOpacity={0.8} onPress={() => navigation.navigate('CompanyProfile', { companyId: c._id })}>
+              {/* A company the UNLOCKED team added has no profile yet: name and rooms only */}
+              <TouchableOpacity style={styles.cardHead} activeOpacity={0.8} disabled={!c.hasProfile} onPress={() => navigation.navigate('CompanyProfile', { companyId: c._id })}>
                 <CompanyLogo name={c.name} logo={c.logo} size={50} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name} numberOfLines={1}>{c.name}</Text>
@@ -56,7 +57,7 @@ export default function CompaniesScreen({ embedded = false }: { embedded?: boole
                     {c.city ? `${c.city} · ` : ''}{c.roomCount === 1 ? t('co.roomsOne') : t('co.roomsMany', { n: c.roomCount })}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+                {c.hasProfile && <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />}
               </TouchableOpacity>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingTop: 12 }}>
@@ -74,9 +75,11 @@ export default function CompaniesScreen({ embedded = false }: { embedded?: boole
                 ))}
               </ScrollView>
 
-              <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('CompanyProfile', { companyId: c._id })}>
-                <Text style={styles.profileBtnText}>{t('co.viewProfile')}</Text>
-              </TouchableOpacity>
+              {c.hasProfile && (
+                <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('CompanyProfile', { companyId: c._id })}>
+                  <Text style={styles.profileBtnText}>{t('co.viewProfile')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ))
         )}
