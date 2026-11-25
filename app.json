@@ -88,7 +88,13 @@
           "backgroundColor": "#080505"
         }
       ],
-      "./plugins/withShareTargets"
+      "./plugins/withShareTargets",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.1070399630488-l5apvkb7q2thggqu7g4dieogea0eflg4"
+        }
+      ]
     ],
     "platforms": [
       "ios",

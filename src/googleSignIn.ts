@@ -18,7 +18,8 @@
 import { Platform, TurboModuleRegistry } from 'react-native';
 
 const WEB_CLIENT_ID = '1070399630488-hbaguc9li85ao8at62ar4ge8uoh4bu9f.apps.googleusercontent.com';
-const IOS_CLIENT_ID = '';
+// "UNLOCKED iOS app" OAuth client (bundle com.unlocked.escapeapp, team 97G74KAACL)
+const IOS_CLIENT_ID = '1070399630488-l5apvkb7q2thggqu7g4dieogea0eflg4.apps.googleusercontent.com';
 const ANDROID_READY = false;
 
 function nativeModule(): any | null {
