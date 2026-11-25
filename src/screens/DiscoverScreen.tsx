@@ -30,6 +30,12 @@ import { BOOKING_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
 import { useTranslation } from '../i18n';
 import { ROOM_THEMES, ROOM_THEME_VALUES } from '../roomThemes';
+import { caps, kmBetween } from '../caps';
+import CompaniesScreen from './CompaniesScreen';
+import JobsScreen from './JobsScreen';
+
+/** A room this close counts as "near you". */
+const NEAR_KM = 30;
 
 const { width, height } = Dimensions.get('window');
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -92,6 +98,7 @@ export default function DiscoverScreen() {
     if (!p) return;
     setSide(p.side ?? null);
     setActiveFilter(p.theme ?? 'All');
+    setTab('rooms');
   }, [route.params]);
   const [selectedRoom, setSelectedRoom] = useState<(typeof rooms)[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -102,11 +109,15 @@ export default function DiscoverScreen() {
   const [locationUnavailable, setLocationUnavailable] = useState(false);
 
   const [query, setQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'rating' | 'price' | 'duration'>('rating');
-  const [listMode, setListMode] = useState(false);
+  const [sortBy, setSortBy] = useState<'distance' | 'rating' | 'price' | 'duration'>('distance');
+  // The rooms open as a list (that's what people come for); the map is one tap away
+  const [listMode, setListMode] = useState(true);
+  const [tab, setTab] = useState<'rooms' | 'companies' | 'jobs'>('rooms');
   const [headerHeight, setHeaderHeight] = useState(0);
 
   // Same search and sort as the website's Discover page
+  const distOf = (r: any): number | undefined =>
+    userLocation && r.latitude && r.longitude ? kmBetween(userLocation, { latitude: r.latitude, longitude: r.longitude }) : undefined;
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
     const lowest = (r: any) =>
@@ -123,11 +134,16 @@ export default function DiscoverScreen() {
           r.companyName?.toLowerCase().includes(q),
       )
       .sort((a, b) => {
+        if (sortBy === 'distance' && userLocation) return (distOf(a) ?? 1e9) - (distOf(b) ?? 1e9);
         if (sortBy === 'price') return lowest(a) - lowest(b);
         if (sortBy === 'duration') return (a.duration ?? 0) - (b.duration ?? 0);
         return (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0);
       });
-  }, [convexRooms, activeFilter, query, sortBy, side]);
+  }, [convexRooms, activeFilter, query, sortBy, side, userLocation]);
+  const nearCount = userLocation ? filtered.filter((r) => (distOf(r) ?? Infinity) <= NEAR_KM).length : null;
+  const anyFilter = activeFilter !== 'All' || !!side || query.trim().length > 0;
+  const clearFilters = () => { setActiveFilter('All'); setSide(null); setQuery(''); setSelectedRoom(null); };
+  const onMap = tab === 'rooms' && !listMode;
 
   const filterLabels: Record<string, string> = {
     All: t('discover.all'),
@@ -311,7 +327,7 @@ export default function DiscoverScreen() {
 
       {/* Header overlay */}
       <View
-        style={[styles.header, { paddingTop: insets.top + 8 }]}
+        style={[styles.header, { paddingTop: insets.top + 8 }, !onMap && styles.headerSolid]}
         onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
       >
         <View style={styles.headerTop}>
@@ -323,22 +339,7 @@ export default function DiscoverScreen() {
             </View>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={() => navigation.navigate('Jobs')}
-              accessibilityRole="button"
-              accessibilityLabel={t('jobs.menu')}
-            >
-              <Ionicons name="briefcase-outline" size={18} color={theme.colors.bone} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerBtn}
-              onPress={() => navigation.navigate('Companies')}
-              accessibilityRole="button"
-              accessibilityLabel={t('co.title')}
-            >
-              <Ionicons name="business-outline" size={18} color={theme.colors.bone} />
-            </TouchableOpacity>
+            {tab === 'rooms' && (
             <TouchableOpacity
               style={styles.headerBtn}
               onPress={() => {
@@ -350,9 +351,26 @@ export default function DiscoverScreen() {
             >
               <Ionicons name={listMode ? 'map-outline' : 'list-outline'} size={18} color={theme.colors.bone} />
             </TouchableOpacity>
+            )}
           </View>
         </View>
 
+        <View style={styles.tabs}>
+          {([['rooms', 'key-outline', t('discover.tab_rooms')], ['companies', 'business-outline', t('discover.tab_companies')], ['jobs', 'briefcase-outline', t('discover.tab_jobs')]] as const).map(([k, icon, label]) => (
+            <TouchableOpacity
+              key={k}
+              style={[styles.tab, tab === k && styles.tabOn]}
+              onPress={() => { setTab(k); setSelectedRoom(null); }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === k }}
+            >
+              <Ionicons name={icon} size={14} color={tab === k ? theme.colors.bone : theme.colors.textSecondary} />
+              <Text style={[styles.tabText, tab === k && { color: theme.colors.bone }]} numberOfLines={1}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {tab === 'rooms' && (<>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={16} color={theme.colors.redLight} />
           <TextInput
@@ -389,7 +407,7 @@ export default function DiscoverScreen() {
               accessibilityRole="button"
             >
               <Ionicons name={side === 'puzzle' ? 'key-outline' : 'skull-outline'} size={13} color={theme.colors.bone} />
-              <Text style={[styles.chipText, styles.chipTextActive]}>{t(side === 'puzzle' ? 'mode.puzzle_short' : 'mode.horror_short')}</Text>
+              <Text style={[styles.chipText, styles.chipTextActive]}>{caps(t(side === 'puzzle' ? 'mode.puzzle_short' : 'mode.horror_short'))}</Text>
               <Ionicons name="close" size={13} color={theme.colors.bone} />
             </TouchableOpacity>
           )}
@@ -404,24 +422,35 @@ export default function DiscoverScreen() {
               activeOpacity={0.7}
             >
               <Text style={[styles.chipText, activeFilter === f && styles.chipTextActive]}>
-                {filterLabels[f]}
+                {caps(filterLabels[f] ?? f)}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <View style={styles.countBadge}>
-          <Ionicons name="key-outline" size={12} color={theme.colors.redLight} />
-          <Text style={styles.countText}>
-            {filtered.length === 1
-              ? t('discover.roomNearby')
-              : t('discover.roomsNearby', { n: filtered.length })}
-          </Text>
-        </View>
+        {convexRooms !== undefined && (
+          nearCount === 0 && filtered.length > 0 ? (
+            // Nothing close by: say so; the list below still has every room, nearest first
+            <View style={styles.countBadge}>
+              <Ionicons name="compass-outline" size={12} color={theme.colors.redLight} />
+              <Text style={styles.countText}>{t('discover.noneNearby')}</Text>
+            </View>
+          ) : (
+            <View style={styles.countBadge}>
+              <Ionicons name="key-outline" size={12} color={theme.colors.redLight} />
+              <Text style={styles.countText}>
+                {nearCount != null
+                  ? nearCount === 1 ? t('discover.roomNearby') : t('discover.roomsNearby', { n: nearCount })
+                  : t('discover.roomsCount', { n: filtered.length })}
+              </Text>
+            </View>
+          )
+        )}
+        </>)}
       </View>
 
       {/* List view: the same rooms as cards, with sorting */}
-      {listMode && (
+      {tab === 'rooms' && listMode && (
         <View style={[styles.listView, { top: headerHeight }]}>
           <ScrollView
             showsVerticalScrollIndicator={false}
@@ -429,14 +458,14 @@ export default function DiscoverScreen() {
             contentContainerStyle={styles.listContent}
           >
             <View style={styles.sortRow}>
-              {(BOOKING_ENABLED ? (['rating', 'price', 'duration'] as const) : (['rating', 'duration'] as const)).map((s) => (
+              {([...(userLocation ? (['distance'] as const) : []), 'rating', ...(BOOKING_ENABLED ? (['price'] as const) : []), 'duration'] as const).map((s) => (
                 <TouchableOpacity
                   key={s}
                   style={[styles.chip, sortBy === s && styles.chipActive]}
                   onPress={() => setSortBy(s)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.chipText, sortBy === s && styles.chipTextActive]}>{t('discover.sort_' + s)}</Text>
+                  <Text style={[styles.chipText, sortBy === s && styles.chipTextActive]}>{caps(t('discover.sort_' + s))}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -444,6 +473,11 @@ export default function DiscoverScreen() {
               <View style={styles.listEmpty}>
                 <Ionicons name="search-outline" size={30} color={theme.colors.glassBorder} />
                 <Text style={styles.listEmptyText}>{t('discover.noResults')}</Text>
+                {anyFilter && (
+                  <TouchableOpacity style={styles.seeAllBtn} onPress={clearFilters} accessibilityRole="button">
+                    <Text style={styles.seeAllText}>{t('discover.seeAll')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               filtered.map((room) => (
@@ -451,6 +485,7 @@ export default function DiscoverScreen() {
                   key={room.id}
                   room={room}
                   earlyLabel={room.isEarlyAccess ? t('home.earlyAccess') : undefined}
+                  distanceKm={distOf(room)}
                   onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
                 />
               ))
@@ -459,6 +494,13 @@ export default function DiscoverScreen() {
         </View>
       )}
 
+      {tab !== 'rooms' && (
+        <View style={[styles.listView, { top: headerHeight }]}>
+          {tab === 'companies' ? <CompaniesScreen embedded /> : <JobsScreen embedded />}
+        </View>
+      )}
+
+      {onMap && (<>
       {/* Map controls */}
       <View style={styles.controls}>
         <TouchableOpacity style={styles.ctrlBtn} onPress={handleMyLocation}>
@@ -507,6 +549,7 @@ export default function DiscoverScreen() {
           </ScrollView>
         </View>
       ) : null}
+      </>)}
     </View>
   );
 }
@@ -601,6 +644,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.glassBorder,
   },
+  headerSolid: { backgroundColor: theme.colors.bgPrimary },
+  tabs: { flexDirection: 'row', gap: 4, marginHorizontal: 20, marginBottom: 10, padding: 3, borderRadius: theme.radius.lg, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: theme.colors.glassBorder },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 8, borderRadius: theme.radius.sm },
+  tabOn: { backgroundColor: theme.colors.redPrimary },
+  tabText: { fontSize: 13, fontWeight: '700', color: theme.colors.textSecondary },
+  seeAllBtn: { marginTop: 4, paddingHorizontal: 16, paddingVertical: 10, borderRadius: theme.radius.lg, backgroundColor: theme.colors.redPrimary },
+  seeAllText: { color: theme.colors.bone, fontWeight: '700', fontSize: 13 },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -649,7 +699,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.glassBorder,
   },
   chipActive: { backgroundColor: theme.colors.redPrimary, borderColor: theme.colors.redPrimary },
-  chipText: { fontFamily: theme.fonts.type, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: theme.colors.textSecondary },
+  chipText: { fontFamily: theme.fonts.type, fontSize: 11, letterSpacing: 1.2, color: theme.colors.textSecondary },
   chipTextActive: { color: theme.colors.bone },
 
   countBadge: {

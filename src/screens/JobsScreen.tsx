@@ -11,7 +11,7 @@ import { JobCard } from '../components/JobCard';
 import { COUNTRIES, JOB_ROLES, cityLabel, countryName, type PublicJob } from '../jobs';
 
 /** Job ads from escape room companies (convex/jobs.ts), like the website's /jobs. */
-export default function JobsScreen() {
+export default function JobsScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { t, language } = useTranslation();
@@ -44,14 +44,16 @@ export default function JobsScreen() {
 
   return (
     <View style={styles.container}>
+      {!embedded && (
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()} accessibilityLabel={t('profile.back')}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('jobs.title')}</Text>
       </View>
+      )}
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: embedded ? 120 : 60 }}>
         <Text style={styles.kicker}>{t('jobs.kicker').toUpperCase()}</Text>
         <Text style={styles.subtitle}>{t('jobs.subtitle')}</Text>
 

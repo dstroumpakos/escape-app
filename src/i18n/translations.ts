@@ -547,6 +547,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── DiscoverScreen ── */
     'discover.title': 'Discover',
+    'discover.tab_rooms': 'Rooms',
+    'discover.tab_companies': 'Companies',
+    'discover.tab_jobs': 'Jobs',
+    'discover.sort_distance': 'Nearest',
+    'discover.noneNearby': 'None near you yet, here are all the rooms',
+    'discover.roomsCount': '{{n}} rooms',
+    'discover.seeAll': 'See all rooms',
     'discover.searchPlaceholder': 'Search rooms, themes or places',
     'discover.sort_rating': 'Top rated',
     'discover.sort_price': 'Lowest price',
@@ -2576,6 +2583,13 @@ export const translations: Record<Language, Record<string, string>> = {
 
     /* ── DiscoverScreen ── */
     'discover.title': 'Ανακάλυψε',
+    'discover.tab_rooms': 'Δωμάτια',
+    'discover.tab_companies': 'Εταιρίες',
+    'discover.tab_jobs': 'Αγγελίες',
+    'discover.sort_distance': 'Πιο κοντινά',
+    'discover.noneNearby': 'Δεν βρέθηκαν κοντά σου, δες όλα τα δωμάτια',
+    'discover.roomsCount': '{{n}} δωμάτια',
+    'discover.seeAll': 'Δες όλα τα δωμάτια',
     'discover.searchPlaceholder': 'Αναζήτηση δωματίων, θεμάτων ή περιοχών',
     'discover.sort_rating': 'Κορυφαία',
     'discover.sort_price': 'Χαμηλότερη τιμή',

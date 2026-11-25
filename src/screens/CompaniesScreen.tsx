@@ -10,7 +10,7 @@ import { useTranslation } from '../i18n';
 import { CompanyLogo } from '../components/CompanyLogo';
 
 /** Companies section: every public escape room company with its rooms (convex/companyPages.ts). */
-export default function CompaniesScreen() {
+export default function CompaniesScreen({ embedded = false }: { embedded?: boolean } = {}) {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -25,14 +25,16 @@ export default function CompaniesScreen() {
 
   return (
     <View style={styles.container}>
+      {!embedded && (
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()} accessibilityLabel={t('profile.back')}>
           <Ionicons name="arrow-back" size={20} color={theme.colors.bone} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('co.title')}</Text>
       </View>
+      )}
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: embedded ? 120 : 60 }} keyboardShouldPersistTaps="handled">
         <Text style={styles.sub}>{t('co.subtitle')}</Text>
         <View style={styles.search}>
           <Ionicons name="search" size={16} color={theme.colors.redLight} />

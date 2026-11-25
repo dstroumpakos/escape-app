@@ -3,6 +3,7 @@ import { Image, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle }
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../theme';
+import { caps } from '../caps';
 import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
@@ -63,7 +64,7 @@ function ThemeTag({ value }: { value?: string }) {
   const key = ROOM_THEME_KEYS[value];
   return (
     <View style={[styles.themeTag, color ? { borderColor: `${color}66` } : null]}>
-      <Text style={[styles.themeTagText, color ? { color } : null]}>{key ? t(key) : value}</Text>
+      <Text style={[styles.themeTagText, color ? { color } : null]}>{caps(key ? t(key) : value)}</Text>
     </View>
   );
 }
@@ -74,12 +75,15 @@ export function RoomCard({
   onPress,
   style,
   earlyLabel,
+  distanceKm,
 }: {
   room: any;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
   /** Gold badge text for premium early-access rooms. */
   earlyLabel?: string;
+  /** From the player, when we know where they are */
+  distanceKm?: number;
 }) {
   const { t } = useTranslation();
   const { price, perPerson } = useRoomPrice(room);
@@ -133,11 +137,11 @@ export function RoomCard({
           {room.title}
         </Text>
 
-        {!!room.location && (
+        {(!!room.location || distanceKm != null) && (
           <View style={styles.row}>
             <Ionicons name="location-outline" size={13} color={theme.colors.textMuted} />
             <Text style={styles.location} numberOfLines={1}>
-              {room.location}
+              {[distanceKm != null ? `${distanceKm < 10 ? distanceKm.toFixed(1) : Math.round(distanceKm)} km` : null, room.location].filter(Boolean).join(' · ')}
             </Text>
           </View>
         )}
@@ -302,7 +306,6 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.type,
     fontSize: 10,
     letterSpacing: 1.8,
-    textTransform: 'uppercase',
     color: theme.colors.textSecondary,
   },
   title: { fontFamily: theme.fonts.display, fontSize: 19, lineHeight: 24, color: theme.colors.bone, marginBottom: 6 },
