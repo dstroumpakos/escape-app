@@ -13,6 +13,9 @@ const en: Record<string, string> = {
   'mode.or': 'or',
   'mode.puzzle_short': 'Puzzles',
   'mode.horror_short': 'Horror',
+  'mode.see_all': 'Just show me every room',
+  'mode.switch_to_horror': 'Want some fear? Switch to horror',
+  'mode.switch_to_puzzle': 'Prefer puzzles without fear?',
 };
 const el: Record<string, string> = {
   'mode.no_fear': 'Χωρίς τρόμο',
@@ -28,5 +31,8 @@ const el: Record<string, string> = {
   'mode.or': 'ή',
   'mode.puzzle_short': 'Γρίφοι',
   'mode.horror_short': 'Τρόμος',
+  'mode.see_all': 'Δείξε μου απλά όλα τα δωμάτια',
+  'mode.switch_to_horror': 'Θες λίγο τρόμο; Πέρνα στην πλευρά του τρόμου',
+  'mode.switch_to_puzzle': 'Προτιμάς γρίφους χωρίς τρόμο;',
 };
 export const modeTranslations = { en, el };

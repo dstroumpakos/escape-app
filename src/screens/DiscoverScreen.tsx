@@ -23,7 +23,8 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
-import { onSide, type Side } from '../mode';
+import { onSide, fearOf, type Side } from '../mode';
+import { getSide } from '../side';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { BOOKING_ENABLED } from '../features';
@@ -125,6 +126,8 @@ export default function DiscoverScreen() {
     return rooms
       .filter((r) => activeFilter === 'All' || r.theme === activeFilter)
       .filter((r) => onSide(r, side))
+      // The puzzle side of the app never shows the scary rooms (src/side.ts)
+      .filter((r) => getSide() !== 'puzzle' || fearOf(r) !== 'high')
       .filter(
         (r) =>
           !q ||

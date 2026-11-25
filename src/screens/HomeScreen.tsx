@@ -22,6 +22,8 @@ import { TypeLabel } from '../components/ui';
 import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
 import { ModeSplit } from '../components/ModeSplit';
+import { getSide, chooseSide, takePendingTheme } from '../side';
+import { fearOf } from '../mode';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -94,6 +96,16 @@ export default function HomeScreen() {
     sessionToken ? { sessionToken } : 'skip',
   ) ?? 0;
 
+  // Puzzles or horror (src/side.ts); null until the player picks one
+  const side = getSide();
+  const forSide = <T extends { theme?: string; fearLevel?: string }>(rooms: T[]) => (side === 'puzzle' ? rooms.filter((r) => fearOf(r) !== 'high') : rooms);
+  // A theme chip picked on the split: open Discover on it after the restart
+  useEffect(() => {
+    takePendingTheme().then((th) => {
+      if (th) tabNavigation.navigate('Discover', { theme: th });
+    });
+  }, []);
+
   // Server queries
   const featuredRooms = useQuery(api.rooms.featured);
   // Merch shop: same catalogue as the Shop screen and the website's /shop
@@ -121,12 +133,12 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const featured = (featuredRooms ?? []).map((r: any) => ({ ...r, id: r._id }));
+  const featured = forSide((featuredRooms ?? []) as any[]).map((r: any) => ({ ...r, id: r._id }));
 
   // Near You: rooms that have coordinates, sorted by distance from user
   const nearYou = React.useMemo(() => {
     if (!allRooms) return [];
-    const withCoords = allRooms
+    const withCoords = forSide(allRooms as any[])
       .filter((r: any) => r.latitude != null && r.longitude != null)
       .map((r: any) => ({ ...r, id: r._id }));
 
@@ -154,20 +166,30 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
-        {/* Hero: the wall, lit from above */}
+        {!side ? (
+          // No side yet: half puzzles, half horror (as the website's home)
+          <>
+            <ModeSplit onPick={(s, th) => chooseSide(s, th)} />
+            <TouchableOpacity style={styles.everyRoom} onPress={() => tabNavigation.navigate('Discover')} accessibilityRole="button">
+              <Text style={styles.everyRoomText}>{t('mode.see_all')}</Text>
+              <Ionicons name="arrow-forward" size={14} color="#f6d27a" />
+            </TouchableOpacity>
+          </>
+        ) : (
+        /* Hero: the wall, lit from above (night sky on the puzzle side) */
         <LinearGradient
-          colors={['#1D1010', '#0D0707', theme.colors.bgPrimary]}
+          colors={side === 'puzzle' ? ['#1d3060', '#0c1532', theme.colors.bgPrimary] : ['#1D1010', '#0D0707', theme.colors.bgPrimary]}
           style={[styles.hero, { paddingTop: insets.top + 8 }]}
         >
-          {/* Eyes in the dark */}
-          <WatchingEyes
+          {/* Eyes in the dark (not on the puzzle side: no fear there) */}
+          {side === 'horror' && <WatchingEyes
             pairs={[
               // Kept to the empty strips (left of the logo, below the search) so they never sit behind text
               { x: 6, y: 13, size: 13, delay: 1800, tilt: 8 },
               { x: 8, y: 93, size: 12, delay: 3200, tilt: -6 },
               { x: 70, y: 94, size: 10, delay: 4600 },
             ]}
-          />
+          />}
           <View style={styles.topBar}>
             {/* Messages: same width as the bell, so the logo sits in the exact middle */}
             {sessionToken ? (
@@ -209,11 +231,11 @@ export default function HomeScreen() {
           </View>
 
           <FadeUp delay={100}>
-            <Text style={styles.heroTitle}>{t('home.heroTitle1')}</Text>
+            <Text style={styles.heroTitle}>{side === 'puzzle' ? t('mode.puzzle_title1') : t('home.heroTitle1')}</Text>
           </FadeUp>
           <FadeUp delay={300}>
-            <Text style={[styles.heroTitle, styles.heroTitleRed]}>{t('home.heroTitle2')}</Text>
-            <BloodDrips count={7} seed={2} maxLength={30} style={styles.heroDrips} />
+            <Text style={[styles.heroTitle, styles.heroTitleRed]}>{side === 'puzzle' ? t('mode.puzzle_title2') : t('home.heroTitle2')}</Text>
+            {side === 'horror' && <BloodDrips count={7} seed={2} maxLength={30} style={styles.heroDrips} />}
           </FadeUp>
           <FadeUp delay={500}>
             <Text style={styles.heroSubtitle}>{t('home.heroSubtitle')}</Text>
@@ -236,12 +258,16 @@ export default function HomeScreen() {
             </LinearGradient>
           </TouchableOpacity>
           </FadeUp>
-        </LinearGradient>
 
-        {/* Puzzles or horror (as on the website's home) */}
-        <FadeUp delay={750}>
-          <ModeSplit onPick={(side, th) => tabNavigation.navigate('Discover', { side, theme: th })} />
-        </FadeUp>
+          {/* Switch sides (restarts the app in the other side's colours) */}
+          <FadeUp delay={750}>
+            <TouchableOpacity style={styles.switchSide} onPress={() => chooseSide(side === 'puzzle' ? 'horror' : 'puzzle')} accessibilityRole="button">
+              <Ionicons name={side === 'puzzle' ? 'skull-outline' : 'key-outline'} size={15} color={theme.colors.textSecondary} />
+              <Text style={styles.switchSideText}>{side === 'puzzle' ? t('mode.switch_to_horror') : t('mode.switch_to_puzzle')}</Text>
+            </TouchableOpacity>
+          </FadeUp>
+        </LinearGradient>
+        )}
 
         <FadeUp delay={800}>
 
@@ -365,6 +391,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bgPrimary },
 
   hero: { paddingHorizontal: 20, paddingBottom: 44, marginBottom: 0 },
+  everyRoom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, backgroundColor: 'rgba(0,0,0,0.7)', borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  everyRoomText: { color: '#f6d27a', fontSize: 14 },
+  switchSide: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, paddingVertical: 6 },
+  switchSideText: { color: theme.colors.textSecondary, fontSize: 13 },
   topBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginBottom: 28,

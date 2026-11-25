@@ -67,3 +67,37 @@ export const theme = {
     },
   },
 };
+
+/**
+ * Puzzle side (src/side.ts): the website's night-sky navy and detective gold
+ * (escape-web globals.css html[data-mode='puzzle']) instead of blood. Applied
+ * before any screen builds its styles, so the whole app changes at once.
+ */
+export const isPuzzle = globalThis.__UNLOCKED_SIDE === 'puzzle';
+if (isPuzzle) {
+  Object.assign(theme.colors, {
+    bgPrimary: '#0a1122',
+    bgSecondary: '#0f1830',
+    bgCard: 'rgba(15, 24, 48, 0.92)',
+    bgCardSolid: '#0f1830',
+    surface: '#16223d',
+    bgBar: 'rgba(10, 17, 34, 0.96)',
+    // Fills stay dark enough for the white text the screens put on them
+    redPrimary: '#B8861F',
+    redDark: '#7a5810',
+    redLight: '#f2c75c',
+    blood: '#2a3a66',
+    redGlow: 'rgba(217, 165, 58, 0.35)',
+    redSubtle: 'rgba(217, 165, 58, 0.15)',
+    textPrimary: '#e6ebf5',
+    bone: '#f4ecd9',
+    textSecondary: '#a7b2c9',
+    textMuted: '#8a96b0',
+    border: '#26375a',
+    glass: 'rgba(0, 0, 0, 0.3)',
+    glassBorder: '#26375a',
+    gold: '#f2c75c',
+  });
+  (theme as { buttonGradient: readonly string[] }).buttonGradient = ['#d9a53a', '#B8861F', '#7a5810'] as const;
+  theme.shadow.red = { ...theme.shadow.red, shadowColor: '#d9a53a' };
+}
