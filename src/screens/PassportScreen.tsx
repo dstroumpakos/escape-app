@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,8 +8,8 @@ import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
-import { StampSeal, tiltFor } from '../components/StampSeal';
-import { formatPlayed, shortPlayed } from '../playTime';
+import { PassportBook } from '../components/PassportBook';
+import { formatPlayed } from '../playTime';
 import PlaysTab from './plays/PlaysTab';
 import PlaysMap from './plays/PlaysMap';
 
@@ -31,7 +31,14 @@ export default function PassportScreen({ embedded = false }: { embedded?: boolea
   }, [route.params?.tab]);
   const plays = useQuery(api.plays.mine, sessionToken ? { sessionToken } : 'skip');
   const [picked, setPicked] = useState<any>(null);
-  const { width } = useWindowDimensions();
+  // The book fills up like a real passport: the first stamp on page one.
+  const book = useMemo(() => [...(data?.stamps ?? [])].reverse(), [data?.stamps]);
+  const labels = useMemo(() => ({
+    open: t('pp.book_open'), name: t('pp.name'), number: t('pp.number'),
+    stamps: t('pp.stamps'), cities: t('pp.cities'), escapes: t('pp.escapes'),
+    how: t('pp.how'), stampsTitle: t('pp.tabStamps'), nextSlot: t('pp.next_slot'),
+    page: (n: number, total: number) => t('pp.book_page', { n, total }),
+  }), [t]);
 
   if (!data) {
     return <View style={[styles.container, styles.center]}><ActivityIndicator color={theme.colors.redPrimary} /></View>;
@@ -44,8 +51,6 @@ export default function PassportScreen({ embedded = false }: { embedded?: boolea
   const next = chambers.find((c) => c > placed);
   const prev = chambers[doorsOpen];
   const pct = next ? Math.round(((placed - prev) / (next - prev)) * 100) : 100;
-  const sealSize = Math.min(100, (width - 32 - 24) / 3);
-  const slots = Math.max(9, Math.ceil((data.total + 2) / 3) * 3);
 
   return (
     <View style={styles.container}>
@@ -63,31 +68,8 @@ export default function PassportScreen({ embedded = false }: { embedded?: boolea
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: embedded ? 110 : 60 }}>
-        {/* Identity page */}
-        <View style={styles.idCard}>
-          <Text style={styles.idKicker}>UNLOCKED · PASSPORT</Text>
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center', marginTop: 12 }}>
-            <View style={styles.photo}>
-              {data.avatar ? <Image source={{ uri: data.avatar }} style={{ width: '100%', height: '100%' }} /> : <Text style={styles.photoLetter}>{(data.name || '?').charAt(0).toUpperCase()}</Text>}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>{t('pp.name')}</Text>
-              <Text style={styles.value} numberOfLines={1}>{data.name}</Text>
-              <Text style={[styles.label, { marginTop: 4 }]}>{t('pp.number')}</Text>
-              <Text style={[styles.value, { fontFamily: 'Courier' }]}>{data.passportNo}</Text>
-            </View>
-          </View>
-          <View style={styles.stats}>
-            {[[String(data.total), t('pp.stamps')]].map(([v, l]) => (
-              <View key={l} style={styles.stat}><Text style={styles.statNum}>{v}</Text><Text style={styles.label}>{l}</Text></View>
-            ))}
-          </View>
-          <Text style={[styles.label, { marginTop: 12 }]}>{next ? t('pp.towerProgress', { open: doorsOpen, n: next - placed }) : t('pp.towerSoon')}</Text>
-          <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%` }]} /></View>
-        </View>
-
         {/* Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tabs, { marginTop: 0 }]}>
           {([['stamps', 'ribbon-outline', t('pp.tabStamps')], ['played', 'list-outline', t('pl.tab')], ['map', 'map-outline', t('pl.map_tab')], ['maze', 'skull-outline', t('pp.tabTower')]] as const).map(([k, icon, label]) => (
             <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)}>
               <Ionicons name={icon} size={16} color={tab === k ? '#fff' : theme.colors.textSecondary} />
@@ -102,17 +84,14 @@ export default function PassportScreen({ embedded = false }: { embedded?: boolea
           <PlaysMap pins={plays?.pins ?? []} />
         ) : tab === 'stamps' ? (
           <>
-            <View style={styles.grid}>
-              {data.stamps.map((s) => (
-                <StampSeal key={s._id} size={sealSize} title={s.roomTitle} theme={s.theme} date={shortPlayed(s.playedAt, s.createdAt)} escaped={s.escaped} tilt={tiltFor(s._id)} onPress={() => setPicked(s)} />
-              ))}
-              {Array.from({ length: slots - data.stamps.length }, (_, i) => (
-                <View key={`e${i}`} style={[styles.empty, { width: sealSize, height: sealSize, borderRadius: sealSize / 2 }]}>
-                  <Ionicons name="lock-closed-outline" size={18} color={theme.colors.textMuted} />
-                  <Text style={styles.emptyText}>{t('pp.empty')}</Text>
-                </View>
-              ))}
-            </View>
+            <PassportBook
+              data={data}
+              stamps={book}
+              progressText={next ? t('pp.towerProgress', { open: doorsOpen, n: next - placed }) : t('pp.towerSoon')}
+              pct={pct}
+              labels={labels}
+              onPick={setPicked}
+            />
             <View style={styles.info}>
               {picked ? (
                 <Text style={styles.infoText}>

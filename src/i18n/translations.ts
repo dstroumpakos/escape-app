@@ -18,6 +18,10 @@ export const translations: Record<Language, Record<string, string>> = {
   // ═══════════════════════════════════════════════════════════
   en: {
     'pp.title': "My Passport",
+    'pp.how': "At the end of every room, ask the escape room for the UNLOCKED QR and scan it with your phone.",
+    'pp.book_open': "Tap to open",
+    'pp.book_page': "Page {{n}} of {{total}}",
+    'pp.next_slot': "Your next stamp goes here",
     'pp.scan': "Scan",
     'pp.scanTitle': "Scan the QR",
     'pp.scanHint': "Point at the QR the escape room shows you at the end of the game.",
@@ -2043,6 +2047,10 @@ export const translations: Record<Language, Record<string, string>> = {
   // ═══════════════════════════════════════════════════════════
   el: {
     'pp.title': "Το Passport μου",
+    'pp.how': "Στο τέλος κάθε δωματίου, ζήτα από το escape room το QR του UNLOCKED και σκάναρέ το με το κινητό σου.",
+    'pp.book_open': "Πάτα για να ανοίξει",
+    'pp.book_page': "Σελίδα {{n}} από {{total}}",
+    'pp.next_slot': "Η επόμενη σφραγίδα σου μπαίνει εδώ",
     'pp.scan': "Σκάναρε",
     'pp.scanTitle': "Σκάναρε το QR",
     'pp.scanHint': "Στόχευσε το QR που σου δείχνει το escape room στο τέλος του παιχνιδιού.",
