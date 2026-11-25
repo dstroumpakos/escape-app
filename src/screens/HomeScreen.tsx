@@ -21,6 +21,7 @@ import { ProductTile } from '../components/shop';
 import { TypeLabel } from '../components/ui';
 import { EyeKeyhole } from '../components/EyeKeyhole';
 import { BloodDrips, FadeUp, Flicker, WatchingEyes } from '../components/motion';
+import { ModeSplit } from '../components/ModeSplit';
 
 /** Haversine distance in km */
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -236,6 +237,11 @@ export default function HomeScreen() {
           </TouchableOpacity>
           </FadeUp>
         </LinearGradient>
+
+        {/* Puzzles or horror (as on the website's home) */}
+        <FadeUp delay={750}>
+          <ModeSplit onPick={(side, th) => tabNavigation.navigate('Discover', { side, theme: th })} />
+        </FadeUp>
 
         <FadeUp delay={800}>
 

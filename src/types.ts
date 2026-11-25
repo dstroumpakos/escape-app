@@ -107,7 +107,8 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Discover: undefined;
+  /** From the home "puzzles or horror" section: which side, and maybe one theme */
+  Discover: { side?: 'puzzle' | 'horror'; theme?: string } | undefined;
   Social: undefined;
   PassportTab: undefined;
   Tickets: undefined;

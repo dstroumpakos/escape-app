@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
-import { sharePhoto } from '../sharePhoto';
+import { ShareSheet } from './ShareSheet';
 
 type TeamPhoto = { url: string; teamName: string; escaped: boolean | null; escapeTime: string; roomTitle: string };
 type Shot = { url: string; label?: string; video?: boolean };
@@ -17,6 +17,8 @@ function Viewer({ shots, start, onClose, share }: { shots: Shot[]; start: number
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [i, setI] = useState(start);
+  const [sharing, setSharing] = useState(false);
+  const shot = shots[i];
   return (
     <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.viewer}>
@@ -38,7 +40,7 @@ function Viewer({ shots, start, onClose, share }: { shots: Shot[]; start: number
         {share && (
           <TouchableOpacity
             style={[styles.close, { top: insets.top + 10, right: 68 }]}
-            onPress={() => sharePhoto({ title: [shots[i]?.label, share.name].filter(Boolean).join(' · '), path: `/companies/${share.companyId}` })}
+            onPress={() => setSharing(true)}
             accessibilityLabel={t('sh.title')}
           >
             <Ionicons name="share-social-outline" size={22} color="#fff" />
@@ -52,6 +54,12 @@ function Viewer({ shots, start, onClose, share }: { shots: Shot[]; start: number
           {shots.length > 1 && <Text style={styles.counterText}>{i + 1} / {shots.length}</Text>}
         </View>
       </View>
+      {sharing && share && shot && !shot.video && (
+        <ShareSheet
+          item={{ imageUrl: shot.url, title: shot.label || share.name, subtitle: shot.label ? share.name : undefined, path: `/companies/${share.companyId}` }}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </Modal>
   );
 }

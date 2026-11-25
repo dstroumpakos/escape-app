@@ -17,12 +17,13 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { RoomCard, RoomRow } from '../components/RoomCard';
 import { DifficultySkulls, PrimaryButton } from '../components/ui';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, MainTabParamList } from '../types';
+import { onSide, type Side } from '../mode';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
 import { BOOKING_ENABLED } from '../features';
@@ -83,6 +84,15 @@ export default function DiscoverScreen() {
   const geocodeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [activeFilter, setActiveFilter] = useState('All');
+  // Puzzles or horror, picked on the home screen (src/mode.ts)
+  const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
+  const [side, setSide] = useState<Side | null>(null);
+  useEffect(() => {
+    const p = route.params;
+    if (!p) return;
+    setSide(p.side ?? null);
+    setActiveFilter(p.theme ?? 'All');
+  }, [route.params]);
   const [selectedRoom, setSelectedRoom] = useState<(typeof rooms)[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -103,6 +113,7 @@ export default function DiscoverScreen() {
       r.pricePerGroup?.length ? Math.min(...r.pricePerGroup.map((g: any) => g.price)) : r.price ?? 0;
     return rooms
       .filter((r) => activeFilter === 'All' || r.theme === activeFilter)
+      .filter((r) => onSide(r, side))
       .filter(
         (r) =>
           !q ||
@@ -116,7 +127,7 @@ export default function DiscoverScreen() {
         if (sortBy === 'duration') return (a.duration ?? 0) - (b.duration ?? 0);
         return (b.rating ?? 0) - (a.rating ?? 0) || (b.reviews ?? 0) - (a.reviews ?? 0);
       });
-  }, [convexRooms, activeFilter, query, sortBy]);
+  }, [convexRooms, activeFilter, query, sortBy, side]);
 
   const filterLabels: Record<string, string> = {
     All: t('discover.all'),
@@ -369,6 +380,19 @@ export default function DiscoverScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterRow}
         >
+          {side && (
+            // The side picked on Home; tap to see every room again
+            <TouchableOpacity
+              style={[styles.chip, styles.chipActive, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}
+              onPress={() => { setSide(null); setSelectedRoom(null); }}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <Ionicons name={side === 'puzzle' ? 'key-outline' : 'skull-outline'} size={13} color={theme.colors.bone} />
+              <Text style={[styles.chipText, styles.chipTextActive]}>{t(side === 'puzzle' ? 'mode.puzzle_short' : 'mode.horror_short')}</Text>
+              <Ionicons name="close" size={13} color={theme.colors.bone} />
+            </TouchableOpacity>
+          )}
           {filters.map((f) => (
             <TouchableOpacity
               key={f}

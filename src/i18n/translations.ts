@@ -4,6 +4,7 @@ import { leaderboardTranslations } from './leaderboardTranslations';
 import { chatTranslations } from './chatTranslations';
 import { peopleTranslations } from './peopleTranslations';
 import { companyProfileTranslations } from './companyProfileTranslations';
+import { modeTranslations } from './modeTranslations';
 
 // ─── i18n translations ───
 // Every user-facing string in the app, keyed for easy lookup.
@@ -4076,6 +4077,9 @@ Object.assign(translations.el, peopleTranslations.el);
 // Photo sections of a company profile (companyProfileTranslations.ts).
 Object.assign(translations.en, companyProfileTranslations.en);
 Object.assign(translations.el, companyProfileTranslations.el);
+// Home "puzzles or horror" section (modeTranslations.ts).
+Object.assign(translations.en, modeTranslations.en);
+Object.assign(translations.el, modeTranslations.el);
 
 // Leaderboard with scores (leaderboardTranslations.ts).
 Object.assign(translations.en, leaderboardTranslations.en);

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -194,8 +194,12 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
           style={styles.mediaContainer}
         >
           {post.media.map((m: any, i: number) => (
-            <View key={i} style={[styles.mediaItem, post.media.length === 1 && { width: width - 56 }]}>
-              <Image source={{ uri: m.url }} style={styles.mediaImage} resizeMode="cover" />
+            <View key={i} style={[styles.mediaItem, post.media.length === 1 && { width: width - 56, height: undefined }]}>
+              {post.media.length === 1 ? (
+                <FitImage uri={m.url} />
+              ) : (
+                <Image source={{ uri: m.url }} style={styles.mediaImage} resizeMode="contain" />
+              )}
               {m.type === 'video' && (
                 <View style={styles.playOverlay}>
                   <Ionicons name="play-circle" size={44} color="rgba(255,255,255,0.9)" />
@@ -233,6 +237,21 @@ function PostCard({ post, isLiked, userId, onToggleLike, onComment, onReport, on
       </View>
     </View>
   );
+}
+
+/**
+ * One photo shown whole, in its own shape (no cropping). Very tall or very
+ * wide photos are boxed in and shown with "contain" so nothing gets cut.
+ */
+function FitImage({ uri }: { uri: string }) {
+  const [ratio, setRatio] = useState(1);
+  useEffect(() => {
+    let alive = true;
+    Image.getSize(uri, (w, h) => { if (alive && w > 0 && h > 0) setRatio(w / h); }, () => {});
+    return () => { alive = false; };
+  }, [uri]);
+  const shown = Math.min(Math.max(ratio, 0.8), 1.91);
+  return <Image source={{ uri }} style={[styles.mediaImage, { height: undefined, aspectRatio: shown }]} resizeMode="contain" />;
 }
 
 /* ── Comment Sheet ── */
@@ -667,7 +686,7 @@ export default function SocialScreen() {
 }
 
 const styles = StyleSheet.create({
-  countsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
+  countsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10, paddingHorizontal: 14 },
   countsText: { fontSize: 12, color: theme.colors.textMuted },
   fbActions: { flexDirection: 'row', marginTop: 8, paddingTop: 4, borderTopWidth: 1, borderTopColor: theme.colors.border },
   fbAction: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 9 },
@@ -676,7 +695,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, marginBottom: 12, borderRadius: theme.radius.lg,
     backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: theme.colors.border,
   },
-  composerInput: { flex: 1, height: 40, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: theme.colors.glass },
+  composerInput: { flex: 1, height: 40, justifyContent: 'center', paddingHorizontal: 4 },
   composerText: { color: theme.colors.textMuted, fontSize: 14 },
   modeRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   modeBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18, backgroundColor: theme.colors.glass },
@@ -718,12 +737,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
-  cardHeader: { padding: 14, paddingBottom: 8 },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', padding: 14, paddingBottom: 8 },
+  authorRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   moreBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    marginLeft: 'auto',
+    marginLeft: 'auto', marginRight: -8,
   },
   authorAvatar: { width: 40, height: 40, borderRadius: 20 },
   authorAvatarFallback: {
@@ -786,7 +805,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     overflow: 'hidden',
   },
-  mediaImage: { width: '100%', height: '100%' },
+  mediaImage: { width: '100%', height: '100%', backgroundColor: '#000' },
   playOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.25)',

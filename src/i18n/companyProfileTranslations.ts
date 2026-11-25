@@ -5,6 +5,8 @@
  */
 const en: Record<string, string> = {
   'sh.title': 'Share',
+  'sh.more': 'More',
+  'sh.failed': "Couldn't share. Try again.",
   'co.photos': 'Photos',
   'co.teamPhotos': 'Team photos',
   'co.escaped': 'Escaped',
@@ -15,6 +17,8 @@ const en: Record<string, string> = {
 
 const el: Record<string, string> = {
   'sh.title': 'Κοινοποίηση',
+  'sh.more': 'Περισσότερα',
+  'sh.failed': 'Δεν έγινε η κοινοποίηση. Δοκίμασε ξανά.',
   'co.photos': 'Φωτογραφίες',
   'co.teamPhotos': 'Φωτογραφίες ομάδων',
   'co.escaped': 'Απέδρασαν',

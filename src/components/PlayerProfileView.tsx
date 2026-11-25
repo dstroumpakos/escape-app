@@ -13,7 +13,7 @@ import { theme } from '../theme';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import CreatePostModal from '../screens/CreatePostModal';
-import { sharePhoto } from '../sharePhoto';
+import { ShareSheet } from './ShareSheet';
 import { FOLLOW_ENABLED } from '../features';
 
 /**
@@ -323,6 +323,7 @@ function PostSheet({ post, authorName, onClose, sharePath }: { post: any; author
   const [text, setText] = useState('');
   const [likeCount, setLikeCount] = useState<number>(post.likes);
   const [sending, setSending] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const liked = (likes ?? []).includes(post._id);
   const img = post.media?.find((m: any) => m.type === 'image')?.url;
 
@@ -357,7 +358,7 @@ function PostSheet({ post, authorName, onClose, sharePath }: { post: any; author
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {!!sharePath && !!img && (
                 <TouchableOpacity
-                  onPress={() => sharePhoto({ title: [post.roomTitle, authorName].filter(Boolean).join(' · '), path: sharePath })}
+                  onPress={() => setSharing(true)}
                   accessibilityLabel={t('sh.title')}
                 >
                   <Ionicons name="share-social-outline" size={22} color={theme.colors.bone} />
@@ -411,6 +412,12 @@ function PostSheet({ post, authorName, onClose, sharePath }: { post: any; author
           )}
         </View>
       </KeyboardAvoidingView>
+      {sharing && !!sharePath && !!img && (
+        <ShareSheet
+          item={{ imageUrl: img, title: post.roomTitle || authorName, subtitle: post.roomTitle ? authorName : undefined, path: sharePath }}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </Modal>
   );
 }
