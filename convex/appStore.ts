@@ -188,7 +188,7 @@ export async function getSubscriptionState(originalTransactionId: string): Promi
     if (res.status === 401 && base === PRODUCTION_URL) continue; // not live yet, see above
     if (!res.ok) {
       console.error("[appStore] subscription status failed", res.status);
-      throw new ConvexError("Couldn't reach the App Store");
+      throw new ConvexError("Couldn't reach the App Store. Please try again.");
     }
     const json: any = await res.json();
     if (json.bundleId && json.bundleId !== bundleId()) return null;

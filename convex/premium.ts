@@ -55,27 +55,40 @@ export const verifyApplePurchase = action({
     const tx = await getAppleTransaction(args.transactionId.trim());
     if (!tx) throw new ConvexError("We couldn't find this purchase at the App Store.");
     if (tx.bundleId !== bundleId()) throw new ConvexError("This purchase is not for UNLOCKED.");
-    const plan = PRODUCT_PLANS[tx.productId];
-    if (!plan) throw new ConvexError("This is not an UNLOCKED Premium purchase.");
-    if (tx.revocationDate) throw new ConvexError("This purchase was refunded or revoked.");
-    if (!tx.expiresDate || tx.expiresDate <= Date.now()) throw new ConvexError("This subscription has expired.");
+    if (!PRODUCT_PLANS[tx.productId]) throw new ConvexError("This is not an UNLOCKED Premium purchase.");
     // Sandbox purchases (TestFlight, App Review) cost nothing. Accept them only
     // where APPSTORE_ALLOW_SANDBOX=1: test backends, and production only while
     // Apple is reviewing the app.
     if (tx.environment !== "Production" && process.env.APPSTORE_ALLOW_SANDBOX !== "1") {
       throw new ConvexError("Test purchases can't be used here.");
     }
+    // Every renewal is a new transaction, so the one the app sent can be an
+    // old, expired renewal of a subscription that is still running. Judge the
+    // whole subscription by its latest transaction instead.
+    const state = await getSubscriptionState(tx.originalTransactionId);
+    const current = state ?? {
+      transactionId: tx.transactionId,
+      productId: tx.productId,
+      expiresDate: tx.expiresDate,
+      revoked: typeof tx.revocationDate === "number",
+    };
+    const plan = PRODUCT_PLANS[current.productId];
+    if (!plan) throw new ConvexError("This is not an UNLOCKED Premium purchase.");
+    if (current.revoked) throw new ConvexError("This purchase was refunded or revoked.");
+    if (!current.expiresDate || current.expiresDate <= Date.now()) {
+      throw new ConvexError("This subscription has expired.");
+    }
     await ctx.runMutation(internal.premium.grantFromStore, {
       userId,
       plan,
       platform: "ios",
-      productId: tx.productId,
-      transactionId: tx.transactionId,
+      productId: current.productId,
+      transactionId: current.transactionId,
       originalTransactionId: tx.originalTransactionId,
-      expiresAt: tx.expiresDate,
+      expiresAt: current.expiresDate,
       environment: tx.environment,
     });
-    return { success: true, plan, expiresAt: tx.expiresDate };
+    return { success: true, plan, expiresAt: current.expiresDate };
   },
 });
 

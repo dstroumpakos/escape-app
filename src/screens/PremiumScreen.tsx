@@ -26,6 +26,13 @@ import {
   onPurchaseError,
   IAP_PRODUCT_IDS,
 } from '../iap';
+import { ConvexError } from 'convex/values';
+
+/** The server's own message for a ConvexError, else the error's message. */
+function errorText(e: any): string {
+  if (e instanceof ConvexError && typeof e.data === 'string') return e.data;
+  return e?.message ?? '';
+}
 
 export default function PremiumScreen() {
   const { t } = useTranslation();
@@ -68,6 +75,8 @@ export default function PremiumScreen() {
   useEffect(() => { userIdRef.current = userId; }, [userId]);
   const sessionTokenRef = useRef(sessionToken);
   useEffect(() => { sessionTokenRef.current = sessionToken; }, [sessionToken]);
+  // True between tapping Subscribe and the store's answer.
+  const buyingRef = useRef(false);
 
   // ─── Initialize IAP & purchase listeners ───
   useEffect(() => {
@@ -87,6 +96,9 @@ export default function PremiumScreen() {
         if (!userIdRef.current || !currentToken) return;
 
         const receipt = extractReceiptData(purchase);
+        // iOS also replays old unfinished transactions here when the screen
+        // opens. Only a purchase the user just started gets alerts.
+        const userStarted = buyingRef.current;
 
         try {
           await verifyPurchase(receipt.transactionId);
@@ -100,9 +112,20 @@ export default function PremiumScreen() {
             [{ text: t('premium.welcomeBtn'), onPress: () => navigation.goBack() }]
           );
         } catch (e: any) {
-          Alert.alert(t('premium.error'), e.message || t('premium.errorMessage'));
+          // Apple gave a final answer (expired, refunded, test purchase, other
+          // account): finish the transaction so iOS stops replaying it. A
+          // subscription that is still running can always be restored. Only
+          // "please try again" errors are left for the next attempt.
+          const msg = errorText(e);
+          if (e instanceof ConvexError && !/try again/i.test(msg)) {
+            await acknowledgePurchase(purchase);
+          }
+          if (userStarted) Alert.alert(t('premium.error'), msg || t('premium.errorMessage'));
         }
-        setSubscribing(false);
+        if (userStarted) {
+          buyingRef.current = false;
+          setSubscribing(false);
+        }
       });
 
       // Listen for purchase errors
@@ -110,6 +133,7 @@ export default function PremiumScreen() {
         if (error.code !== 'user-cancelled') {
           Alert.alert(t('premium.error'), error.message || t('premium.errorMessage'));
         }
+        buyingRef.current = false;
         setSubscribing(false);
       });
     };
@@ -129,12 +153,14 @@ export default function PremiumScreen() {
   // ─── Handle subscribe via native IAP ───
   const handleSubscribe = async () => {
     if (!userId) return;
+    buyingRef.current = true;
     setSubscribing(true);
     try {
       await purchaseSubscription(selectedPlan);
       // The purchaseUpdatedListener will handle the rest
     } catch (e: any) {
       // User cancelled or store error — listener already handles errors
+      buyingRef.current = false;
       setSubscribing(false);
     }
   };
@@ -146,10 +172,11 @@ export default function PremiumScreen() {
     try {
       const purchases = await restorePurchases();
 
-      // Find the most recent premium subscription purchase
-      const premiumPurchase = purchases.find(
-        (p) => p.productId === IAP_PRODUCT_IDS.monthly || p.productId === IAP_PRODUCT_IDS.yearly
-      );
+      // The most recent premium subscription purchase (the server then checks
+      // the whole subscription with Apple, so any of its renewals works)
+      const premiumPurchase = purchases
+        .filter((p) => p.productId === IAP_PRODUCT_IDS.monthly || p.productId === IAP_PRODUCT_IDS.yearly)
+        .sort((a, b) => (b.transactionDate ?? 0) - (a.transactionDate ?? 0))[0];
 
       if (!premiumPurchase) {
         Alert.alert(t('premium.restoreTitle'), t('premium.restoreNoneFound'));
@@ -162,7 +189,7 @@ export default function PremiumScreen() {
 
       Alert.alert(t('premium.restoreTitle'), t('premium.restoreSuccess'));
     } catch (e: any) {
-      Alert.alert(t('premium.error'), e.message || t('premium.restoreError'));
+      Alert.alert(t('premium.error'), errorText(e) || t('premium.restoreError'));
     }
     setRestoring(false);
   };
