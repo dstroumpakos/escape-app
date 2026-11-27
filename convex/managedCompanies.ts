@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -306,5 +306,36 @@ export const adminAssign = mutation({
 
     await ctx.db.delete(from._id);
     return { rooms: rooms.length, approved: to.onboardingStatus === undefined || to.onboardingStatus === "approved" };
+  },
+});
+
+/**
+ * Team-only (CLI): turn a company we created with its own login, one nobody
+ * uses, into an admin-managed company, so it is edited from the admin like the
+ * others. Its login goes (no email, no password) and any open sessions end;
+ * rooms, stats, followers and Instagram stay. Managed companies are not billed.
+ * npx convex run --prod managedCompanies:convertToManagedInternal '{"companyId":"..."}'
+ */
+export const convertToManagedInternal = internalMutation({
+  args: { companyId: v.id("companies") },
+  handler: async (ctx, { companyId }) => {
+    const c = await ctx.db.get(companyId);
+    if (!c) throw new Error("Company not found");
+    if (c.managedByAdmin) return `${c.name}: already managed`;
+    if (c.stripeSubscriptionId) throw new Error(`${c.name} has a Stripe subscription: cancel it first`);
+    const sessions = await ctx.db
+      .query("companySessions")
+      .withIndex("by_company", (q) => q.eq("companyId", companyId))
+      .collect();
+    for (const s of sessions) await ctx.db.delete(s._id);
+    await ctx.db.patch(companyId, {
+      managedByAdmin: true,
+      email: "",
+      password: "",
+      verified: true,
+      onboardingStatus: "approved",
+      platformPlan: "unlimited",
+    });
+    return `${c.name}: now managed (${sessions.length} sessions ended)`;
   },
 });
