@@ -75,8 +75,8 @@ export const adminList = query({
               playersMax: r.playersMax,
               description: r.description,
               bookingUrl: r.bookingUrl ?? "",
-              escapeAll: r.externalRating?.source === "EscapeAll" && r.externalRating.url
-                ? { url: r.externalRating.url, rating: r.externalRating.rating, count: r.externalRating.count, updatedAt: r.externalRating.updatedAt }
+              escapeAll: r.externalRating?.source === "EscapeAll"
+                ? { rating: r.externalRating.rating, count: r.externalRating.count, updatedAt: r.externalRating.updatedAt }
                 : null,
               isActive: r.isActive !== false,
             })),
