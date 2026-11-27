@@ -1209,6 +1209,11 @@ export const translations: Record<Language, Record<string, string>> = {
     /* ── Company Onboarding ── */
     'onboarding.stepTerms': 'Terms',
     'onboarding.stepPlan': 'Plan',
+    'onboarding.stepConfirm': 'Confirm',
+    'onboarding.confirmTitle': 'Almost there',
+    'onboarding.freeListingText': 'Listing your escape rooms on UNLOCKED is free while we launch. Tap "Continue" and our team will review your application. You will get an email as soon as your account is approved.',
+    'onboarding.confirmContinue': 'Continue',
+    'onboarding.checkFreeListing': 'Free listing',
     'onboarding.stepReview': 'Review',
     'onboarding.termsTitle': 'Terms of Use',
     'onboarding.platformTermsTitle': 'UNLOCKED Platform Terms of Use',
@@ -3245,6 +3250,11 @@ export const translations: Record<Language, Record<string, string>> = {
     /* ── Company Onboarding ── */
     'onboarding.stepTerms': 'Όροι',
     'onboarding.stepPlan': 'Πλάνο',
+    'onboarding.stepConfirm': 'Επιβεβαίωση',
+    'onboarding.confirmTitle': 'Σχεδόν έτοιμοι',
+    'onboarding.freeListingText': 'Η προβολή των escape rooms σας στο UNLOCKED είναι δωρεάν κατά την περίοδο έναρξης. Πατήστε «Συνέχεια» και η ομάδα μας θα ελέγξει την αίτησή σας. Θα λάβετε email μόλις εγκριθεί ο λογαριασμός σας.',
+    'onboarding.confirmContinue': 'Συνέχεια',
+    'onboarding.checkFreeListing': 'Δωρεάν προβολή',
     'onboarding.stepReview': 'Έλεγχος',
     'onboarding.termsTitle': 'Όροι Χρήσης',
     'onboarding.platformTermsTitle': 'Όροι Χρήσης Πλατφόρμας UNLOCKED',

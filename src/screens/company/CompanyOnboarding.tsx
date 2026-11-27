@@ -12,6 +12,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import { openCheckout, buildDeepLink, isPaymentEnabled } from '../../payments';
 import DiscountCodeBox from './DiscountCodeBox';
 import { PLAN_OPTIONS, PLAN_STYLE, UNLIMITED_PRICE, asPlanId, planPrice, type PlanId } from './platformPlans';
+import { BOOKING_ENABLED } from '../../features';
 
 interface Props {
   companyId: string;
@@ -24,6 +25,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
   const company = useCompanyQuery(api.companies.getById, { id: companyId as Id<"companies"> });
   const acceptTerms = useCompanyMutation(api.companies.acceptTerms);
   const selectPlan = useCompanyMutation(api.companies.selectPlan);
+  const submitApplication = useCompanyMutation(api.companies.submitApplication);
   const createCheckoutSession = useCompanyAction(api.stripe.createCheckoutSession);
   const resubmit = useCompanyMutation(api.companies.resubmitForReview);
 
@@ -54,7 +56,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
 
   const renderSteps = () => (
     <View style={styles.stepsRow}>
-      {[t('onboarding.stepTerms'), t('onboarding.stepPlan'), t('onboarding.stepReview')].map((label, i) => (
+      {[t('onboarding.stepTerms'), BOOKING_ENABLED ? t('onboarding.stepPlan') : t('onboarding.stepConfirm'), t('onboarding.stepReview')].map((label, i) => (
         <View key={i} style={styles.stepItem}>
           <View style={[styles.stepCircle, i <= stepIndex && styles.stepCircleActive,
             i < stepIndex && styles.stepCircleDone]}>
@@ -124,6 +126,45 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
             <Ionicons name="checkmark-circle" size={20} color={theme.colors.bone} />
             <Text style={styles.primaryBtnText}>
               {loading ? t('companyAuth.pleaseWait') : t('onboarding.acceptTerms')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── STEP 2 while players can't book on UNLOCKED: free listing, no plans ───
+  // Same as the website: listing is free during launch and the application goes
+  // to the team for review (companies:submitApplication puts it on "listing").
+  if (status === 'pending_plan' && !BOOKING_ENABLED) {
+    return (
+      <View style={styles.container}>
+        <Header title={t('onboarding.confirmTitle')} onLogout={onLogout} />
+        {renderSteps()}
+        <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 40 }}>
+          <View style={styles.freeIconWrap}>
+            <Ionicons name="gift-outline" size={40} color={theme.colors.redPrimary} />
+          </View>
+          <Text style={styles.planSubtitle}>{t('onboarding.freeListingText')}</Text>
+        </ScrollView>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, loading && styles.btnDisabled]}
+            disabled={loading}
+            onPress={async () => {
+              setLoading(true);
+              try {
+                await submitApplication({ companyId: companyId as Id<"companies"> });
+              } catch (e: any) {
+                Alert.alert(t('error'), e?.message || t('settings.updateFailed'));
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            <Ionicons name="checkmark-circle" size={20} color={theme.colors.bone} />
+            <Text style={styles.primaryBtnText}>
+              {loading ? t('companyAuth.pleaseWait') : t('onboarding.confirmContinue')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -269,7 +310,11 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
               </View>
               <View style={styles.checkRow}>
                 <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                <Text style={styles.checkText}>{t('onboarding.checkPlan', { plan: t(`plan.${asPlanId(company.platformPlan)}`) })}</Text>
+                <Text style={styles.checkText}>
+                  {company.platformPlan === 'listing'
+                    ? t('onboarding.checkFreeListing')
+                    : t('onboarding.checkPlan', { plan: t(`plan.${asPlanId(company.platformPlan)}`) })}
+                </Text>
               </View>
               <View style={styles.checkRow}>
                 <Ionicons name="time-outline" size={18} color="#FFA726" />
@@ -365,6 +410,17 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.4 },
 
   // Plans
+  freeIconWrap: {
+    alignSelf: 'center',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(229,62,62,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 32,
+    marginBottom: 20,
+  },
   planSubtitle: {
     fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center',
     marginBottom: 20, marginTop: 8,
