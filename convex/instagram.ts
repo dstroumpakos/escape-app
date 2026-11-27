@@ -293,7 +293,7 @@ export const recordError = internalMutation({
 });
 
 /** Deletes the company's posts (and their images) except those in `keep`. */
-async function removePosts(ctx: any, companyId: Id<"companies">, keep: Set<string>) {
+export async function removePosts(ctx: any, companyId: Id<"companies">, keep: Set<string>) {
   const rows = await ctx.db
     .query("instagramPosts")
     .withIndex("by_company", (q: any) => q.eq("companyId", companyId))
