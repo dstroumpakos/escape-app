@@ -4,7 +4,12 @@
 //  - payg:      €3 per counted booking, capped at €250 per calendar month,
 //               invoiced by email on the 1st for the previous month (billing.ts).
 //
-// Both plans include every feature and unlimited rooms; they differ only in
+//  - listing:   free. What companies get while players can't book on UNLOCKED
+//               (the website's NEXT_PUBLIC_BOOKING_ENABLED is off): rooms are
+//               adverts and "Book" goes to the company's own site. Never
+//               invoiced, no merch fee. Not a legacy plan.
+//
+// Both paid plans include every feature and unlimited rooms; they differ only in
 // how the company pays. The old free/starter/pro/enterprise values are still
 // accepted by the schema so existing documents validate until
 // billing:migrateLegacyPlans has run; everything reads them as "payg".
@@ -20,7 +25,13 @@ export function normalizePlan(plan: string | null | undefined): PlatformPlan {
 }
 
 export function planLabel(plan: string | null | undefined): string {
+  if (plan === "listing") return "Free listing";
   return normalizePlan(plan) === "unlimited" ? "Unlimited" : "Pay as you go";
+}
+
+/** The free listing plan: nothing is ever charged (no booking fee, no merch fee). */
+export function isFreeListing(plan: string | null | undefined): boolean {
+  return plan === "listing";
 }
 
 /** Fee for a month with `bookingCount` counted bookings, in cents. */

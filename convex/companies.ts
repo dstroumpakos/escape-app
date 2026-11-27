@@ -915,6 +915,30 @@ export const selectPlan = mutation({
   },
 });
 
+/**
+ * Onboarding step 2 while players can't book on UNLOCKED (the website's
+ * NEXT_PUBLIC_BOOKING_ENABLED is off): no plan to choose. The company is put
+ * on the free listing plan and its application goes to the team for review.
+ */
+export const submitApplication = mutation({
+  args: { companyId: v.id("companies"), sessionToken: sessionTokenV },
+  handler: async (ctx, args) => {
+    const company = await requireCompany(ctx, args, "companies:submitApplication");
+    if (company.onboardingStatus !== "pending_plan") return;
+    await ctx.db.patch(company._id, {
+      onboardingStatus: "pending_review",
+      platformSubscribedAt: Date.now(),
+      // A company already paying keeps its plan; everyone else lists for free
+      ...(company.platformPlan === "unlimited" || company.platformPlan === "payg" ? {} : { platformPlan: "listing" as const }),
+    });
+    await ctx.scheduler.runAfter(0, internal.email.sendNewApplicationNotification, {
+      companyName: company.name,
+      companyEmail: company.email,
+      plan: "listing",
+    });
+  },
+});
+
 // ─── Discount Codes ───
 // Public check: needs a company session and is rate limited, so codes can't
 // be guessed. A mutation (not a query) so the attempts can be counted.
@@ -1021,7 +1045,7 @@ export const approveCompany = mutation({
       await ctx.scheduler.runAfter(0, internal.email.sendCompanyApproved, {
         companyName: company.name,
         companyEmail: company.email,
-        plan: normalizePlan(company.platformPlan),
+        plan: company.platformPlan === "listing" ? "listing" : normalizePlan(company.platformPlan),
       });
     }
   },
@@ -1501,10 +1525,11 @@ export const getAdminDashboard = query({
 
     // Plan breakdown
     // "legacy" = free/starter/pro/enterprise companies not yet migrated.
-    const planCounts = { unlimited: 0, payg: 0, legacy: 0, none: 0 };
+    const planCounts = { unlimited: 0, payg: 0, listing: 0, legacy: 0, none: 0 };
     for (const c of allCompanies) {
       if (c.platformPlan === "unlimited") planCounts.unlimited++;
       else if (c.platformPlan === "payg") planCounts.payg++;
+      else if (c.platformPlan === "listing") planCounts.listing++;
       else if (c.platformPlan) planCounts.legacy++;
       else planCounts.none++;
     }

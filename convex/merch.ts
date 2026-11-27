@@ -1307,7 +1307,8 @@ export const companyMerchSettings = query({
       premiumDiscountPercent: clampPremiumDiscount(c.merchPremiumDiscountPercent),
       pickupNote: c.merchPickupNote ?? "",
       onlinePayment: companyTakesOnline(c),
-      plan: c.platformPlan === "unlimited" ? ("unlimited" as const) : ("payg" as const),
+      // No merch fee on Unlimited or on the free listing
+      plan: c.platformPlan === "unlimited" || c.platformPlan === "listing" ? ("unlimited" as const) : ("payg" as const),
     };
   },
 });
@@ -1379,7 +1380,7 @@ export const companyMerchSummary = query({
       month,
       monthSalesCents: sales.salesCents,
       monthOrders: sales.orders,
-      monthFeeCents: c.platformPlan === "unlimited" ? 0 : sales.feeCents,
+      monthFeeCents: c.platformPlan === "unlimited" || c.platformPlan === "listing" ? 0 : sales.feeCents,
       activeProducts: products.filter((p) => p.status === "active").length,
     };
   },

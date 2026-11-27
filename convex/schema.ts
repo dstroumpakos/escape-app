@@ -56,11 +56,13 @@ export default defineSchema({
       v.literal("declined")           // Admin declined (with notes)
     )),
     termsAcceptedAt: v.optional(v.number()),
-    // Current plans are "unlimited" and "payg" (see plans.ts). The other four are
-    // legacy values kept until billing:migrateLegacyPlans has run in prod.
+    // Current plans are "unlimited", "payg" and "listing" (free, while players
+    // can't book on UNLOCKED; see plans.ts). The other four are legacy values
+    // kept until billing:migrateLegacyPlans has run in prod.
     platformPlan: v.optional(v.union(
       v.literal("unlimited"),
       v.literal("payg"),
+      v.literal("listing"),
       v.literal("free"),
       v.literal("starter"),
       v.literal("pro"),

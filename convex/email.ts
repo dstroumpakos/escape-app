@@ -22,6 +22,11 @@ import { v } from "convex/values";
 import { Resend } from "resend";
 import { normalizePlan, planLabel } from "./plans";
 
+/** "Free listing", or "Unlimited Plan" / "Pay as you go Plan". */
+function planName(plan: string): string {
+  return plan === "listing" ? planLabel(plan) : `${planLabel(plan)} Plan`;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Shared helpers
 // ══════════════════════════════════════════════════════════════
@@ -746,12 +751,12 @@ export const sendCompanyWelcome = internalAction({
     if (!resend) return;
 
     const planLine = args.plan
-      ? `<p style="font-size:15px;color:#555;margin:0 0 8px;">Selected plan: <strong>${planLabel(args.plan)} Plan</strong></p>`
+      ? `<p style="font-size:15px;color:#555;margin:0 0 8px;">Selected plan: <strong>${planName(args.plan)}</strong></p>`
       : "";
 
     const html = shell(
       "Welcome to UNLOCKED!",
-      "Partner with Greece's escape room platform",
+      "Partner with the escape room platform",
       `<p style="${S.greeting}">Hi <strong>${escHtml(args.companyName)}</strong>,</p>
 <p style="${S.bodyText}">
   Thank you for registering on <strong style="color:${C.red};">UNLOCKED</strong>!
@@ -760,9 +765,9 @@ export const sendCompanyWelcome = internalAction({
 ${planLine}
 <p style="${S.bodyText}">Here's what happens next:</p>
 ${TABLE(`
-  ${FR(`<strong style="color:${C.white};">Step 1</strong> — Complete your payment (if required)`)}
+  ${FR(`<strong style="color:${C.white};">Step 1</strong> — Accept the terms in your dashboard`)}
   ${FR(`<strong style="color:${C.white};">Step 2</strong> — Our team reviews your application`)}
-  ${FR(`<strong style="color:${C.white};">Step 3</strong> — Once approved, add rooms and start receiving bookings!`)}
+  ${FR(`<strong style="color:${C.white};">Step 3</strong> — Once approved, add your rooms and they go live on UNLOCKED`)}
 `)}
 <p style="${S.bodyText}">
   You'll receive an email as soon as your account is approved.
@@ -804,8 +809,17 @@ export const sendCompanyApproved = internalAction({
       "Online payments into your own Stripe or Viva account",
       "Featured listings and email notifications",
     ];
-    const planFeatures =
-      normalizePlan(args.plan) === "unlimited"
+    const listing = args.plan === "listing";
+    const planFeatures = listing
+      ? [
+          "Free while we launch: no fees, no card needed",
+          "Unlimited rooms, each with photos, trailer and its own page",
+          "\"Book\" sends players to your own booking page",
+          "Your Instagram posts on your room pages",
+          "Views and clicks for every room",
+          "Your merch in the UNLOCKED shop, with no fee",
+        ]
+      : normalizePlan(args.plan) === "unlimited"
         ? ["€198/month or €1980/year, no per-booking fees", ...everything]
         : ["€3 per booking made through UNLOCKED, never more than €250 a month", "Invoiced by email at the start of each month", ...everything];
     const featureRows = planFeatures
@@ -818,16 +832,16 @@ export const sendCompanyApproved = internalAction({
       `<p style="${S.greeting}">Hi <strong>${escHtml(args.companyName)}</strong>,</p>
 <p style="${S.bodyText}">
   Great news! Your company has been <strong style="color:#22c55e;">approved</strong> on UNLOCKED.
-  You can now start adding your escape rooms and receiving bookings.
+  ${listing ? "You can now add your escape rooms." : "You can now start adding your escape rooms and receiving bookings."}
 </p>
 <div style="text-align:center;margin:0 0 28px;">
-  <span style="${S.badge}">${planLabel(args.plan)} Plan</span>
+  <span style="${S.badge}">${planName(args.plan)}</span>
 </div>
 <p style="${S.bodyText}">Your plan includes:</p>
 ${TABLE(featureRows)}
 <p style="${S.bodyText}">
   Log in to your dashboard to start setting up your rooms.
-  Players can discover and book your rooms as soon as you publish them!
+  ${listing ? "Players can discover your rooms as soon as you publish them, and book them on your own site." : "Players can discover and book your rooms as soon as you publish them!"}
 </p>
 <div style="text-align:center;margin:32px 0;">
   <a href="https://business.unlocked.gr" style="${S.btnGreen}">Go to Dashboard</a>
@@ -838,7 +852,7 @@ ${TABLE(featureRows)}
     await resend.emails.send({
       from: fromAddr(),
       to: args.companyEmail,
-      subject: `Your UNLOCKED account is approved! ${planLabel(args.plan)} Plan activated`,
+      subject: listing ? "Your UNLOCKED account is approved!" : `Your UNLOCKED account is approved! ${planLabel(args.plan)} Plan activated`,
       html,
     }).then(r => console.log("[Email] Company approved sent:", r))
       .catch(e => console.error("[Email] Company approved failed:", e));
@@ -1125,7 +1139,7 @@ export const sendNewApplicationNotification = internalAction({
   <strong>${escHtml(d.companyName)}</strong> has submitted a new application and is waiting for review.
 </p>
 <p style="color:#999; font-size:14px; margin:0 0 4px">Email: ${escHtml(d.companyEmail)}</p>
-<p style="color:#999; font-size:14px; margin:0 0 20px">Plan: ${escHtml(d.plan)}</p>
+<p style="color:#999; font-size:14px; margin:0 0 20px">Plan: ${escHtml(planName(d.plan))}</p>
 <a href="https://business.unlocked.gr/admin" style="display:inline-block; background:#E53E3E; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
   Review Application
 </a>`,

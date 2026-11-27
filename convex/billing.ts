@@ -217,7 +217,7 @@ export const legacyPlanCompanies = internalQuery({
   handler: async (ctx) => {
     const companies = await ctx.db.query("companies").collect();
     return companies
-      .filter((c) => c.platformPlan !== "unlimited" && c.platformPlan !== "payg")
+      .filter((c) => c.platformPlan !== "unlimited" && c.platformPlan !== "payg" && c.platformPlan !== "listing")
       .map((c) => ({
         companyId: c._id,
         name: c.name,
@@ -233,7 +233,7 @@ export const moveToPayg = internalMutation({
     const now = Date.now();
     for (const id of companyIds) {
       const c = await ctx.db.get(id);
-      if (!c || c.platformPlan === "payg" || c.platformPlan === "unlimited") continue;
+      if (!c || c.platformPlan === "payg" || c.platformPlan === "unlimited" || c.platformPlan === "listing") continue;
       await ctx.db.patch(id, { platformPlan: "payg", paygSince: now });
     }
   },
