@@ -90,11 +90,24 @@ export const getById = query({
 export const featured = query({
   args: {},
   handler: async (ctx) => {
-    // Get explicitly featured rooms
-    const featured = (await ctx.db
+    // Paid promotions first (admin > Promo, promo.ts), the ones that end soonest last
+    const now = Date.now();
+    const promoted = (await ctx.db
       .query("rooms")
-      .withIndex("by_featured", (q) => q.eq("isFeatured", true))
-      .collect()).filter((r) => !r.photosOnly);
+      .withIndex("by_promoUntil", (q) => q.gt("promoUntil", now))
+      .collect())
+      .filter((r) => !r.photosOnly)
+      .sort((a, b) => (a.promoSince ?? 0) - (b.promoSince ?? 0));
+    const promotedIds = new Set(promoted.map((r) => r._id.toString()));
+
+    // Then explicitly featured rooms
+    const featured = [
+      ...promoted,
+      ...(await ctx.db
+        .query("rooms")
+        .withIndex("by_featured", (q) => q.eq("isFeatured", true))
+        .collect()).filter((r) => !r.photosOnly && !promotedIds.has(r._id.toString())),
+    ];
 
     // Also include EA partner rooms (Featured Spotlight benefit)
     // Load all companies at once to check subscriptionEnabled

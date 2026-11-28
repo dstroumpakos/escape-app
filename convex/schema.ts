@@ -246,6 +246,11 @@ export default defineSchema({
     isNew: v.optional(v.boolean()),
     isFeatured: v.optional(v.boolean()),
     isTrending: v.optional(v.boolean()),
+    // Paid promotion: set only by the UNLOCKED team in admin > Promo (promo.ts).
+    // While promoUntil is in the future the room comes first on the homepage.
+    promoUntil: v.optional(v.number()),
+    promoSince: v.optional(v.number()),
+    promoNote: v.optional(v.string()),
     // Company fields
     companyId: v.optional(v.id("companies")),
     paymentTerms: v.optional(v.union(
@@ -306,6 +311,7 @@ export default defineSchema({
     .index("by_theme", ["theme"])
     .index("by_featured", ["isFeatured"])
     .index("by_trending", ["isTrending"])
+    .index("by_promoUntil", ["promoUntil"])
     .index("by_company", ["companyId"]),
 
   timeSlots: defineTable({

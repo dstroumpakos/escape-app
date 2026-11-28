@@ -60,6 +60,7 @@ import type * as plans from "../plans.js";
 import type * as plays from "../plays.js";
 import type * as posts from "../posts.js";
 import type * as premium from "../premium.js";
+import type * as promo from "../promo.js";
 import type * as publicCache from "../publicCache.js";
 import type * as push from "../push.js";
 import type * as rateLimit from "../rateLimit.js";
@@ -148,6 +149,7 @@ declare const fullApi: ApiFromModules<{
   plays: typeof plays;
   posts: typeof posts;
   premium: typeof premium;
+  promo: typeof promo;
   publicCache: typeof publicCache;
   push: typeof push;
   rateLimit: typeof rateLimit;
