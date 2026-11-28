@@ -7,23 +7,18 @@ import { requireUser, optionalUser, legacyUserIdV } from "./userSession";
 import { requireAdminSession } from "./adminSession";
 import { rateLimit, HOUR } from "./rateLimit";
 import { avatarUrl } from "./avatars";
+import { internal } from "./_generated/api";
 
 /**
- * Room reviews, only from players who really played the room: they have the
- * room's stamp (the team QR the company shows after the game, passport.ts),
- * or a completed UNLOCKED booking (only when bookings are switched on).
- *
- * Safeguards against fake reviews:
- * - one review per player per room, from a confirmed email address
- * - within REVIEW_WINDOW_MS of the stamp
- * - a burst (more than BURST_MAX reviews for one room in 24 hours) is held
- *   for the UNLOCKED admin ("pending") instead of being published.
- * Reviews without a status are older ones and count as published.
+ * Room reviews. Any signed-in player with a confirmed email can review a room
+ * (one review per room); every new review waits for the UNLOCKED admin
+ * ("pending") and shows on the room only once approved. A declined review
+ * ("rejected") gets the admin's reason by email, and the player may write a
+ * new one. Reviews without a status are older ones and count as published.
  */
 
 const DAY = 24 * 60 * 60 * 1000;
 export const REVIEW_WINDOW_MS = 30 * DAY;
-const BURST_MAX = 5;
 
 const isPublished = (r: Doc<"reviews">) => !r.status || r.status === "published";
 
@@ -99,12 +94,13 @@ export const getUserReviewForBooking = query({
   },
 });
 
-async function hasReviewed(ctx: QueryCtx, userId: Id<"users">, roomId: Id<"rooms">) {
-  const r = await ctx.db
+/** The player's live review of the room: published or waiting (a declined one doesn't count). */
+async function ownReview(ctx: QueryCtx, userId: Id<"users">, roomId: Id<"rooms">) {
+  const rows = await ctx.db
     .query("reviews")
     .withIndex("by_user_room", (q) => q.eq("userId", userId).eq("roomId", roomId))
-    .first();
-  return !!r;
+    .collect();
+  return rows.find((r) => r.status !== "rejected") ?? null;
 }
 
 async function stampFor(ctx: QueryCtx, userId: Id<"users">, roomId: Id<"rooms">) {
@@ -122,7 +118,7 @@ async function completedBookingFor(ctx: QueryCtx, userId: Id<"users">, roomId: I
   return bookings.find((b) => b.roomId === roomId && b.status === "completed") ?? null;
 }
 
-type Reason = "login" | "reviewed" | "need_email" | "too_late" | "need_stamp";
+type Reason = "login" | "reviewed" | "pending" | "need_email";
 
 /** Whether the player may review the room, and which booking to attach (booking path only). */
 async function eligibility(
@@ -130,14 +126,11 @@ async function eligibility(
   user: Doc<"users">,
   roomId: Id<"rooms">
 ): Promise<{ ok: true; bookingId: Id<"bookings"> | null } | { ok: false; reason: Reason }> {
-  if (await hasReviewed(ctx, user._id, roomId)) return { ok: false, reason: "reviewed" };
+  const own = await ownReview(ctx, user._id, roomId);
+  if (own) return { ok: false, reason: own.status === "pending" ? "pending" : "reviewed" };
   // false = signed up with email + password and never pressed the link.
   if (user.emailVerified === false) return { ok: false, reason: "need_email" };
-  const stamp = await stampFor(ctx, user._id, roomId);
-  if (stamp) {
-    if (Date.now() - stamp.createdAt > REVIEW_WINDOW_MS) return { ok: false, reason: "too_late" };
-    return { ok: true, bookingId: null };
-  }
+  // A completed UNLOCKED booking (only when bookings are on) is attached for the admin to see
   const booking = await completedBookingFor(ctx, user._id, roomId);
   if (booking) {
     const used = await ctx.db
@@ -146,7 +139,7 @@ async function eligibility(
       .first();
     if (!used) return { ok: true, bookingId: booking._id };
   }
-  return { ok: false, reason: "need_stamp" };
+  return { ok: true, bookingId: null };
 }
 
 // ─── Can the player review this room? ───
@@ -202,9 +195,8 @@ export const submit = mutation({
       const msg: Record<Reason, string> = {
         login: "Please log in again.",
         reviewed: "You already reviewed this room.",
+        pending: "Your review of this room is waiting for approval.",
         need_email: "Confirm your email address first (check your inbox for our link).",
-        too_late: "Reviews can be written up to 30 days after the game.",
-        need_stamp: "Collect this room's stamp first: scan the QR after your game.",
       };
       throw new ConvexError(msg[e.reason]);
     }
@@ -213,13 +205,9 @@ export const submit = mutation({
       throw new ConvexError("Booking is for a different room");
     }
 
-    // Many reviews for one room at once: hold the new ones for the admin.
+    // Every review waits for the admin (adminDecide)
     const now = Date.now();
-    const recent = await ctx.db
-      .query("reviews")
-      .withIndex("by_room_created", (q) => q.eq("roomId", args.roomId).gte("createdAt", now - DAY))
-      .collect();
-    const status = recent.length >= BURST_MAX ? ("pending" as const) : ("published" as const);
+    const status = "pending" as const;
 
     await ctx.db.insert("reviews", {
       userId: user._id,
@@ -230,13 +218,11 @@ export const submit = mutation({
       createdAt: now,
       status,
     });
-    if (status === "published") await refreshRoomRating(ctx, args.roomId);
-
-    return { success: true, pending: status === "pending" };
+    return { success: true, pending: true };
   },
 });
 
-// ─── Admin: reviews held for checking ───
+// ─── Admin: reviews waiting for approval ───
 export const adminPending = query({
   args: { sessionToken: v.string() },
   handler: async (ctx, args) => {
@@ -262,19 +248,40 @@ export const adminPending = query({
           roomTitle: room?.title ?? "",
           companyName: company?.name ?? "",
           stampAt: stamp?.createdAt ?? null,
+          hasBooking: !!r.bookingId,
         };
       })
     );
   },
 });
 
+/** Approve (it shows on the room) or decline with a reason (emailed to the player). */
 export const adminDecide = mutation({
-  args: { sessionToken: v.string(), reviewId: v.id("reviews"), approve: v.boolean() },
+  args: { sessionToken: v.string(), reviewId: v.id("reviews"), approve: v.boolean(), reason: v.optional(v.string()) },
   handler: async (ctx, args) => {
     await requireAdminSession(ctx, args.sessionToken);
     const r = await ctx.db.get(args.reviewId);
     if (!r || r.status !== "pending") return;
-    await ctx.db.patch(r._id, { status: args.approve ? "published" : "rejected" });
-    if (args.approve) await refreshRoomRating(ctx, r.roomId);
+    const now = Date.now();
+    if (args.approve) {
+      await ctx.db.patch(r._id, { status: "published", decidedAt: now });
+      await refreshRoomRating(ctx, r.roomId);
+      return;
+    }
+    const reason = (args.reason ?? "").trim();
+    if (!reason) throw new ConvexError("Write the reason for declining: the player gets it by email.");
+    checkLengths([["Reason", reason, 1000]]);
+    await ctx.db.patch(r._id, { status: "rejected", rejectReason: reason, decidedAt: now });
+    const [user, room] = await Promise.all([ctx.db.get(r.userId), ctx.db.get(r.roomId)]);
+    if (user?.email) {
+      await ctx.scheduler.runAfter(0, internal.email.sendReviewRejected, {
+        playerName: user.name ?? "",
+        playerEmail: user.email,
+        roomTitle: room?.title ?? "",
+        roomId: r.roomId,
+        reason,
+        lang: user.language,
+      });
+    }
   },
 });

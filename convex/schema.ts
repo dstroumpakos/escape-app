@@ -824,8 +824,11 @@ export default defineSchema({
     rating: v.number(), // 1-5 stars
     text: v.optional(v.string()),
     createdAt: v.number(),
-    // unset = published (older reviews); "pending" = held for the admin (reviews.ts)
+    // unset = published (older reviews); "pending" = waiting for the admin (reviews.ts)
     status: v.optional(v.union(v.literal("published"), v.literal("pending"), v.literal("rejected"))),
+    // Why the admin declined it (emailed to the player), and when it was decided
+    rejectReason: v.optional(v.string()),
+    decidedAt: v.optional(v.number()),
   })
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])

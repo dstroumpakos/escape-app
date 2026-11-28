@@ -9,8 +9,9 @@ import { useTranslation } from '../i18n';
 import { PrimaryButton } from './ui';
 
 /**
- * "Write a review" for a room, only for players who played it: they have the
- * room's stamp (team QR after the game). The same rule as the website.
+ * "Write a review" for a room: any signed-in player with a confirmed email,
+ * one per room. It waits for the UNLOCKED team's approval (convex/reviews.ts),
+ * the same as the website.
  */
 export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | null; sessionToken: string | null; roomId: string }) {
   const { t } = useTranslation();
@@ -39,14 +40,13 @@ export function ReviewForm({ userId, sessionToken, roomId }: { userId: string | 
   if (!userId || !eligibility) return null;
   if (!eligibility.canReview) {
     const hint =
-      eligibility.reason === 'need_stamp' ? t('reviews.needStamp')
+      eligibility.reason === 'pending' ? t('reviews.waiting')
       : eligibility.reason === 'need_email' ? t('reviews.needEmail')
-      : eligibility.reason === 'too_late' ? t('reviews.tooLate')
       : '';
     if (!hint) return null;
     return (
       <View style={styles.hint}>
-        <Ionicons name="ribbon-outline" size={16} color={theme.colors.redLight} />
+        <Ionicons name={eligibility.reason === 'pending' ? 'time-outline' : 'mail-outline'} size={16} color={theme.colors.redLight} />
         <Text style={styles.hintText}>{hint}</Text>
       </View>
     );

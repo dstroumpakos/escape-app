@@ -1170,6 +1170,54 @@ function escHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 }
 
+// ══════════════════════════════════════════════════════════════
+// REVIEW DECLINED: the admin's reason goes to the player (reviews.ts adminDecide)
+// ══════════════════════════════════════════════════════════════
+export const sendReviewRejected = internalAction({
+  args: {
+    playerName: v.string(),
+    playerEmail: v.string(),
+    roomTitle: v.string(),
+    roomId: v.string(),
+    reason: v.string(),
+    lang: v.optional(v.string()),
+  },
+  handler: async (_ctx, d) => {
+    const resend = getResend();
+    if (!resend) return;
+    if (!isEmail(d.playerEmail)) return;
+    const el = d.lang === "el";
+    const site = (process.env.SITE_URL || "https://unlocked.gr").replace(/\/$/, "");
+    const roomUrl = `${site}/rooms/${encodeURIComponent(d.roomId)}`;
+    const html = shell(
+      el ? "Η κριτική σου" : "Your review",
+      el ? "Δεν δημοσιεύτηκε" : "It wasn't published",
+      `<p style="color:#ccc; font-size:15px; margin:0 0 16px">${el ? "Γεια σου" : "Hi"} ${escHtml(d.playerName || "")},</p>
+<p style="color:#ccc; font-size:15px; margin:0 0 16px">
+  ${el
+    ? `Η κριτική σου για το δωμάτιο <strong>${escHtml(d.roomTitle)}</strong> δεν δημοσιεύτηκε.`
+    : `Your review of the room <strong>${escHtml(d.roomTitle)}</strong> wasn't published.`}
+</p>
+<p style="color:#999; font-size:13px; margin:0 0 6px">${el ? "Ο λόγος:" : "The reason:"}</p>
+<p style="color:#eee; font-size:15px; margin:0 0 20px; padding:12px 14px; border-left:3px solid #E53E3E; background:rgba(255,255,255,0.04); white-space:pre-line">${escHtml(d.reason)}</p>
+<p style="color:#ccc; font-size:15px; margin:0 0 20px">
+  ${el ? "Μπορείς να γράψεις νέα κριτική για το δωμάτιο όποτε θέλεις." : "You can write a new review of the room any time."}
+</p>
+<a href="${roomUrl}" style="display:inline-block; background:#E53E3E; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600;">
+  ${el ? "Άνοιξε το δωμάτιο" : "Open the room"}
+</a>`,
+      el ? "Λαμβάνεις αυτό το email επειδή έγραψες κριτική στο UNLOCKED." : "You received this email because you wrote a review on UNLOCKED."
+    );
+    await resend.emails.send({
+      from: fromAddr(),
+      to: d.playerEmail,
+      subject: el ? `Η κριτική σου για «${d.roomTitle}» δεν δημοσιεύτηκε` : `Your review of "${d.roomTitle}" wasn't published`,
+      html,
+    }).then(r => console.log("[Email] Review rejected sent:", r))
+      .catch(e => console.error("[Email] Review rejected failed:", e));
+  },
+});
+
 export const sendRoomReportAlert = internalAction({
   args: {
     roomTitle: v.string(),
