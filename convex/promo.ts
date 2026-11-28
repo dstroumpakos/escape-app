@@ -2,6 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireAdminSession } from "./adminSession";
 import { sideOf } from "./roomCategories";
+import { companyIsPublic } from "./companyRules";
 
 // Paid promotion of rooms. The company pays the UNLOCKED team (outside the
 // site); the team then turns the promotion on in admin > Promo with an end
@@ -26,14 +27,23 @@ export const adminList = query({
     const rooms = (await ctx.db.query("rooms").collect()).filter((r) => !r.photosOnly);
     const companyIds = Array.from(new Set(rooms.map((r) => r.companyId).filter(Boolean)));
     const companies = await Promise.all(companyIds.map((id) => ctx.db.get(id!)));
-    const names = new Map(companies.filter(Boolean).map((c) => [c!._id as string, c!.name]));
+    const byId = new Map(companies.filter(Boolean).map((c) => [c!._id as string, c!]));
+    // Same rules as the public lists (rooms.ts batchEnrichRooms): a room that
+    // fails them is not on the site, so its promotion shows nowhere.
+    const hiddenWhy = (r: (typeof rooms)[number]): "inactive" | "company" | null => {
+      if (r.isActive === false) return "inactive";
+      const c = r.companyId ? byId.get(r.companyId as string) : undefined;
+      if (r.companyId && c && (!companyIsPublic(c) || c.platformPlan === "free")) return "company";
+      return null;
+    };
     return rooms
       .map((r) => ({
         _id: r._id,
         title: r.title,
         image: r.image,
         location: r.location,
-        companyName: r.companyId ? names.get(r.companyId as string) ?? "" : "",
+        companyName: r.companyId ? byId.get(r.companyId as string)?.name ?? "" : "",
+        hidden: hiddenWhy(r),
         isActive: r.isActive !== false,
         // Horror or puzzles: admin > Promo shows the two apart
         side: sideOf(r),
