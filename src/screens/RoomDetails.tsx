@@ -149,9 +149,9 @@ export default function RoomDetails() {
 
         {/* Content */}
         <FadeUp style={styles.content} delay={120}>
-          {/* Category and subcategories (convex/roomCategories.ts) */}
+          {/* Subcategories only: the category just sorts rooms (convex/roomCategories.ts) */}
           <TypeLabel color={categoryOf(room) === 'horror' ? theme.colors.redLight : undefined}>
-            {[t(`cat.${categoryOf(room)}`), ...subthemesOf(room).map((s) => t(ROOM_THEME_KEYS[s] || s))].join(' · ')}
+            {subthemesOf(room).map((s) => t(ROOM_THEME_KEYS[s] || s)).join(' · ')}
           </TypeLabel>
           <Text style={styles.title}>{room.title}</Text>
           {!!room.location && (

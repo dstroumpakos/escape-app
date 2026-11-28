@@ -7,7 +7,7 @@ import { caps } from '../caps';
 import { BOOKING_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
-import { categoryOf, subthemesOf } from '../mode';
+import { subthemesOf } from '../mode';
 import { DifficultySkulls } from './ui';
 import { shownRating, formatRating } from '../roomMedia';
 
@@ -63,20 +63,12 @@ function RoomImage({ uri, iconSize }: { uri?: string; iconSize: number }) {
   );
 }
 
-/** The room's category (when not plain puzzles) and its first subcategories. */
+/** The room's first subcategories (the category itself only sorts rooms, it is not shown). */
 function ThemeTags({ room }: { room: any }) {
   const { t } = useTranslation();
-  const cat = categoryOf(room);
   const subs = subthemesOf(room).slice(0, 2);
   return (
     <View style={styles.themeTags}>
-      {cat !== 'puzzle' && (
-        <View style={[styles.themeTag, { borderColor: cat === 'horror' ? '#F8717199' : '#FBBF2499' }]}>
-          <Text style={[styles.themeTagText, { color: cat === 'horror' ? '#F87171' : '#FBBF24' }]}>
-            {caps(t(cat === 'horror' ? 'cat.horror' : 'discover.with_actor'))}
-          </Text>
-        </View>
-      )}
       {(subs.length ? subs : [room.theme]).map((v: string) => <ThemeTag key={v} value={v} />)}
     </View>
   );
