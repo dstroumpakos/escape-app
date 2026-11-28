@@ -10,7 +10,7 @@ import { api } from '../../convex/_generated/api';
 import { theme } from '../theme';
 import { categoryOf, subthemesOf } from '../mode';
 import { RootStackParamList } from '../types';
-import { BOOKING_ENABLED } from '../features';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
 import { visitorId } from '../visitorId';
 import { useTranslation } from '../i18n';
@@ -180,8 +180,8 @@ export default function RoomDetails() {
             )}
           </View>
 
-          {/* Release Countdown */}
-          {releaseCountdown && (
+          {/* Release Countdown (early access for Premium players) */}
+          {PREMIUM_ENABLED && releaseCountdown && (
             <View style={styles.countdown}>
               <View style={styles.countdownIcon}>
                 <Ionicons name="calendar-outline" size={22} color={theme.colors.gold} />

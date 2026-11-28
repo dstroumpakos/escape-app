@@ -11,7 +11,7 @@ import { api } from '../../convex/_generated/api';
 import * as Location from 'expo-location';
 import { theme } from '../theme';
 import { RootStackParamList, MainTabParamList } from '../types';
-import { BOOKING_ENABLED } from '../features';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../features';
 import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
@@ -271,7 +271,7 @@ export default function HomeScreen() {
         <FadeUp delay={800}>
 
         {/* Early Access Rooms (Premium only) */}
-        {premiumStatus?.isPremium && earlyAccessRooms && earlyAccessRooms.length > 0 && (
+        {PREMIUM_ENABLED && premiumStatus?.isPremium && earlyAccessRooms && earlyAccessRooms.length > 0 && (
           <>
             <SectionHeader gold title={t('home.earlyAccess')} onSeeAll={() => navigation.navigate('Premium')} />
             <ScrollView {...carouselProps}>
@@ -364,7 +364,7 @@ export default function HomeScreen() {
         )}
 
         {/* Premium Upsell */}
-        {premiumStatus && !premiumStatus.isPremium && (
+        {PREMIUM_ENABLED && premiumStatus && !premiumStatus.isPremium && (
           <TouchableOpacity
             style={styles.premiumUpsell}
             onPress={() => navigation.navigate('Premium')}

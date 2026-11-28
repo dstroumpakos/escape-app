@@ -11,6 +11,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useUser } from '../../UserContext';
 import { useTranslation } from '../../i18n';
+import { PREMIUM_ENABLED } from '../../features';
 import { euro, useCart } from '../../merchCart';
 import { openCheckout, buildDeepLink } from '../../payments';
 import { ScreenHeader, shopStyles } from '../../components/shop';
@@ -261,7 +262,7 @@ export default function MerchCheckoutScreen() {
             <Text style={shopStyles.muted}>{t('shop.total')}</Text>
             <Text style={styles.total}>{euro(total)}</Text>
           </View>
-          {isPlatform && !isPremium && <Text style={[shopStyles.muted, { color: theme.colors.gold, fontSize: 12 }]}>{t('shop.premiumWouldSave')}</Text>}
+          {PREMIUM_ENABLED && isPlatform && !isPremium && <Text style={[shopStyles.muted, { color: theme.colors.gold, fontSize: 12 }]}>{t('shop.premiumWouldSave')}</Text>}
         </View>
 
         <PrimaryButton

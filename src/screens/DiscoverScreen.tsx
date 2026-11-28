@@ -27,7 +27,7 @@ import { onSide, categoryOf, subthemesOf, SUBTHEMES, ACTOR_FILTER, type Side } f
 import { getSide } from '../side';
 import { useUser } from '../UserContext';
 import type { Id } from '../../convex/_generated/dataModel';
-import { BOOKING_ENABLED } from '../features';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../features';
 import { openBooking } from '../bookNow';
 import { useTranslation } from '../i18n';
 import { ROOM_THEME_KEYS } from '../roomThemes';
@@ -326,8 +326,8 @@ export default function DiscoverScreen() {
                 tracksViewChanges={false}
               >
                 <View style={styles.markerWrap}>
-                  <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive, room.isEarlyAccess && styles.markerBubbleEarlyAccess]}>
-                    {room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? theme.colors.blood : theme.colors.gold} style={{ marginRight: 3 }} />}
+                  <View style={[styles.markerBubble, isSelected && styles.markerBubbleActive, PREMIUM_ENABLED && room.isEarlyAccess && styles.markerBubbleEarlyAccess]}>
+                    {PREMIUM_ENABLED && room.isEarlyAccess && <Ionicons name="diamond" size={10} color={isSelected ? theme.colors.blood : theme.colors.gold} style={{ marginRight: 3 }} />}
                     <Text style={[styles.markerPrice, isSelected && styles.markerPriceActive]}>
                       {BOOKING_ENABLED ? `€${room.pricePerGroup?.length ? Math.min(...room.pricePerGroup.map((g: any) => g.price)) : room.price}` : '🔒'}
                     </Text>
@@ -499,7 +499,7 @@ export default function DiscoverScreen() {
                 <RoomCard
                   key={room.id}
                   room={room}
-                  earlyLabel={room.isEarlyAccess ? t('home.earlyAccess') : undefined}
+                  earlyLabel={PREMIUM_ENABLED && room.isEarlyAccess ? t('home.earlyAccess') : undefined}
                   distanceKm={distOf(room)}
                   onPress={() => navigation.navigate('RoomDetails', { id: room.id })}
                 />
@@ -552,7 +552,7 @@ export default function DiscoverScreen() {
                 room={room}
                 style={styles.peekCard}
                 earlyLabel={
-                  room.isEarlyAccess
+                  PREMIUM_ENABLED && room.isEarlyAccess
                     ? room.daysUntilRelease != null
                       ? t('home.earlyDays', { n: room.daysUntilRelease })
                       : t('home.earlyAccess')
@@ -585,7 +585,7 @@ function SelectedRoomCard({ room, navigation }: { room: any; navigation: Nav }) 
               {room.title}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              {room.isEarlyAccess && (
+              {PREMIUM_ENABLED && room.isEarlyAccess && (
                 <View style={styles.earlyAccessCardBadge}>
                   <Ionicons name="diamond" size={10} color={theme.colors.gold} />
                   <Text style={styles.earlyAccessCardText}>{t('home.earlyAccess')}</Text>

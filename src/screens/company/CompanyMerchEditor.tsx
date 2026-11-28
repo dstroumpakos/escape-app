@@ -12,6 +12,7 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
+import { BOOKING_ENABLED, PASSPORT_ENABLED, PREMIUM_ENABLED } from '../../features';
 import { styles, errMsg } from './CompanyMerch';
 
 const CATEGORIES = ['apparel', 'accessories', 'games', 'collectibles', 'other'] as const;
@@ -327,8 +328,8 @@ export default function CompanyMerchEditor({ companyId, productId, onBack }: Pro
         {/* Special */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('cmerch.special')}</Text>
-          <Toggle value={premiumOnly} onChange={setPremiumOnly} label={t('cmerch.premiumOnly')} hint={t('cmerch.premiumOnlyHint')} />
-          <Text style={[styles.label, { marginTop: 14 }]}>{t('cmerch.release')}</Text>
+          {PREMIUM_ENABLED && <Toggle value={premiumOnly} onChange={setPremiumOnly} label={t('cmerch.premiumOnly')} hint={t('cmerch.premiumOnlyHint')} />}
+          <Text style={[styles.label, { marginTop: PREMIUM_ENABLED ? 14 : 4 }]}>{t('cmerch.release')}</Text>
           <TextInput
             style={styles.input}
             value={release}
@@ -338,7 +339,7 @@ export default function CompanyMerchEditor({ companyId, productId, onBack }: Pro
             autoCapitalize="none"
           />
           <Text style={styles.hint}>{t('cmerch.releaseHint')}</Text>
-          {roomList.length > 0 && (
+          {(BOOKING_ENABLED || PASSPORT_ENABLED) && roomList.length > 0 && (
             <>
               <Text style={[styles.label, { marginTop: 14 }]}>{t('cmerch.unlockRoom')}</Text>
               <View style={styles.rowWrap}>

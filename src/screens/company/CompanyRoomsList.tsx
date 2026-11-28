@@ -11,6 +11,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../../features';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -76,7 +77,8 @@ export default function CompanyRoomsList({ companyId }: Props) {
         )}
       </View>
 
-      {/* Room Limit Bar */}
+      {/* Room Limit Bar (plans only exist with UNLOCKED's own booking) */}
+      {BOOKING_ENABLED && (
       <View style={styles.limitBar}>
         <View style={styles.limitHeader}>
           <Text style={styles.limitLabel}>
@@ -98,6 +100,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
           <Text style={styles.limitWarning}>Room limit reached — upgrade your plan to add more</Text>
         )}
       </View>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {!rooms || rooms.length === 0 ? (
@@ -116,7 +119,7 @@ export default function CompanyRoomsList({ companyId }: Props) {
                   <View style={styles.roomTop}>
                     <Text style={styles.roomTitle} numberOfLines={1}>{room.title}</Text>
                     <View style={styles.statusRow}>
-                      {room.isSubscriptionOnly && (
+                      {PREMIUM_ENABLED && room.isSubscriptionOnly && (
                         <View style={styles.subBadge}>
                           <Ionicons name="star" size={10} color={theme.colors.gold} />
                           <Text style={styles.subBadgeText}>{t('roomsList.subOnly')}</Text>

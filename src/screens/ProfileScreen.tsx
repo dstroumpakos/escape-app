@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PASSPORT_ENABLED } from '../features';
+import { PASSPORT_ENABLED, PREMIUM_ENABLED } from '../features';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -218,7 +218,7 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
         {/* Menu */}
         <View style={styles.section}>
           {[
-            { icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true },
+            ...(PREMIUM_ENABLED ? [{ icon: 'diamond-outline' as const, label: premiumStatus?.isPremium ? 'UNLOCKED Premium ✦' : 'UNLOCKED Premium', action: () => navigation.navigate('Premium'), highlight: true }] : []),
             { icon: 'bag-handle-outline' as const, label: t('shop.title'), action: () => navigation.navigate('Shop', {}) },
             { icon: 'receipt-outline' as const, label: t('shop.myOrders'), action: () => navigation.navigate('MerchOrders') },
             { icon: 'create-outline' as const, label: t('profile.editProfile'), action: () => setEditModalVisible(true) },
@@ -261,7 +261,7 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
         </View>
 
         {/* Premium Upsell Banner */}
-        {premiumStatus && !premiumStatus.isPremium && (
+        {PREMIUM_ENABLED && premiumStatus && !premiumStatus.isPremium && (
           <TouchableOpacity
             style={styles.premiumBanner}
             onPress={() => navigation.navigate('Premium')}

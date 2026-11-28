@@ -4,7 +4,7 @@ import {
   TextInput, Alert, ActivityIndicator, Image, Clipboard, Switch,
   Animated, Linking,
 } from 'react-native';
-import { BOOKING_ENABLED } from '../../features';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../../features';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
@@ -282,7 +282,7 @@ export default function CompanySettings({
 
   const TABS: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { key: 'profile', label: t('settings.tabProfile'), icon: 'business-outline' },
-    { key: 'early-access', label: t('settings.tabEarlyAccess'), icon: 'flash-outline' },
+    ...(PREMIUM_ENABLED ? [{ key: 'early-access' as TabKey, label: t('settings.tabEarlyAccess'), icon: 'flash-outline' as const }] : []),
     { key: 'photos', label: t('settings.tabPhotos'), icon: 'camera-outline' },
     ...(BOOKING_ENABLED ? [{ key: 'widget' as TabKey, label: t('settings.tabWidget'), icon: 'code-slash-outline' as const }] : []),
     { key: 'translations', label: t('settings.tabTranslations'), icon: 'language-outline' },
@@ -431,7 +431,8 @@ export default function CompanySettings({
                 { icon: 'bag-handle-outline' as const, label: t('cmerch.title'), action: onNavigateMerch },
                 { icon: 'briefcase-outline' as const, label: t('cx.jobs.title'), action: onNavigateJobs },
                 { icon: 'wallet-outline' as const, label: t('pay.title'), action: onNavigatePayments },
-                { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: onNavigateNotifPrefs },
+                // Company push settings are only new bookings / cancellations
+                { icon: 'notifications-outline' as const, label: t('settings.notifPrefs'), action: BOOKING_ENABLED ? onNavigateNotifPrefs : undefined },
                 { icon: 'language-outline' as const, label: t('settings.language'), value: language === 'en' ? 'English' : 'Ελληνικά', action: () => setLanguage(language === 'en' ? 'el' : 'en') },
               ].filter((item) => !!item.action).map((item, i) => (
                 <TouchableOpacity key={i} style={styles.menuItem} onPress={item.action}>
@@ -733,8 +734,8 @@ export default function CompanySettings({
               </TouchableOpacity>
             </View>
 
-            {/* Go to Photos management */}
-            {onNavigatePhotos && (
+            {/* Go to Photos management (photos of completed bookings) */}
+            {BOOKING_ENABLED && onNavigatePhotos && (
               <TouchableOpacity style={styles.goToPhotosBtn} onPress={onNavigatePhotos}>
                 <Ionicons name="images-outline" size={18} color={theme.colors.redPrimary} />
                 <Text style={styles.goToPhotosBtnText}>{t('settings.goToPhotos')}</Text>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
+import { PREMIUM_ENABLED } from '../features';
 import { euro } from '../merchCart';
 import type { ProductView } from '../../convex/merch';
 
@@ -20,7 +21,7 @@ export function PriceText({ p, large }: { p: ProductView; large?: boolean }) {
   return (
     <View style={styles.priceRow}>
       <Text style={[styles.price, { fontSize: size }]}>{euro(p.priceCents)}</Text>
-      {p.premiumPriceCents !== null && (
+      {PREMIUM_ENABLED && p.premiumPriceCents !== null && (
         <Text style={styles.premiumFrom}>{t('shop.premiumFrom', { price: euro(p.premiumPriceCents) })}</Text>
       )}
     </View>
@@ -41,9 +42,9 @@ export function lockText(p: ProductView, t: (k: string, o?: any) => string, loca
 export function ProductTile({ p, onPress, showSeller = true }: { p: ProductView; onPress: () => void; showSeller?: boolean }) {
   const { t } = useTranslation();
   const badge =
-    p.release === 'early_access'
+    PREMIUM_ENABLED && p.release === 'early_access'
       ? { text: t('shop.badgeEarly'), bg: theme.colors.gold, fg: '#000' }
-      : p.premiumOnly
+      : PREMIUM_ENABLED && p.premiumOnly
       ? { text: t('shop.badgeMembers'), bg: 'rgba(0,0,0,0.75)', fg: theme.colors.gold }
       : p.unlockRule
       ? { text: p.unlockRule === 'escaped' ? t('shop.badgeEscaped') : t('shop.badgePlayed'), bg: 'rgba(0,0,0,0.75)', fg: '#CE93D8' }

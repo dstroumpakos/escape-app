@@ -10,6 +10,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useUser } from '../../UserContext';
 import { useTranslation } from '../../i18n';
+import { PREMIUM_ENABLED } from '../../features';
 import { euro, useCart } from '../../merchCart';
 import { CartButton, PriceText, ScreenHeader, lockText, shopStyles } from '../../components/shop';
 import { PrimaryButton } from '../../components/ui';
@@ -98,8 +99,8 @@ export default function ProductScreen() {
           <View>
             <Text style={styles.title}>{p.title}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {p.release === 'early_access' && <Text style={[styles.tag, { backgroundColor: theme.colors.gold, color: '#000' }]}>{t('shop.badgeEarly')}</Text>}
-              {p.premiumOnly && <Text style={[styles.tag, { borderColor: theme.colors.gold, color: theme.colors.gold }]}>{t('shop.badgeMembers')}</Text>}
+              {PREMIUM_ENABLED && p.release === 'early_access' && <Text style={[styles.tag, { backgroundColor: theme.colors.gold, color: '#000' }]}>{t('shop.badgeEarly')}</Text>}
+              {PREMIUM_ENABLED && p.premiumOnly && <Text style={[styles.tag, { borderColor: theme.colors.gold, color: theme.colors.gold }]}>{t('shop.badgeMembers')}</Text>}
               {p.unlockRule && (
                 <Text style={[styles.tag, { borderColor: '#CE93D8', color: '#CE93D8' }]}>
                   {p.unlockRule === 'escaped' ? t('shop.badgeEscaped') : t('shop.badgePlayed')}
@@ -133,7 +134,7 @@ export default function ProductScreen() {
           {lock ? (
             <View style={shopStyles.card}>
               <Text style={shopStyles.muted}>{lock}</Text>
-              {p.locked === 'premium_only' && (
+              {PREMIUM_ENABLED && p.locked === 'premium_only' && (
                 <PrimaryButton small label={t('shop.seePremium')} onPress={() => navigation.navigate('Premium')} style={{ marginTop: 12 }} />
               )}
               {(p.locked === 'unlock_played' || p.locked === 'unlock_escaped') && p.unlockRoomId && (
@@ -171,7 +172,7 @@ export default function ProductScreen() {
               <Text style={shopStyles.muted}>
                 <Ionicons name="cube-outline" size={13} />{' '}
                 {p.seller === 'platform'
-                  ? data.perks.isPremium
+                  ? PREMIUM_ENABLED && data.perks.isPremium
                     ? t('shop.shipOfficialFree')
                     : t('shop.shipOfficial')
                   : p.shippingCents

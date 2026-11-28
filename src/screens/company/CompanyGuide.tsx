@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { SUPPORT_EMAIL } from './companyFlags';
-import { BOOKING_ENABLED, PASSPORT_ENABLED } from '../../features';
+import { BOOKING_ENABLED, PASSPORT_ENABLED, PREMIUM_ENABLED } from '../../features';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Color = 'red' | 'green' | 'amber' | 'blue' | 'purple' | 'gray';
@@ -123,7 +123,7 @@ function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
         <Card>
           <View style={{ gap: 14 }}>
             <Step n={1} title={g('Αποδοχή όρων', 'Accept the terms')} desc={g('Αποδεχτείτε τους όρους χρήσης και την πολιτική απορρήτου.', 'Accept the terms of service and the privacy policy.')} />
-            <Step n={2} title={g('Επιβεβαίωση', 'Confirm')} desc={g('Πατήστε «Συνέχεια». Για πακέτα και τιμές θα επικοινωνήσουμε μαζί σας.', 'Tap "Continue". We will get in touch about packages and prices.')} />
+            <Step n={2} title={g('Επιβεβαίωση', 'Confirm')} desc={g('Πατήστε «Συνέχεια». Η καταχώρηση των δωματίων σας είναι δωρεάν.', 'Tap "Continue". Listing your rooms is free.')} />
             <Step n={3} title={g('Έλεγχος στοιχείων', 'Account review')} desc={g('Ελέγχουμε τα στοιχεία σας, συνήθως μέσα σε 1 με 2 εργάσιμες. Θα λάβετε email μόλις εγκριθεί ο λογαριασμός σας.', 'We check your details, usually within 1 to 2 working days. You get an email as soon as your account is approved.')} />
             <Step n={4} title={g('Λίστα εκκίνησης', 'Getting-started checklist')} desc={g('Στον πίνακα ελέγχου μια σύντομη λίστα σας οδηγεί: προφίλ εταιρείας, πρώτο δωμάτιο και φωτογραφία δωματίου.', 'On your dashboard a short checklist walks you through it: company profile, first room and a room photo.')} />
           </View>
@@ -176,6 +176,7 @@ function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
         <P>{g('Από τις Ρυθμίσεις → Φωτογραφίες ανεβάζετε φωτογραφίες ομάδων, βάζετε το branding σας και τις στέλνετε στους παίκτες με email.', 'From Settings → Photos you upload team photos, add your branding and email them to the players.')}</P>
       </Section>
 
+      {PREMIUM_ENABLED && (
       <Section icon="sparkles-outline" title={g('Πρόγραμμα Early Access', 'Early Access Partner Program')}>
         <P>{g('Ενταχθείτε από τις Ρυθμίσεις → Early Access. Ως Early Access Partner:', 'Join from Settings → Early Access. As an Early Access Partner:')}</P>
         <Card>
@@ -187,6 +188,7 @@ function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
           ]} />
         </Card>
       </Section>
+      )}
     </>
   );
 }

@@ -311,7 +311,7 @@ export default function CompanyOnboarding({ companyId, onComplete, onLogout }: P
               <View style={styles.checkRow}>
                 <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
                 <Text style={styles.checkText}>
-                  {company.platformPlan === 'listing'
+                  {!BOOKING_ENABLED || company.platformPlan === 'listing'
                     ? t('onboarding.checkFreeListing')
                     : t('onboarding.checkPlan', { plan: t(`plan.${asPlanId(company.platformPlan)}`) })}
                 </Text>

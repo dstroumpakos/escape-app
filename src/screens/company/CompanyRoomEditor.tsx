@@ -15,6 +15,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import type { Id } from '../../../convex/_generated/dataModel';
 import { useTranslation } from '../../i18n';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../../features';
 import { ROOM_THEME_KEYS } from '../../roomThemes';
 import { CATEGORIES, SUBTHEMES, MAX_SUBTHEMES, sideOfCategory, cleanSubthemes, legacyTheme, categoryOf, subthemesOf, type Category } from '../../mode';
 
@@ -107,6 +108,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
   const [isSubOnly, setIsSubOnly] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
   const [releaseDate, setReleaseDate] = useState('');
+  const [bookingUrl, setBookingUrl] = useState('');
   const [bookingMode, setBookingMode] = useState<'unlocked_primary' | 'external_primary'>('unlocked_primary');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -302,6 +304,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
       setIsSubOnly(existingRoom.isSubscriptionOnly || false);
       setIsFeatured((existingRoom as any).isFeatured || false);
       setReleaseDate((existingRoom as any).releaseDate || '');
+      setBookingUrl((existingRoom as any).bookingUrl || '');
       setBookingMode((existingRoom as any).bookingMode || 'unlocked_primary');
       if ((existingRoom as any).latitude) setLatitude((existingRoom as any).latitude);
       if ((existingRoom as any).longitude) setLongitude((existingRoom as any).longitude);
@@ -406,6 +409,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           isFeatured: canFeature ? isFeatured : undefined,
           bookingMode,
           releaseDate: releaseDate.trim() || undefined,
+          bookingUrl: bookingUrl.trim(),
           ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
           ...(groupPricing.length > 0 ? { pricePerGroup: groupPricing } : {}),
           operatingDays,
@@ -440,6 +444,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           isSubscriptionOnly: isSubOnly,
           bookingMode,
           releaseDate: releaseDate.trim() || undefined,
+          bookingUrl: bookingUrl.trim() || undefined,
           ...(latitude != null && longitude != null ? { latitude, longitude } : {}),
           ...(groupPricing.length > 0 ? { pricePerGroup: groupPricing } : {}),
           operatingDays,
@@ -785,6 +790,28 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           ))}
         </View>
 
+        {/* Booking link: players book on the company's own site while UNLOCKED's booking is off */}
+        {!BOOKING_ENABLED && (
+          <>
+            <Text style={styles.sectionTitle}>{t('roomEditor.bookingLinkTitle')}</Text>
+            <View style={styles.card}>
+              <Text style={styles.fieldLabel}>{t('roomEditor.bookingLinkLabel')}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://"
+                placeholderTextColor={theme.colors.textMuted}
+                value={bookingUrl}
+                onChangeText={setBookingUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+              />
+              <Text style={[styles.payDesc, { marginTop: 8 }]}>{t('roomEditor.bookingLinkHint')}</Text>
+            </View>
+          </>
+        )}
+
+        {BOOKING_ENABLED && (<>
         {/* ─── Availability ─── */}
         <Text style={styles.sectionTitle}>{t('roomEditor.operatingDays')}</Text>
         <View style={styles.card}>
@@ -1045,6 +1072,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             </View>
           )}
         </View>
+        </>)}
 
         {/* Terms of Use */}
         <Text style={styles.sectionTitle}>{t('roomEditor.termsOfUse')}</Text>
@@ -1105,6 +1133,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           )}
         </View>
 
+        {BOOKING_ENABLED && (<>
         {/* Booking Mode */}
         <Text style={styles.sectionTitle}>{t('roomEditor.bookingMode')}</Text>
         <View style={styles.card}>
@@ -1141,6 +1170,9 @@ export default function CompanyRoomEditor({ companyId }: Props) {
           </TouchableOpacity>
         </View>
 
+        </>)}
+
+        {PREMIUM_ENABLED && (<>
         {/* Subscription Toggle */}
         <Text style={styles.sectionTitle}>{t('roomEditor.subscriptionAccess')}</Text>
         <View style={styles.card}>
@@ -1200,6 +1232,7 @@ export default function CompanyRoomEditor({ companyId }: Props) {
             return null;
           })()}
         </View>
+        </>)}
 
         {/* ═══════ Photo Branding ═══════ */}
         <TouchableOpacity

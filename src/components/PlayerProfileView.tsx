@@ -14,7 +14,7 @@ import { useTranslation } from '../i18n';
 import { useUser } from '../UserContext';
 import CreatePostModal from '../screens/CreatePostModal';
 import { ShareSheet } from './ShareSheet';
-import { FOLLOW_ENABLED } from '../features';
+import { FOLLOW_ENABLED, PREMIUM_ENABLED } from '../features';
 
 /**
  * A player's profile, Instagram + Facebook style (convex/social.ts): cover and
@@ -143,7 +143,7 @@ export function PlayerProfileView({ userId, onEditBasics }: { userId: string; on
         </View>
 
         <Text style={styles.name}>
-          {profile.name} {profile.isPremium ? <Ionicons name="diamond" size={16} color={theme.colors.gold} /> : null}
+          {profile.name} {PREMIUM_ENABLED && profile.isPremium ? <Ionicons name="diamond" size={16} color={theme.colors.gold} /> : null}
         </Text>
         {!!rank && <Text style={styles.rank}>{rank}</Text>}
 

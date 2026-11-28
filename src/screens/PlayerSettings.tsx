@@ -17,6 +17,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 import { theme } from '../theme';
 import { useUser } from '../UserContext';
 import { useTranslation } from '../i18n';
+import { PREMIUM_ENABLED } from '../features';
 import EditProfileModal from './EditProfileModal';
 import { ConfirmDeleteModal } from '../components/PasswordModals';
 import { clearAllTokens } from '../secureTokens';
@@ -164,6 +165,7 @@ export default function PlayerSettings() {
             <Ionicons name="shield-checkmark-outline" size={18} color={theme.colors.success} />
             <Text style={styles.infoText}>{t('playerSettings.paymentsInfo')}</Text>
           </View>
+          {PREMIUM_ENABLED && (<>
           <Row
             icon="diamond-outline"
             label="UNLOCKED Premium"
@@ -172,6 +174,7 @@ export default function PlayerSettings() {
           />
           <Row icon="card-outline" label={t('playerSettings.manageSubscription')} onPress={() => open(MANAGE_SUBSCRIPTIONS_URL)} />
           <Row icon="refresh-outline" label={t('playerSettings.restorePurchases')} onPress={() => navigation.navigate('Premium')} last />
+          </>)}
         </Section>
 
         {/* Privacy & legal */}

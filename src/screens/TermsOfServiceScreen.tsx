@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../theme';
 import { useTranslation } from '../i18n';
+import { PREMIUM_ENABLED } from '../features';
 
 const SECTIONS = [
   { titleKey: 'tos.section1Title', bodyKey: 'tos.section1Body' },
@@ -37,9 +38,10 @@ export default function TermsOfServiceScreen() {
         <Text style={styles.lastUpdated}>{t('tos.lastUpdated')}</Text>
         <Text style={styles.intro}>{t('tos.intro')}</Text>
 
-        {SECTIONS.map((section, i) => (
+        {/* No subscriptions section while Premium is off; sections are renumbered */}
+        {SECTIONS.filter((s) => PREMIUM_ENABLED || s.titleKey !== 'tos.section5Title').map((section, i) => (
           <View key={i} style={styles.section}>
-            <Text style={styles.sectionTitle}>{t(section.titleKey)}</Text>
+            <Text style={styles.sectionTitle}>{`${i + 1}. ${t(section.titleKey).replace(/^\d+\.\s*/, '')}`}</Text>
             <Text style={styles.sectionBody}>{t(section.bodyKey)}</Text>
           </View>
         ))}

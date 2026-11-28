@@ -12,6 +12,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 import type { SellerOrderView } from '../../../convex/merch';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
+import { BOOKING_ENABLED, PREMIUM_ENABLED } from '../../features';
 import { euro } from '../../merchCart';
 import { STATUS_COLORS } from '../../components/shop';
 
@@ -339,7 +340,7 @@ export default function CompanyMerch({ companyId, onBack, onEditItem, onNavigate
                     <View style={styles.rowWrap}>
                       <Text style={[styles.tag, p.status === 'active' ? styles.tagLive : null]}>{t(`cmerch.status_${p.status}`)}</Text>
                       {p.hiddenByAdmin && <Text style={[styles.tag, { color: '#FF8A80' }]}>{t('cmerch.hiddenByAdmin')}</Text>}
-                      {p.premiumOnly && <Text style={[styles.tag, { color: theme.colors.gold }]}>{t('shop.badgeMembers')}</Text>}
+                      {PREMIUM_ENABLED && p.premiumOnly && <Text style={[styles.tag, { color: theme.colors.gold }]}>{t('shop.badgeMembers')}</Text>}
                       {p.unlockRoomId && <Text style={[styles.tag, { color: '#CE93D8' }]}>{t('cmerch.unlockFor', { room: roomTitle(p.unlockRoomId) })}</Text>}
                     </View>
                     <Text style={styles.muted}>
@@ -374,6 +375,7 @@ export default function CompanyMerch({ companyId, onBack, onEditItem, onNavigate
         {tab === 'settings' && settings && (
           <>
             <View style={styles.card}>
+              {PREMIUM_ENABLED && (<>
               <View style={styles.cardTitleRow}>
                 <Ionicons name="diamond-outline" size={18} color={theme.colors.gold} />
                 <Text style={styles.cardTitle}>{t('cmerch.premiumDiscount')}</Text>
@@ -388,8 +390,9 @@ export default function CompanyMerch({ companyId, onBack, onEditItem, onNavigate
                   <Ionicons name="add" size={18} color={theme.colors.bone} />
                 </TouchableOpacity>
               </View>
+              </>)}
 
-              <Text style={[styles.label, { marginTop: 18 }]}>{t('cmerch.pickupNote')}</Text>
+              <Text style={[styles.label, { marginTop: PREMIUM_ENABLED ? 18 : 0 }]}>{t('cmerch.pickupNote')}</Text>
               <TextInput
                 style={styles.input}
                 value={pickupNote}
@@ -420,11 +423,13 @@ export default function CompanyMerch({ companyId, onBack, onEditItem, onNavigate
             </View>
 
             <View style={styles.card}>
+              {BOOKING_ENABLED && (<>
               <Text style={styles.cardTitle}>{t('cmerch.feesTitle')}</Text>
               <Text style={[styles.hint, { marginTop: 8 }]}>{settings.plan === 'unlimited' ? t('cmerch.feesUnlimited') : t('cmerch.feesPayg')}</Text>
               {settings.plan !== 'unlimited' && summary && (
                 <Text style={styles.hint}>{t('cmerch.feesMonth', { fee: euro(summary.monthFeeCents), sales: euro(summary.monthSalesCents) })}</Text>
               )}
+              </>)}
               <Text style={styles.hint}>{t('cmerch.sellerDuties')}</Text>
             </View>
           </>

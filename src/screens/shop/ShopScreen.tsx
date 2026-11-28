@@ -10,6 +10,7 @@ import { theme } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useUser } from '../../UserContext';
 import { useTranslation } from '../../i18n';
+import { PREMIUM_ENABLED } from '../../features';
 import { useCart } from '../../merchCart';
 import { CartButton, ProductTile, ScreenHeader, shopStyles } from '../../components/shop';
 import type { ProductView } from '../../../convex/merch';
@@ -55,6 +56,7 @@ export default function ShopScreen() {
     const needle = q.trim().toLowerCase();
     return products.filter(
       (p) =>
+        (PREMIUM_ENABLED || !p.premiumOnly) &&
         (seller === 'all' || p.seller === seller) &&
         (!needle || p.title.toLowerCase().includes(needle) || p.sellerName.toLowerCase().includes(needle))
     );
@@ -87,7 +89,7 @@ export default function ShopScreen() {
                 <Ionicons name="location-outline" size={13} /> {[store.company.address, store.company.city].filter(Boolean).join(', ')}
               </Text>
             )}
-            {store.company.premiumDiscountPercent > 0 && (
+            {PREMIUM_ENABLED && store.company.premiumDiscountPercent > 0 && (
               <Text style={[shopStyles.muted, { color: theme.colors.gold, marginTop: 6 }]}>
                 {t('shop.storeDiscount', { pct: store.company.premiumDiscountPercent })}
               </Text>
@@ -96,7 +98,7 @@ export default function ShopScreen() {
           </View>
         )}
 
-        {perks && (
+        {PREMIUM_ENABLED && perks && (
           <TouchableOpacity style={[shopStyles.card, styles.perks]} onPress={() => navigation.navigate('Premium')} activeOpacity={0.85}>
             <Ionicons name="diamond" size={22} color={theme.colors.gold} />
             <View style={{ flex: 1 }}>
