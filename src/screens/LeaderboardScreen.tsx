@@ -11,6 +11,7 @@ import { useUser } from '../UserContext';
 import { ROOM_THEME_KEYS } from '../roomThemes';
 import { FadeUp } from '../components/motion';
 import { TypeLabel } from '../components/ui';
+import { PASSPORT_ENABLED } from '../features';
 
 type Tab = 'players' | 'rooms' | 'badges';
 type Period = 'all' | 'month';
@@ -178,7 +179,7 @@ export default function LeaderboardScreen() {
       <Text style={styles.sectionTitle}>{t('lb.how_title')}</Text>
       <Text style={styles.subtitle}>{t('lb.how_sub')}</Text>
       <View style={{ gap: 8 }}>
-        {SCORE_RULES.map((r) => (
+        {SCORE_RULES.filter((r) => PASSPORT_ENABLED || (r.key !== 'lb.rule_game' && r.key !== 'lb.rule_escape')).map((r) => (
           <View key={r.key} style={styles.rule}>
             <View style={styles.rulePts}>
               <Text style={styles.rulePtsText}>+{r.pts}</Text>
@@ -189,7 +190,7 @@ export default function LeaderboardScreen() {
         ))}
       </View>
       <View style={styles.notes}>
-        <Text style={styles.note}>• {t('lb.note_manual')}</Text>
+        {PASSPORT_ENABLED && <Text style={styles.note}>• {t('lb.note_manual')}</Text>}
         <Text style={styles.note}>• {t('lb.note_refresh')}</Text>
       </View>
     </View>
