@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../theme';
@@ -10,6 +10,7 @@ import { ROOM_THEME_KEYS } from '../roomThemes';
 import { subthemesOf } from '../mode';
 import { DifficultySkulls } from './ui';
 import { shownRating, formatRating } from '../roomMedia';
+import { FitImage } from './FitImage';
 
 /** Tag colour per stored theme value; anything else gets the neutral tag. */
 const THEME_COLORS: Record<string, string> = {
@@ -56,7 +57,8 @@ function RoomImage({ uri, iconSize }: { uri?: string; iconSize: number }) {
   }
   return (
     <>
-      <Image source={{ uri }} style={styles.fill} onError={() => setFailed(true)} />
+      {/* The whole poster, with a blurred copy around it (FitImage) */}
+      <FitImage uri={uri} onError={() => setFailed(true)} />
       {/* Darken and stain the photo so every room sits in the same gloom */}
       <View style={[styles.fill, styles.imgTint]} />
     </>

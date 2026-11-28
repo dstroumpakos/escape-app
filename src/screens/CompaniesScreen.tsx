@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { FitImage } from '../components/FitImage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,7 +65,9 @@ export default function CompaniesScreen({ embedded = false }: { embedded?: boole
                 {c.rooms.map((r) => (
                   <TouchableOpacity key={r._id} style={{ width: 140 }} activeOpacity={0.85} onPress={() => navigation.navigate('RoomDetails', { id: r._id })}>
                     {r.image ? (
-                      <Image source={{ uri: r.image }} style={styles.thumb} />
+                      <View style={styles.thumb}>
+                        <FitImage uri={r.image} />
+                      </View>
                     ) : (
                       <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center' }]}>
                         <Ionicons name="key-outline" size={22} color={theme.colors.redLight} />
@@ -100,7 +103,7 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   name: { fontFamily: theme.fonts.display, fontSize: 17, color: theme.colors.bone },
   meta: { color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 },
-  thumb: { width: 140, height: 100, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.4)' },
+  thumb: { width: 140, height: 100, borderRadius: 10, overflow: 'hidden', backgroundColor: 'rgba(0,0,0,0.4)' },
   roomTitle: { color: theme.colors.bone, fontSize: 12, fontWeight: '600', marginTop: 6 },
   profileBtn: { marginTop: 12, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.glass, borderWidth: 1, borderColor: theme.colors.glassBorder },
   profileBtnText: { color: theme.colors.bone, fontWeight: '700', fontSize: 13 },

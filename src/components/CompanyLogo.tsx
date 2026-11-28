@@ -14,7 +14,8 @@ export function CompanyLogo({ name, logo, size }: { name: string; logo: string; 
       }}
     >
       {ok ? (
-        <Image source={{ uri: logo }} style={{ width: '100%', height: '100%' }} />
+        // The whole logo, never cropped (logos are often wide)
+        <Image source={{ uri: logo }} style={{ width: '86%', height: '86%' }} resizeMode="contain" />
       ) : (
         <Text style={{ fontFamily: theme.fonts.display, fontSize: size * 0.42, color: theme.colors.redLight }}>
           {(name || '?').charAt(0).toUpperCase()}
