@@ -132,7 +132,13 @@ export default function HomeScreen() {
     })();
   }, []);
 
-  const featured = onThisSide((featuredRooms ?? []) as any[]).map((r: any) => ({ ...r, id: r._id }));
+  // Paid promotions (convex/promo.ts) show on both sides; the rest only on this side
+  const featured = (() => {
+    const now = Date.now();
+    const all = (featuredRooms ?? []) as any[];
+    const promoted = (r: any) => typeof r.promoUntil === 'number' && r.promoUntil > now;
+    return [...all.filter(promoted), ...onThisSide(all.filter((r) => !promoted(r)))].map((r: any) => ({ ...r, id: r._id }));
+  })();
 
   // Near You: rooms that have coordinates, sorted by distance from user
   const nearYou = React.useMemo(() => {

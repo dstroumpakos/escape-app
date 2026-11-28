@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { requireAdminSession } from "./adminSession";
+import { sideOf } from "./roomCategories";
 
 // Paid promotion of rooms. The company pays the UNLOCKED team (outside the
 // site); the team then turns the promotion on in admin > Promo with an end
@@ -34,6 +35,8 @@ export const adminList = query({
         location: r.location,
         companyName: r.companyId ? names.get(r.companyId as string) ?? "" : "",
         isActive: r.isActive !== false,
+        // Horror or puzzles: admin > Promo shows the two apart
+        side: sideOf(r),
         promoUntil: r.promoUntil ?? null,
         promoSince: r.promoSince ?? null,
         promoNote: r.promoNote ?? "",
