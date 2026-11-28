@@ -74,59 +74,20 @@ export function FadeUp({
   );
 }
 
-/** A dying fluorescent tube: mostly on, with sudden drops. */
+/**
+ * Used to be a dying fluorescent tube. The blinking read as the screen
+ * flickering, so the text now stays steady; the props are kept for callers.
+ */
 export function Flicker({
   children,
-  period = 5000,
-  delay = 0,
   style,
 }: {
   children: React.ReactNode;
-  /** Length of one full cycle in ms. */
   period?: number;
   delay?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const reduced = useReducedMotion();
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (reduced) {
-      opacity.setValue(1);
-      return;
-    }
-    // Same shape as the website's `flicker` keyframes, as [opacity, share of the cycle]
-    const steps: [number, number][] = [
-      [1, 0.18],
-      [0.25, 0.02],
-      [0.8, 0.01],
-      [1, 0.01],
-      [0.25, 0.02],
-      [1, 0.01],
-      [1, 0.28],
-      [0.25, 0.02],
-      [0.55, 0.01],
-      [1, 0.01],
-      [1, 0.43],
-    ];
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        ...steps.map(([toValue, share]) =>
-          Animated.timing(opacity, {
-            toValue,
-            duration: Math.max(16, share * period),
-            easing: Easing.linear,
-            useNativeDriver: true,
-          }),
-        ),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [reduced, period, delay]);
-
-  return <Animated.View style={[style, { opacity }]}>{children}</Animated.View>;
+  return <View style={style}>{children}</View>;
 }
 
 /** Two quick beats, then a rest. Wrap the thing that should feel alive. */
