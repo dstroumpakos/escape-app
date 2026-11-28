@@ -1,4 +1,5 @@
 import React from 'react';
+import { PASSPORT_ENABLED } from '../../features';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCompanyQuery } from '../../companySession';
@@ -31,7 +32,7 @@ export function CompanyStatsCard({ companyId }: { companyId: string }) {
     { icon: 'eye-outline', label: t('st.views'), value: data.views, extra: delta(data.views, data.viewsBefore) },
     { icon: 'open-outline', label: t('st.clicks'), value: data.clicks, extra: delta(data.clicks, data.clicksBefore) },
     { icon: 'people-outline', label: t('st.followers'), value: data.followers, extra: data.newFollowers > 0 ? <Text style={styles.small}>{t('st.newN', { n: data.newFollowers })}</Text> : null },
-    { icon: 'ribbon-outline', label: t('st.stamps'), value: data.stamps },
+    ...(PASSPORT_ENABLED ? [{ icon: 'ribbon-outline', label: t('st.stamps'), value: data.stamps }] : []),
     { icon: 'star-outline', label: t('st.rating'), value: data.reviews ? data.rating.toFixed(1) : '–', extra: <Text style={styles.small}>{t('st.reviewsN', { n: data.reviews })}</Text> },
   ];
 
@@ -75,7 +76,7 @@ export function CompanyStatsCard({ companyId }: { companyId: string }) {
           <Text style={styles.roomTitle} numberOfLines={1}>{r.title || '—'}</Text>
           <Text style={styles.roomNum}><Ionicons name="eye-outline" size={11} /> {r.views}</Text>
           <Text style={styles.roomNum}><Ionicons name="open-outline" size={11} /> {r.clicks}</Text>
-          <Text style={styles.roomNum}><Ionicons name="ribbon-outline" size={11} /> {r.stamps}</Text>
+          {PASSPORT_ENABLED && <Text style={styles.roomNum}><Ionicons name="ribbon-outline" size={11} /> {r.stamps}</Text>}
         </View>
       ))}
     </View>

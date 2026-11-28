@@ -21,7 +21,7 @@ import { CompanyStatsCard } from './CompanyStatsCard';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 import { PLAN_STYLE, asPlanId } from './platformPlans';
-import { BOOKING_ENABLED } from '../../features';
+import { BOOKING_ENABLED, PASSPORT_ENABLED } from '../../features';
 
 interface Props {
   companyId: string;
@@ -130,7 +130,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
         <CompanyStatsCard companyId={companyId} />
 
         {/* End of game: QR for the players' passport stamps */}
-        <TouchableOpacity
+        {PASSPORT_ENABLED && <TouchableOpacity
           onPress={() => navigation.navigate('CompanyPassport' as any)}
           activeOpacity={0.85}
           style={{ marginHorizontal: 20, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 14, backgroundColor: 'rgba(200,16,27,0.12)', borderWidth: 1, borderColor: 'rgba(200,16,27,0.4)' }}
@@ -141,7 +141,7 @@ export default function CompanyDashboard({ companyId, onSwitchToPlayer }: Props)
             <Text style={{ color: theme.colors.textSecondary, fontSize: 12, marginTop: 2 }}>{t('cpp.cardDesc')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         <MerchDashboardCard companyId={companyId} onOpen={() => navigation.navigate('CompanyMerch', { companyId })} />
 

@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useTranslation } from '../../i18n';
 import { SUPPORT_EMAIL } from './companyFlags';
-import { BOOKING_ENABLED } from '../../features';
+import { BOOKING_ENABLED, PASSPORT_ENABLED } from '../../features';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Color = 'red' | 'green' | 'amber' | 'blue' | 'purple' | 'gray';
@@ -141,6 +141,7 @@ function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
         </Card>
       </Section>
 
+      {PASSPORT_ENABLED && (
       <Section icon="ribbon-outline" title={g('Σφραγίδες QR', 'QR Stamps')}>
         <P>{g('Στο τέλος κάθε παιχνιδιού δίνετε στην ομάδα τη σφραγίδα του δωματίου σας για το UNLOCKED διαβατήριό τους.', 'At the end of every game you give the team your room\'s stamp for their UNLOCKED passport.')}</P>
         <Card title={g('Βήματα', 'Steps')}>
@@ -158,6 +159,7 @@ function AdvertSections({ g }: { g: (el: string, en: string) => string }) {
           ]} />
         </Card>
       </Section>
+      )}
 
       <Section icon="bag-handle-outline" title={g('Merch', 'Merch')}>
         <P>{g('Από τις Ρυθμίσεις → Merch ανεβάζετε προϊόντα των δωματίων σας στο κατάστημα του UNLOCKED. Εσείς είστε ο πωλητής.', 'From Settings → Merch you add products of your rooms to the UNLOCKED shop. You are the seller.')}</P>

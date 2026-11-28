@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PASSPORT_ENABLED } from '../features';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -127,7 +128,7 @@ export default function ProfileScreen({ onSwitchToCompany, mode = 'profile' }: P
             <Text style={[styles.screenTitle, mode === 'more' && { flex: 1, marginLeft: 12 }]}>
               {mode === 'more' ? t('profile.moreTitle') : t('profile.title')}
             </Text>
-            {mode === 'profile' && (
+            {mode === 'profile' && PASSPORT_ENABLED && (
               <TouchableOpacity
                 style={[styles.settingsBtn, { marginLeft: 'auto', marginRight: 8 }]}
                 onPress={() => navigation.navigate('PassportTab' as any)}

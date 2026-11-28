@@ -23,7 +23,7 @@ import { UserProvider } from './src/UserContext';
 import { LanguageProvider, useTranslation } from './src/i18n';
 import { addNotificationResponseListener } from './src/notifications';
 import { syncPlayerPush, syncCompanyPush, unregisterPush } from './src/pushRegistration';
-import { BOOKING_ENABLED } from './src/features';
+import { BOOKING_ENABLED, PASSPORT_ENABLED } from './src/features';
 import { useNotificationWatcher } from './src/useNotificationWatcher';
 import { ErrorBoundary } from './src/ErrorBoundary';
 import { initCrashReporting, setUser as setCrashUser } from './src/crashReporting';
@@ -199,15 +199,17 @@ function MainTabs({ onSwitchToCompany }: { onSwitchToCompany: () => void }) {
         My Passport sits in the middle: stamps, the QR scanner, rooms played and the tower.
         Note: with BOOKING_ENABLED the bar has 6 tabs and iOS folds the last one into "More".
       */}
-      <Tab.Screen
-        name="PassportTab"
-        options={{
-          tabBarLabel: t('tabs.passport'),
-          tabBarIcon: tabIcon('book.closed.fill', 'book'),
-        }}
-      >
-        {() => <PassportScreen embedded />}
-      </Tab.Screen>
+      {PASSPORT_ENABLED && (
+        <Tab.Screen
+          name="PassportTab"
+          options={{
+            tabBarLabel: t('tabs.passport'),
+            tabBarIcon: tabIcon('book.closed.fill', 'book'),
+          }}
+        >
+          {() => <PassportScreen embedded />}
+        </Tab.Screen>
+      )}
       <Tab.Screen
         name="Social"
         component={SocialScreen}
@@ -284,6 +286,8 @@ export default function App() {
       const data: any = response.notification.request.content.data || {};
       // Company pushes: the business app shows its own bookings.
       if (typeof data.type === 'string' && data.type.startsWith('company_')) return;
+      // Passport hidden (src/features.ts): its pushes just open the app
+      if (!PASSPORT_ENABLED && ['passport', 'plays', 'vouch', 'plays_teammate'].includes(data.kind)) return;
       if (data.kind === 'passport') {
         nav.navigate('Passport');
         return;
